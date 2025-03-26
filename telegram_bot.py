@@ -4,8 +4,10 @@ import requests
 import openai
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
+from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
+from telegram.update import Update
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 
 # Load environment variables
 load_dotenv()
@@ -29,12 +31,17 @@ openai.api_key = OPENAI_API_KEY
 # User sessions storage
 user_sessions = {}
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: CallbackContext):
     """Start command handler - displays welcome message and initial options"""
     keyboard = [[InlineKeyboardButton("🔍 Поиск туров", callback_data="search_tours")]]
-    await update.message.reply_text("Добро пожаловать в Crystal Bay Travel! 🏖️", reply_markup=InlineKeyboardMarkup(keyboard))
+    # Use send_message instead of await update.message.reply_text for version 13
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, 
+        text="Добро пожаловать в Crystal Bay Travel! 🏖️", 
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def callback_handler(update: Update, context: CallbackContext):
     """Handle callback queries from inline keyboards"""
     query = update.callback_query
     await query.answer()  # Answer the callback query to stop the loading animation
@@ -253,7 +260,7 @@ async def initiate_booking(query, tour_id):
     # Set next expected input
     user_sessions[user_id]["booking_stage"] = "name"
 
-async def process_booking_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def process_booking_input(update: Update, context: CallbackContext):
     """Process booking information from user"""
     user_id = update.effective_user.id
     message_text = update.message.text
@@ -369,7 +376,7 @@ def format_tour_details(tour):
     
     return tour_info
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def help_command(update: Update, context: CallbackContext):
     """Send help information"""
     help_text = (
         "🌴 *Crystal Bay Travel Bot* 🌴\n\n"
