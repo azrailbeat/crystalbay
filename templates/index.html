@@ -35,8 +35,14 @@
                         <h2 class="card-title mb-0">Статус бота</h2>
                     </div>
                     <div class="card-body">
-                        {% if bot_status == "ready" %}
+                        {% if bot_status == "running" %}
                             <div class="alert alert-success">
+                                <h4>Бот запущен</h4>
+                                <p>Бот Crystal Bay Travel успешно работает.</p>
+                                <a href="/bot_logs" class="btn btn-info">Просмотреть логи</a>
+                            </div>
+                        {% elif bot_status == "ready" %}
+                            <div class="alert alert-info">
                                 <h4>Бот готов к запуску</h4>
                                 <p>Все необходимые ключи API настроены.</p>
                                 <form action="/start_bot" method="post">

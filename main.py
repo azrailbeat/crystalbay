@@ -41,14 +41,27 @@ def start_bot_process():
         logger.info("Bot process already running")
         return True
 
+# Auto-start bot function - will be called during app initialization
+def auto_start_bot():
+    """Automatically start the bot when the application starts"""
+    # Check if all required environment variables are present
+    required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY"]
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    if not missing_vars:
+        start_bot_process()
+
 @app.route('/')
 def home():
     """Render the home page"""
+    # First, try to start the bot automatically
+    auto_start_bot()
+    
     # Check if required environment variables are set
     required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
-    bot_status = "ready" if not missing_vars else "missing_env"
+    bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
     
     return render_template('index.html', 
                           bot_status=bot_status, 
@@ -66,5 +79,8 @@ def bot_logs():
     # This is a placeholder. In a real implementation, you'd read from a log file
     return render_template('logs.html', logs="Bot logs will appear here")
 
+# Initialize the app
 if __name__ == '__main__':
+    # Start the bot immediately before the app starts
+    auto_start_bot()
     app.run(host='0.0.0.0', port=5000, debug=True)
