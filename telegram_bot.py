@@ -4,9 +4,7 @@ import requests
 import openai
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
-from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
-from telegram.update import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 
 # Load environment variables
@@ -31,11 +29,11 @@ openai.api_key = OPENAI_API_KEY
 # User sessions storage
 user_sessions = {}
 
-async def start(update: Update, context: CallbackContext):
+def start(update: Update, context: CallbackContext):
     """Start command handler - displays welcome message and initial options"""
     keyboard = [[InlineKeyboardButton("🔍 Поиск туров", callback_data="search_tours")]]
-    # Use send_message instead of await update.message.reply_text for version 13
-    await context.bot.send_message(
+    # Use send_message for version 13
+    context.bot.send_message(
         chat_id=update.effective_chat.id, 
         text="Добро пожаловать в Crystal Bay Travel! 🏖️", 
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -395,7 +393,7 @@ async def help_command(update: Update, context: CallbackContext):
     
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
-async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cancel_command(update: Update, context: CallbackContext):
     """Cancel current operation and clean up user session"""
     user_id = update.effective_user.id
     
@@ -406,7 +404,7 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Действие отменено. Для начала нового поиска отправьте команду /start"
     )
 
-async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_text_message(update: Update, context: CallbackContext):
     """Handle text messages that could be part of booking process or general queries"""
     user_id = update.effective_user.id
     
@@ -462,19 +460,21 @@ def main():
         logger.error("TELEGRAM_BOT_TOKEN environment variable not set!")
         return
     
-    # Create application
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    # Create updater
+    updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
     
     # Add handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("cancel", cancel_command))
-    application.add_handler(CallbackQueryHandler(callback_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("cancel", cancel_command))
+    dispatcher.add_handler(CallbackQueryHandler(callback_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text_message))
     
     # Start the Bot
     logger.info("Bot is running...")
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
