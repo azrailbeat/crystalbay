@@ -39,10 +39,10 @@ def start(update: Update, context: CallbackContext):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def callback_handler(update: Update, context: CallbackContext):
+def callback_handler(update: Update, context: CallbackContext):
     """Handle callback queries from inline keyboards"""
     query = update.callback_query
-    await query.answer()  # Answer the callback query to stop the loading animation
+    query.answer()  # Answer the callback query to stop the loading animation
     
     data = query.data
     user_id = query.from_user.id
@@ -53,25 +53,25 @@ async def callback_handler(update: Update, context: CallbackContext):
     
     # Handle different callback actions
     if data == "search_tours":
-        await select_departure_city(query)
+        select_departure_city(query)
     elif data.startswith("city_"):
         city_id = data.split("_")[1]
         user_sessions[user_id]["departure_city"] = city_id
-        await select_country(query, city_id)
+        select_country(query, city_id)
     elif data.startswith("country_"):
         country_id = data.split("_")[1]
         user_sessions[user_id]["country"] = country_id
-        await select_dates(query, user_sessions[user_id])
+        select_dates(query, user_sessions[user_id])
     elif data.startswith("date_"):
         date_selected = data.split("_")[1]
         user_sessions[user_id]["checkin"] = date_selected
-        await search_tours(query, user_sessions[user_id])
+        search_tours(query, user_sessions[user_id])
     elif data.startswith("book_"):
         tour_id = data.split("_")[1]
         user_sessions[user_id]["tour_id"] = tour_id
-        await initiate_booking(query, tour_id)
+        initiate_booking(query, tour_id)
 
-async def select_departure_city(query):
+def select_departure_city(query):
     """Show available departure cities"""
     try:
         response = requests.get(
@@ -81,7 +81,7 @@ async def select_departure_city(query):
         cities = response.json().get("SearchTour_TOWNFROMS", [])
         
         if not cities:
-            await query.message.reply_text("😔 Не удалось получить список городов. Пожалуйста, попробуйте позже.")
+            query.message.reply_text("😔 Не удалось получить список городов. Пожалуйста, попробуйте позже.")
             return
         
         # Create a keyboard with city buttons (2 per row)
@@ -95,16 +95,16 @@ async def select_departure_city(query):
                 keyboard.append(row)
                 row = []
         
-        await query.message.reply_text("Выберите город вылета:", reply_markup=InlineKeyboardMarkup(keyboard))
+        query.message.reply_text("Выберите город вылета:", reply_markup=InlineKeyboardMarkup(keyboard))
     
     except requests.RequestException as e:
         logger.error(f"API error: {e}")
-        await query.message.reply_text("😔 Произошла ошибка при получении списка городов. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла ошибка при получении списка городов. Пожалуйста, попробуйте позже.")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        await query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
 
-async def select_country(query, city_id):
+def select_country(query, city_id):
     """Show available countries based on selected departure city"""
     try:
         response = requests.post(
@@ -117,7 +117,7 @@ async def select_country(query, city_id):
         countries = response.json().get("SearchTour_STATES", [])
         
         if not countries:
-            await query.message.reply_text("😔 Не удалось получить список стран. Пожалуйста, попробуйте позже.")
+            query.message.reply_text("😔 Не удалось получить список стран. Пожалуйста, попробуйте позже.")
             return
         
         # Create a keyboard with country buttons (2 per row)
@@ -131,16 +131,16 @@ async def select_country(query, city_id):
                 keyboard.append(row)
                 row = []
         
-        await query.message.reply_text("Выберите страну назначения:", reply_markup=InlineKeyboardMarkup(keyboard))
+        query.message.reply_text("Выберите страну назначения:", reply_markup=InlineKeyboardMarkup(keyboard))
     
     except requests.RequestException as e:
         logger.error(f"API error: {e}")
-        await query.message.reply_text("😔 Произошла ошибка при получении списка стран. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла ошибка при получении списка стран. Пожалуйста, попробуйте позже.")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        await query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
 
-async def select_dates(query, session):
+def select_dates(query, session):
     """Show available travel dates"""
     # Generate dates for the next 30 days
     dates = [(datetime.now() + timedelta(days=i)) for i in range(1, 31)]
@@ -158,14 +158,14 @@ async def select_dates(query, session):
             keyboard.append(row)
             row = []
     
-    await query.message.reply_text(
+    query.message.reply_text(
         "Выберите дату заезда:\n(Даты показаны в формате ДД.ММ)",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def search_tours(query, session):
+def search_tours(query, session):
     """Search for tours based on user selections"""
-    await query.message.reply_text("🔎 Ищем туры, пожалуйста подождите...")
+    query.message.reply_text("🔎 Ищем туры, пожалуйста подождите...")
     
     try:
         params = {
@@ -189,14 +189,14 @@ async def search_tours(query, session):
         tours = response.json().get("SearchTour_TOURS", [])
         
         if not tours:
-            await query.message.reply_text(
+            query.message.reply_text(
                 "😞 Туры по вашим параметрам не найдены.\n"
                 "Попробуйте изменить даты или направление."
             )
             
             # Provide option to restart search
             keyboard = [[InlineKeyboardButton("🔍 Новый поиск", callback_data="search_tours")]]
-            await query.message.reply_text(
+            query.message.reply_text(
                 "Хотите начать поиск заново?",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
@@ -206,28 +206,28 @@ async def search_tours(query, session):
         user_id = query.from_user.id
         user_sessions[user_id]["tours"] = tours
         
-        await query.message.reply_text(f"🏝️ Найдено {len(tours)} туров:")
+        query.message.reply_text(f"🏝️ Найдено {len(tours)} туров:")
         
         # Display tours (limit to 5 to avoid message length limits)
         for tour in tours[:5]:
             tour_info = format_tour_details(tour)
             
             keyboard = [[InlineKeyboardButton("📅 Забронировать", callback_data=f"book_{tour['id']}")]]
-            await query.message.reply_text(tour_info, reply_markup=InlineKeyboardMarkup(keyboard))
+            query.message.reply_text(tour_info, reply_markup=InlineKeyboardMarkup(keyboard))
         
         # Add option for new search
         keyboard = [[InlineKeyboardButton("🔍 Новый поиск", callback_data="search_tours")]]
-        await query.message.reply_text(
+        query.message.reply_text(
             "Хотите начать поиск заново?",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     
     except requests.RequestException as e:
         logger.error(f"API error: {e}")
-        await query.message.reply_text("😔 Произошла ошибка при поиске туров. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла ошибка при поиске туров. Пожалуйста, попробуйте позже.")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        await query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
+        query.message.reply_text("😔 Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.")
 
 async def initiate_booking(query, tour_id):
     """Begin the booking process for a selected tour"""
