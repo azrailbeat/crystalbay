@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import logging
-from telegram_bot import main
+from crystal_bay_bot import main
 
 if __name__ == '__main__':
     logging.basicConfig(
