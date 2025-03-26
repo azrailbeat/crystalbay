@@ -1,7 +1,9 @@
+import os
 import logging
 import requests
-import asyncio
+import json
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(
@@ -10,52 +12,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# API configuration
 API_URL = "https://booking.crystalbay.com/export/default.php"
+SAMO_TOKEN = os.getenv("SAMO_OAUTH_TOKEN")
 
 async def fetch_cities(token: str) -> List[Dict[str, Any]]:
     """Fetch available departure cities from SAMO API."""
     try:
-        response = await asyncio.to_thread(
-            requests.get,
+        response = requests.get(
             f"{API_URL}?samo_action=api&oauth_token={token}&type=json&action=SearchTour_TOWNFROMS"
         )
         response.raise_for_status()
-        data = response.json()
         
-        cities = data.get("SearchTour_TOWNFROMS", [])
-        if not cities:
-            logger.warning("No cities returned from API")
-        
+        cities = response.json().get("SearchTour_TOWNFROMS", [])
+        logger.info(f"Fetched {len(cities)} departure cities")
         return cities
-    except requests.RequestException as e:
-        logger.error(f"API error when fetching cities: {e}")
-        return []
+    
     except Exception as e:
-        logger.error(f"Unexpected error when fetching cities: {e}")
+        logger.error(f"Error fetching cities: {e}")
         return []
 
 async def fetch_countries(token: str, city_id: str) -> List[Dict[str, Any]]:
     """Fetch available countries based on departure city from SAMO API."""
     try:
-        response = await asyncio.to_thread(
-            requests.post,
+        response = requests.post(
             f"{API_URL}?samo_action=api&oauth_token={token}&type=json&action=SearchTour_STATES",
             headers={'Content-Type': 'application/xml'},
             data=f'<data><TOWNFROMINC>{city_id}</TOWNFROMINC></data>'
         )
         response.raise_for_status()
-        data = response.json()
         
-        countries = data.get("SearchTour_STATES", [])
-        if not countries:
-            logger.warning(f"No countries returned for city ID {city_id}")
-        
+        countries = response.json().get("SearchTour_STATES", [])
+        logger.info(f"Fetched {len(countries)} countries for city ID {city_id}")
         return countries
-    except requests.RequestException as e:
-        logger.error(f"API error when fetching countries: {e}")
-        return []
+    
     except Exception as e:
-        logger.error(f"Unexpected error when fetching countries: {e}")
+        logger.error(f"Error fetching countries: {e}")
         return []
 
 async def fetch_tours(token: str, city_id: str, country_id: str, checkin_date: str) -> List[Dict[str, Any]]:
@@ -71,25 +63,20 @@ async def fetch_tours(token: str, city_id: str, country_id: str, checkin_date: s
             "checkin": checkin_date,
             "checkout": checkin_date,  # Same as checkin for API requirements
             "nights_min": 3,
-            "nights_max": 14,  # Increased max nights for more options
+            "nights_max": 14,
             "adults": 2,
-            "currency": "RUB"  # Explicitly set currency
+            "currency": "RUB"
         }
         
-        response = await asyncio.to_thread(requests.get, API_URL, params=params)
+        response = requests.get(API_URL, params=params)
         response.raise_for_status()
-        data = response.json()
         
-        tours = data.get("SearchTour_TOURS", [])
-        if not tours:
-            logger.warning(f"No tours found for criteria: city={city_id}, country={country_id}, date={checkin_date}")
-        
+        tours = response.json().get("SearchTour_TOURS", [])
+        logger.info(f"Fetched {len(tours)} tours for city {city_id}, country {country_id}, date {checkin_date}")
         return tours
-    except requests.RequestException as e:
-        logger.error(f"API error when fetching tours: {e}")
-        return []
+    
     except Exception as e:
-        logger.error(f"Unexpected error when fetching tours: {e}")
+        logger.error(f"Error fetching tours: {e}")
         return []
 
 def format_tour_details(tour: Dict[str, Any]) -> str:
@@ -129,3 +116,21 @@ def format_tour_details(tour: Dict[str, Any]) -> str:
     )
     
     return tour_info
+
+def generate_date_options(days_ahead: int = 30, start_from: Optional[datetime] = None) -> List[Dict[str, str]]:
+    """Generate date options for the bot's date selector."""
+    if not start_from:
+        start_from = datetime.now()
+    
+    date_options = []
+    for i in range(1, days_ahead + 1):
+        date = start_from + timedelta(days=i)
+        display_format = date.strftime("%d.%m")
+        value_format = date.strftime("%Y%m%d")
+        
+        date_options.append({
+            "display": display_format,
+            "value": value_format
+        })
+    
+    return date_options

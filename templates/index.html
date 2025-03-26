@@ -29,6 +29,35 @@
                     </div>
                 </div>
                 
+                <!-- Bot Status and Control Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h2 class="card-title mb-0">Статус бота</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if bot_status == "ready" %}
+                            <div class="alert alert-success">
+                                <h4>Бот готов к запуску</h4>
+                                <p>Все необходимые ключи API настроены.</p>
+                                <form action="/start_bot" method="post">
+                                    <button type="submit" class="btn btn-primary">Запустить бота</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <h4>Отсутствуют необходимые переменные окружения</h4>
+                                <p>Для работы бота необходимо настроить следующие переменные:</p>
+                                <ul>
+                                    {% for var in missing_vars %}
+                                        <li><code>{{ var }}</code></li>
+                                    {% endfor %}
+                                </ul>
+                                <p>Добавьте их в файл <code>.env</code> и перезапустите приложение.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
                 <div class="card">
                     <div class="card-body text-center">
                         <h2 class="card-title mb-3">Начать использовать</h2>
