@@ -4,9 +4,14 @@ import requests
 import openai
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-# Import directly from python-telegram-bot package
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+# Import directly from telegram module
+import telegram
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
+
+# Alias the necessary classes
+InlineKeyboardButton = telegram.InlineKeyboardButton
+InlineKeyboardMarkup = telegram.InlineKeyboardMarkup
+Update = telegram.Update
 
 # Load environment variables
 load_dotenv()
