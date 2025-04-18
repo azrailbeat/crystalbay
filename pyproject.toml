@@ -16,4 +16,5 @@ dependencies = [
     "requests>=2.32.3",
     "supabase>=2.15.0",
     "telegram>=0.0.1",
+    "sendgrid>=6.11.0",
 ]

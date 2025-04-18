@@ -1,0 +1,1065 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Tours - Сообщения{% endblock %}
+
+{% block head %}
+<style>
+    .message-sidebar {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        height: calc(100vh - 230px);
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message-list {
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .message-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .message-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .message-item.active {
+        background-color: rgba(0, 113, 227, 0.2);
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .message-item .sender {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .message-item .preview {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .message-item .time {
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+    }
+    
+    .message-search {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .message-detail {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        height: calc(100vh - 230px);
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message-header {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .message-content {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .message-reply {
+        padding: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .channel-indicator {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 20px;
+        margin-right: 0.5rem;
+    }
+    
+    .channel-telegram {
+        background-color: rgba(0, 136, 204, 0.2);
+        color: #0088cc;
+    }
+    
+    .channel-email {
+        background-color: rgba(234, 67, 53, 0.2);
+        color: #ea4335;
+    }
+    
+    .channel-system {
+        background-color: rgba(255, 149, 0, 0.2);
+        color: #ff9500;
+    }
+    
+    .message-body {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .unread-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+    
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+        color: var(--secondary-color);
+        margin-bottom: 1.5rem;
+    }
+    
+    .emoji-picker {
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--secondary-color);
+        transition: color 0.2s ease;
+    }
+    
+    .emoji-picker:hover {
+        color: var(--primary-color);
+    }
+    
+    .nav-pills.channel-filter .nav-link {
+        color: var(--secondary-color);
+        border-radius: var(--border-radius);
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .nav-pills.channel-filter .nav-link.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    /* Animation for incoming messages */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .fade-in-up {
+        animation: fadeInUp 0.3s ease-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Messages Header -->
+<div class="container mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="display-5">Сообщения</h1>
+            <p class="lead text-secondary">Управление коммуникациями с клиентами</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#new-message-modal">
+                <i class="bi bi-envelope-plus me-2"></i> Новое сообщение
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Messages Filters -->
+<div class="container mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <ul class="nav nav-pills channel-filter">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="all-channels" href="#">Все каналы</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="telegram-channel" href="#">
+                                <i class="bi bi-telegram me-1"></i> Telegram
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="email-channel" href="#">
+                                <i class="bi bi-envelope me-1"></i> Email
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="system-channel" href="#">
+                                <i class="bi bi-bell me-1"></i> Системные
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" id="unread-only">
+                        <label class="form-check-label" for="unread-only">Только непрочитанные</label>
+                    </div>
+                    <button class="btn btn-outline-secondary" id="refresh-messages">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Messages Content -->
+<div class="container">
+    <div class="row g-4">
+        <!-- Messages Sidebar -->
+        <div class="col-md-4">
+            <div class="message-sidebar">
+                <div class="message-search">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" placeholder="Поиск сообщений" id="message-search-input">
+                    </div>
+                </div>
+                <div class="message-list" id="message-list">
+                    <!-- Messages will be dynamically inserted here -->
+                    <div class="text-center p-5" id="loading-messages">
+                        <div class="loading-spinner mb-3"></div>
+                        <p class="text-secondary">Загрузка сообщений...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Details -->
+        <div class="col-md-8">
+            <div class="message-detail">
+                <!-- Empty state (shown when no message is selected) -->
+                <div class="empty-state" id="empty-state">
+                    <i class="bi bi-chat-square-text"></i>
+                    <h3>Выберите сообщение</h3>
+                    <p>Выберите сообщение из списка слева, чтобы просмотреть его содержимое</p>
+                </div>
+                
+                <!-- Message details content (hidden initially) -->
+                <div id="message-details" style="display: none; flex: 1; display: flex; flex-direction: column;">
+                    <div class="message-header" id="message-header">
+                        <!-- Message header will be inserted here -->
+                    </div>
+                    <div class="message-content" id="message-content">
+                        <!-- Message content will be inserted here -->
+                    </div>
+                    <div class="message-reply">
+                        <form id="reply-form">
+                            <div class="mb-3">
+                                <textarea class="form-control" id="reply-text" rows="3" placeholder="Введите ваш ответ..."></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <button type="button" class="btn btn-link text-secondary p-0 me-3">
+                                        <i class="bi bi-paperclip"></i>
+                                    </button>
+                                    <span class="emoji-picker">
+                                        <i class="bi bi-emoji-smile"></i>
+                                    </span>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send me-2"></i> Отправить
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Message Modal -->
+<div class="modal fade" id="new-message-modal" tabindex="-1" aria-labelledby="new-message-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="new-message-modal-label">Новое сообщение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="new-message-form">
+                    <div class="mb-3">
+                        <label for="message-channel" class="form-label">Канал связи</label>
+                        <select class="form-select" id="message-channel" required>
+                            <option value="" selected disabled>Выберите канал связи</option>
+                            <option value="email">Email</option>
+                            <option value="telegram">Telegram</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Email specific fields (hidden initially) -->
+                    <div id="email-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="email-to" class="form-label">Кому</label>
+                            <input type="email" class="form-control" id="email-to" placeholder="email@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email-subject" class="form-label">Тема</label>
+                            <input type="text" class="form-control" id="email-subject" placeholder="Тема сообщения">
+                        </div>
+                    </div>
+                    
+                    <!-- Telegram specific fields (hidden initially) -->
+                    <div id="telegram-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="telegram-user" class="form-label">Пользователь Telegram</label>
+                            <select class="form-select" id="telegram-user">
+                                <option value="" selected disabled>Выберите пользователя</option>
+                                <!-- Telegram users will be dynamically inserted here -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message-text" class="form-label">Сообщение</label>
+                        <textarea class="form-control" id="message-text" rows="5" placeholder="Введите текст сообщения"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="save-template">
+                            <label class="form-check-label" for="save-template">
+                                Сохранить как шаблон
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="send-message-btn">
+                    <i class="bi bi-send me-2"></i> Отправить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let messagesData = [];
+    let currentMessageId = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch messages
+        fetchMessages();
+        
+        // Handle channel filter clicks
+        document.querySelectorAll('.channel-filter .nav-link').forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                
+                // Add active class to clicked link
+                document.querySelector('.channel-filter .nav-link.active').classList.remove('active');
+                this.classList.add('active');
+                
+                // Filter messages by channel
+                const channelId = this.id;
+                filterMessagesByChannel(channelId);
+            });
+        });
+        
+        // Handle unread filter toggle
+        document.getElementById('unread-only').addEventListener('change', function() {
+            filterMessages();
+        });
+        
+        // Handle message search
+        document.getElementById('message-search-input').addEventListener('input', function() {
+            filterMessages();
+        });
+        
+        // Handle refresh button
+        document.getElementById('refresh-messages').addEventListener('click', function() {
+            fetchMessages();
+        });
+        
+        // Handle reply form submission
+        document.getElementById('reply-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            if (!currentMessageId) {
+                return;
+            }
+            
+            const replyText = document.getElementById('reply-text').value.trim();
+            
+            if (replyText) {
+                sendReply(currentMessageId, replyText);
+            }
+        });
+        
+        // Handle message channel selection
+        document.getElementById('message-channel').addEventListener('change', function() {
+            const channel = this.value;
+            
+            if (channel === 'email') {
+                document.getElementById('email-fields').style.display = 'block';
+                document.getElementById('telegram-fields').style.display = 'none';
+            } else if (channel === 'telegram') {
+                document.getElementById('email-fields').style.display = 'none';
+                document.getElementById('telegram-fields').style.display = 'block';
+                
+                // Fetch Telegram users (in a real app)
+                fetchTelegramUsers();
+            } else {
+                document.getElementById('email-fields').style.display = 'none';
+                document.getElementById('telegram-fields').style.display = 'none';
+            }
+        });
+        
+        // Handle send new message button
+        document.getElementById('send-message-btn').addEventListener('click', function() {
+            const channel = document.getElementById('message-channel').value;
+            const messageText = document.getElementById('message-text').value.trim();
+            
+            if (!channel || !messageText) {
+                showToast('Пожалуйста, заполните все обязательные поля', 'warning');
+                return;
+            }
+            
+            let recipient = '';
+            let subject = '';
+            
+            if (channel === 'email') {
+                recipient = document.getElementById('email-to').value.trim();
+                subject = document.getElementById('email-subject').value.trim();
+                
+                if (!recipient || !subject) {
+                    showToast('Пожалуйста, заполните все обязательные поля', 'warning');
+                    return;
+                }
+            } else if (channel === 'telegram') {
+                recipient = document.getElementById('telegram-user').value;
+                
+                if (!recipient) {
+                    showToast('Пожалуйста, выберите получателя', 'warning');
+                    return;
+                }
+            }
+            
+            // In a real app, this would send the message to the API
+            sendNewMessage(channel, recipient, subject, messageText);
+        });
+    });
+    
+    // Fetch messages
+    async function fetchMessages() {
+        try {
+            document.getElementById('loading-messages').style.display = 'block';
+            
+            // In a real application, this would call the API
+            // For now, we'll simulate API response with mock data
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Example API call (commented out)
+            // const response = await fetch('/api/messages');
+            // const data = await response.json();
+            
+            // Generate mock messages
+            messagesData = generateMockMessages(15);
+            
+            // Hide loading indicator
+            document.getElementById('loading-messages').style.display = 'none';
+            
+            // Display messages
+            displayMessages(messagesData);
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+            document.getElementById('loading-messages').style.display = 'none';
+            
+            // Show error message
+            const messageList = document.getElementById('message-list');
+            messageList.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>Ошибка загрузки</h3>
+                    <p>Не удалось загрузить сообщения. Пожалуйста, попробуйте позже.</p>
+                    <button class="btn btn-primary" onclick="fetchMessages()">
+                        <i class="bi bi-arrow-clockwise me-2"></i> Повторить
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    // Display messages in the list
+    function displayMessages(messages) {
+        const messageList = document.getElementById('message-list');
+        messageList.innerHTML = '';
+        
+        if (messages.length === 0) {
+            messageList.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-chat-square-text"></i>
+                    <h3>Нет сообщений</h3>
+                    <p>У вас пока нет сообщений или они не соответствуют выбранным фильтрам</p>
+                </div>
+            `;
+            return;
+        }
+        
+        messages.forEach(message => {
+            const messageItem = document.createElement('div');
+            messageItem.className = `message-item ${message.id === currentMessageId ? 'active' : ''}`;
+            messageItem.dataset.id = message.id;
+            
+            // Determine channel indicator
+            let channelClass = '';
+            let channelIcon = '';
+            
+            if (message.channel === 'telegram') {
+                channelClass = 'channel-telegram';
+                channelIcon = 'bi-telegram';
+            } else if (message.channel === 'email') {
+                channelClass = 'channel-email';
+                channelIcon = 'bi-envelope';
+            } else if (message.channel === 'system') {
+                channelClass = 'channel-system';
+                channelIcon = 'bi-bell';
+            }
+            
+            messageItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex align-items-center">
+                        ${message.unread ? '<span class="unread-indicator"></span>' : ''}
+                        <span class="sender">${message.sender}</span>
+                    </div>
+                    <span class="time">${formatMessageTime(message.timestamp)}</span>
+                </div>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="channel-indicator ${channelClass}">
+                        <i class="bi ${channelIcon} me-1"></i> ${capitalizeFirstLetter(message.channel)}
+                    </span>
+                    <span class="text-secondary small">${message.subject || ''}</span>
+                </div>
+                <div class="preview">${message.preview}</div>
+            `;
+            
+            // Handle message click
+            messageItem.addEventListener('click', function() {
+                // Remove active class from previous active item
+                const activeItem = document.querySelector('.message-item.active');
+                if (activeItem) {
+                    activeItem.classList.remove('active');
+                }
+                
+                // Add active class to clicked item
+                this.classList.remove('unread-indicator');
+                this.classList.add('active');
+                
+                // Show message details
+                showMessageDetails(message.id);
+            });
+            
+            messageList.appendChild(messageItem);
+        });
+    }
+    
+    // Show message details
+    function showMessageDetails(messageId) {
+        const message = messagesData.find(m => m.id === messageId);
+        
+        if (!message) {
+            console.error(`Message with ID ${messageId} not found`);
+            return;
+        }
+        
+        // Set current message ID
+        currentMessageId = messageId;
+        
+        // Hide empty state and show message details
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('message-details').style.display = 'flex';
+        
+        // Determine channel indicator
+        let channelClass = '';
+        let channelIcon = '';
+        
+        if (message.channel === 'telegram') {
+            channelClass = 'channel-telegram';
+            channelIcon = 'bi-telegram';
+        } else if (message.channel === 'email') {
+            channelClass = 'channel-email';
+            channelIcon = 'bi-envelope';
+        } else if (message.channel === 'system') {
+            channelClass = 'channel-system';
+            channelIcon = 'bi-bell';
+        }
+        
+        // Update message header
+        const messageHeader = document.getElementById('message-header');
+        messageHeader.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">${message.subject || 'Без темы'}</h5>
+                    <div class="d-flex align-items-center">
+                        <span class="channel-indicator ${channelClass}">
+                            <i class="bi ${channelIcon} me-1"></i> ${capitalizeFirstLetter(message.channel)}
+                        </span>
+                        <span class="text-secondary small ms-2">от ${message.sender}</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-secondary">${formatMessageDate(message.timestamp)}</span>
+                </div>
+            </div>
+        `;
+        
+        // Update message content
+        const messageContent = document.getElementById('message-content');
+        messageContent.innerHTML = '';
+        
+        // Add original message
+        const originalMessage = document.createElement('div');
+        originalMessage.className = 'message-body';
+        originalMessage.innerHTML = `
+            <div class="mb-2 text-secondary small">От: ${message.sender}</div>
+            <div>${message.content || message.preview}</div>
+        `;
+        messageContent.appendChild(originalMessage);
+        
+        // Add replies if any
+        if (message.replies && message.replies.length > 0) {
+            message.replies.forEach(reply => {
+                const replyItem = document.createElement('div');
+                replyItem.className = 'message-body fade-in-up';
+                
+                replyItem.innerHTML = `
+                    <div class="mb-2 text-secondary small">От: ${reply.sender}</div>
+                    <div>${reply.content}</div>
+                `;
+                
+                messageContent.appendChild(replyItem);
+            });
+        }
+        
+        // Clear reply textarea
+        document.getElementById('reply-text').value = '';
+        
+        // Mark as read
+        if (message.unread) {
+            message.unread = false;
+            
+            // Remove unread indicator from the message list item
+            const messageItem = document.querySelector(`.message-item[data-id="${messageId}"]`);
+            if (messageItem) {
+                const unreadIndicator = messageItem.querySelector('.unread-indicator');
+                if (unreadIndicator) {
+                    unreadIndicator.remove();
+                }
+            }
+        }
+    }
+    
+    // Filter messages by channel
+    function filterMessagesByChannel(channelId) {
+        filterMessages();
+    }
+    
+    // Filter messages by search and unread
+    function filterMessages() {
+        const channelId = document.querySelector('.channel-filter .nav-link.active').id;
+        const unreadOnly = document.getElementById('unread-only').checked;
+        const searchText = document.getElementById('message-search-input').value.toLowerCase();
+        
+        let filteredMessages = [...messagesData];
+        
+        // Filter by channel
+        if (channelId === 'telegram-channel') {
+            filteredMessages = filteredMessages.filter(message => message.channel === 'telegram');
+        } else if (channelId === 'email-channel') {
+            filteredMessages = filteredMessages.filter(message => message.channel === 'email');
+        } else if (channelId === 'system-channel') {
+            filteredMessages = filteredMessages.filter(message => message.channel === 'system');
+        }
+        
+        // Filter by unread
+        if (unreadOnly) {
+            filteredMessages = filteredMessages.filter(message => message.unread);
+        }
+        
+        // Filter by search text
+        if (searchText) {
+            filteredMessages = filteredMessages.filter(message => {
+                return (
+                    message.sender.toLowerCase().includes(searchText) ||
+                    (message.subject && message.subject.toLowerCase().includes(searchText)) ||
+                    message.preview.toLowerCase().includes(searchText) ||
+                    (message.content && message.content.toLowerCase().includes(searchText))
+                );
+            });
+        }
+        
+        // Display filtered messages
+        displayMessages(filteredMessages);
+    }
+    
+    // Send reply to a message
+    async function sendReply(messageId, replyText) {
+        try {
+            // In a real application, this would call the API
+            // For now, we'll simulate API response
+            
+            // Show loading
+            const replyButton = document.querySelector('#reply-form button[type="submit"]');
+            const originalButtonText = replyButton.innerHTML;
+            replyButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Отправка...';
+            replyButton.disabled = true;
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Example API call (commented out)
+            // const response = await fetch(`/api/messages/${messageId}/replies`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ content: replyText }),
+            // });
+            // const data = await response.json();
+            
+            // Find message
+            const messageIndex = messagesData.findIndex(m => m.id === messageId);
+            
+            if (messageIndex !== -1) {
+                // Add reply to the message
+                if (!messagesData[messageIndex].replies) {
+                    messagesData[messageIndex].replies = [];
+                }
+                
+                const newReply = {
+                    id: `reply-${Date.now()}`,
+                    sender: 'Менеджер Crystal Bay',
+                    content: replyText,
+                    timestamp: new Date().toISOString()
+                };
+                
+                messagesData[messageIndex].replies.push(newReply);
+                
+                // Update message preview
+                messagesData[messageIndex].preview = `Вы: ${replyText}`;
+                
+                // Add reply to the message content
+                const messageContent = document.getElementById('message-content');
+                const replyItem = document.createElement('div');
+                replyItem.className = 'message-body fade-in-up';
+                
+                replyItem.innerHTML = `
+                    <div class="mb-2 text-secondary small">От: ${newReply.sender}</div>
+                    <div>${newReply.content}</div>
+                `;
+                
+                messageContent.appendChild(replyItem);
+                
+                // Update message list
+                displayMessages(messagesData);
+                
+                // Clear reply textarea
+                document.getElementById('reply-text').value = '';
+                
+                // Show success message
+                showToast('Ответ успешно отправлен', 'success');
+            }
+            
+            // Restore button
+            replyButton.innerHTML = originalButtonText;
+            replyButton.disabled = false;
+        } catch (error) {
+            console.error('Error sending reply:', error);
+            
+            // Show error message
+            showToast('Ошибка при отправке ответа', 'danger');
+            
+            // Restore button
+            const replyButton = document.querySelector('#reply-form button[type="submit"]');
+            replyButton.innerHTML = '<i class="bi bi-send me-2"></i> Отправить';
+            replyButton.disabled = false;
+        }
+    }
+    
+    // Fetch Telegram users
+    async function fetchTelegramUsers() {
+        try {
+            // In a real application, this would call the API
+            // For now, we'll simulate API response with mock data
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Generate mock Telegram users
+            const users = [
+                { id: 'user1', name: 'Иван Иванов' },
+                { id: 'user2', name: 'Мария Петрова' },
+                { id: 'user3', name: 'Алексей Сидоров' },
+                { id: 'user4', name: 'Анна Смирнова' },
+                { id: 'user5', name: 'Дмитрий Кузнецов' }
+            ];
+            
+            // Update select options
+            const telegramUserSelect = document.getElementById('telegram-user');
+            
+            // Clear existing options except the first one
+            while (telegramUserSelect.options.length > 1) {
+                telegramUserSelect.options.remove(1);
+            }
+            
+            // Add users as options
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                telegramUserSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error fetching Telegram users:', error);
+            showToast('Ошибка при загрузке пользователей Telegram', 'danger');
+        }
+    }
+    
+    // Send new message
+    async function sendNewMessage(channel, recipient, subject, content) {
+        try {
+            // Show loading
+            const sendButton = document.getElementById('send-message-btn');
+            const originalButtonText = sendButton.innerHTML;
+            sendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Отправка...';
+            sendButton.disabled = true;
+            
+            // In a real application, this would call the API
+            // For now, we'll simulate API response
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Example API call (commented out)
+            // const response = await fetch('/api/messages', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         channel,
+            //         recipient,
+            //         subject,
+            //         content
+            //     }),
+            // });
+            // const data = await response.json();
+            
+            // Show success message
+            showToast('Сообщение успешно отправлено', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('new-message-modal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('new-message-form').reset();
+            document.getElementById('email-fields').style.display = 'none';
+            document.getElementById('telegram-fields').style.display = 'none';
+            
+            // Restore button
+            sendButton.innerHTML = originalButtonText;
+            sendButton.disabled = false;
+            
+            // Add message to the list (in a real app this would come from the API)
+            const newMessage = {
+                id: `msg-${Date.now()}`,
+                channel,
+                sender: channel === 'email' ? recipient : 'Пользователь Telegram',
+                subject: subject || 'Без темы',
+                preview: content,
+                content,
+                timestamp: new Date().toISOString(),
+                unread: false
+            };
+            
+            messagesData.unshift(newMessage);
+            displayMessages(messagesData);
+        } catch (error) {
+            console.error('Error sending message:', error);
+            
+            // Show error message
+            showToast('Ошибка при отправке сообщения', 'danger');
+            
+            // Restore button
+            const sendButton = document.getElementById('send-message-btn');
+            sendButton.innerHTML = '<i class="bi bi-send me-2"></i> Отправить';
+            sendButton.disabled = false;
+        }
+    }
+    
+    // Format message time
+    function formatMessageTime(timestamp) {
+        const date = new Date(timestamp);
+        const today = new Date();
+        
+        // If the message is from today, show only the time
+        if (date.toDateString() === today.toDateString()) {
+            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // If the message is from this year, show date without year
+        if (date.getFullYear() === today.getFullYear()) {
+            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        }
+        
+        // Otherwise, show full date
+        return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    }
+    
+    // Format message date (full)
+    function formatMessageDate(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString('ru-RU', { 
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
+    }
+    
+    // Capitalize first letter of a string
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+    
+    // Function to generate mock message data for demonstration
+    function generateMockMessages(count) {
+        const messages = [];
+        const channels = ['telegram', 'email', 'system'];
+        const senders = [
+            'Иван Иванов',
+            'Мария Петрова',
+            'Алексей Сидоров',
+            'Анна Смирнова',
+            'Дмитрий Кузнецов',
+        ];
+        
+        const subjects = [
+            'Вопрос о бронировании',
+            'Уточнение деталей тура',
+            'Запрос на отмену бронирования',
+            'Информация о визе',
+            'Вопрос по оплате',
+            'Запрос документов',
+        ];
+        
+        const contents = [
+            'Добрый день! Хотел бы уточнить детали моего бронирования. В частности, интересует возможность раннего заселения и наличие трансфера из аэропорта.',
+            'Здравствуйте! Мы планируем поездку в августе, но в процессе бронирования возникли некоторые вопросы. Возможно ли изменить даты тура после бронирования?',
+            'Добрый день! К сожалению, мне необходимо отменить мое бронирование из-за непредвиденных обстоятельств. Какая процедура отмены и возможен ли возврат средств?',
+            'Здравствуйте! Подскажите, пожалуйста, какие документы необходимы для получения визы в выбранную страну и сколько времени занимает процесс оформления?',
+            'Добрый день! У меня возникли проблемы с оплатой тура. При попытке оплаты картой возникает ошибка. Есть ли альтернативные способы оплаты?',
+        ];
+        
+        // Generate messages
+        for (let i = 1; i <= count; i++) {
+            const channelIndex = Math.floor(Math.random() * channels.length);
+            const senderIndex = Math.floor(Math.random() * senders.length);
+            const subjectIndex = Math.floor(Math.random() * subjects.length);
+            const contentIndex = Math.floor(Math.random() * contents.length);
+            
+            // Generate timestamp (from last 30 days)
+            const timestamp = new Date();
+            timestamp.setDate(timestamp.getDate() - Math.floor(Math.random() * 30));
+            
+            // Determine if message is unread (30% chance)
+            const unread = Math.random() < 0.3;
+            
+            // Generate replies for some messages (40% chance)
+            let replies = null;
+            
+            if (Math.random() < 0.4) {
+                const replyCount = Math.floor(Math.random() * 3) + 1;
+                replies = [];
+                
+                for (let j = 0; j < replyCount; j++) {
+                    const replyTimestamp = new Date(timestamp);
+                    replyTimestamp.setHours(replyTimestamp.getHours() + Math.floor(Math.random() * 24) + 1);
+                    
+                    replies.push({
+                        id: `reply-${i}-${j}`,
+                        sender: j % 2 === 0 ? 'Менеджер Crystal Bay' : senders[senderIndex],
+                        content: `Это ответ на ваше сообщение. Благодарим за обращение в нашу компанию. Мы постараемся решить ваш вопрос в ближайшее время.`,
+                        timestamp: replyTimestamp.toISOString()
+                    });
+                }
+            }
+            
+            // Generate message ID
+            const messageId = `msg-${i}`;
+            
+            // Generate message
+            messages.push({
+                id: messageId,
+                channel: channels[channelIndex],
+                sender: channels[channelIndex] === 'system' ? 'Система' : senders[senderIndex],
+                subject: channels[channelIndex] === 'system' ? null : subjects[subjectIndex],
+                preview: contents[contentIndex].substring(0, 50) + '...',
+                content: contents[contentIndex],
+                timestamp: timestamp.toISOString(),
+                unread,
+                replies
+            });
+        }
+        
+        // Sort messages by timestamp (newest first)
+        messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        return messages;
+    }
+</script>
+{% endblock %}

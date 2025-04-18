@@ -1,0 +1,1367 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Tours - Настройки{% endblock %}
+
+{% block head %}
+<style>
+    .settings-card {
+        height: 100%;
+    }
+    
+    .settings-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+        color: var(--primary-color);
+    }
+    
+    .connection-status {
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        display: inline-block;
+    }
+    
+    .status-connected {
+        background-color: rgba(52, 199, 89, 0.2);
+        color: #34c759;
+    }
+    
+    .status-not-connected {
+        background-color: rgba(255, 59, 48, 0.2);
+        color: #ff3b30;
+    }
+    
+    .status-partial {
+        background-color: rgba(255, 149, 0, 0.2);
+        color: #ff9500;
+    }
+    
+    .setting-group {
+        margin-bottom: 2rem;
+    }
+    
+    .setting-group-title {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .tab-content {
+        padding-top: 1.5rem;
+    }
+    
+    .nav-underline .nav-link {
+        color: var(--secondary-color);
+        border: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0;
+        position: relative;
+    }
+    
+    .nav-underline .nav-link.active {
+        color: #fff;
+        background-color: transparent;
+        border: none;
+    }
+    
+    .nav-underline .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+    }
+    
+    .integration-card {
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .integration-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .integration-logo {
+        height: 60px;
+        width: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .log-entry {
+        padding: 0.75rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 0.5rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+    
+    .log-info {
+        background-color: rgba(0, 122, 255, 0.1);
+    }
+    
+    .log-warning {
+        background-color: rgba(255, 149, 0, 0.1);
+    }
+    
+    .log-error {
+        background-color: rgba(255, 59, 48, 0.1);
+    }
+    
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Settings Header -->
+<div class="container mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="display-5">Настройки</h1>
+            <p class="lead text-secondary">Управление API-интеграциями и настройками системы</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button type="button" class="btn btn-primary" id="save-all-settings">
+                <i class="bi bi-save me-2"></i> Сохранить все настройки
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Tabs -->
+<div class="container">
+    <ul class="nav nav-underline mb-4" id="settings-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="integrations-tab" data-bs-toggle="tab" data-bs-target="#integrations-content" type="button" role="tab" aria-controls="integrations-content" aria-selected="true">
+                <i class="bi bi-plug me-2"></i> Интеграции
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-content" type="button" role="tab" aria-controls="notifications-content" aria-selected="false">
+                <i class="bi bi-bell me-2"></i> Уведомления
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-content" type="button" role="tab" aria-controls="users-content" aria-selected="false">
+                <i class="bi bi-people me-2"></i> Пользователи
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-content" type="button" role="tab" aria-controls="system-content" aria-selected="false">
+                <i class="bi bi-gear me-2"></i> Система
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="settings-tab-content">
+        <!-- Integrations Tab -->
+        <div class="tab-pane fade show active" id="integrations-content" role="tabpanel" aria-labelledby="integrations-tab">
+            <div class="row g-4 mb-4">
+                <!-- SAMO API Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">SAMO API</h5>
+                                <span class="connection-status status-connected" id="samo-status">Подключено</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-database settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с системой бронирования туров SAMO</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#samo-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Telegram Bot Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">Telegram Bot</h5>
+                                <span class="connection-status status-connected" id="telegram-status">Подключено</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-telegram settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с Telegram для обработки запросов клиентов</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#telegram-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SendGrid Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">SendGrid</h5>
+                                <span class="connection-status status-not-connected" id="sendgrid-status">Не подключено</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-envelope settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с SendGrid для отправки email-уведомлений</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#sendgrid-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Supabase Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">Supabase</h5>
+                                <span class="connection-status status-connected" id="supabase-status">Подключено</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-hdd-stack settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с Supabase для хранения данных</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#supabase-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- OpenAI Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">OpenAI</h5>
+                                <span class="connection-status status-connected" id="openai-status">Подключено</span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-cpu settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с OpenAI для обработки запросов на естественном языке</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#openai-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Add New Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-center align-items-center h-100">
+                                <div>
+                                    <i class="bi bi-plus-circle settings-icon"></i>
+                                    <h5 class="card-title">Добавить интеграцию</h5>
+                                    <p class="card-text text-secondary mb-4">Подключите дополнительные сервисы</p>
+                                    <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#add-integration-modal">
+                                        <i class="bi bi-plus-lg me-2"></i> Добавить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Integration Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Статус интеграций</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="integration-status-container">
+                        <div class="col-md-6">
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>SAMO API</span>
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Telegram Bot</span>
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>SendGrid</span>
+                                <span class="text-danger"><i class="bi bi-x-circle"></i> Не настроено</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Supabase</span>
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>OpenAI</span>
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Общий статус</span>
+                                <span class="text-warning"><i class="bi bi-exclamation-circle"></i> Частично</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Integration Logs -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Логи интеграций</h5>
+                    <button class="btn btn-sm btn-outline-secondary" id="refresh-logs">
+                        <i class="bi bi-arrow-clockwise"></i> Обновить
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="integration-logs">
+                        <div class="log-entry log-info">
+                            <span class="text-secondary">[2025-04-18 10:15:22]</span> <span class="text-info">INFO</span> - Успешное подключение к SAMO API
+                        </div>
+                        <div class="log-entry log-info">
+                            <span class="text-secondary">[2025-04-18 10:15:25]</span> <span class="text-info">INFO</span> - Telegram Bot запущен
+                        </div>
+                        <div class="log-entry log-warning">
+                            <span class="text-secondary">[2025-04-18 10:15:30]</span> <span class="text-warning">WARNING</span> - SendGrid API не настроен
+                        </div>
+                        <div class="log-entry log-info">
+                            <span class="text-secondary">[2025-04-18 10:15:35]</span> <span class="text-info">INFO</span> - Подключение к Supabase успешно
+                        </div>
+                        <div class="log-entry log-info">
+                            <span class="text-secondary">[2025-04-18 10:15:38]</span> <span class="text-info">INFO</span> - Подключение к OpenAI API успешно
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Tab -->
+        <div class="tab-pane fade" id="notifications-content" role="tabpanel" aria-labelledby="notifications-tab">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Настройки уведомлений</h5>
+                </div>
+                <div class="card-body">
+                    <div class="setting-group">
+                        <h6 class="setting-group-title">Email-уведомления</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="email-new-booking" checked>
+                            <label class="form-check-label" for="email-new-booking">
+                                Новые бронирования
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="email-booking-status" checked>
+                            <label class="form-check-label" for="email-booking-status">
+                                Изменения статуса бронирования
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="email-new-message">
+                            <label class="form-check-label" for="email-new-message">
+                                Новые сообщения
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="email-system-alerts" checked>
+                            <label class="form-check-label" for="email-system-alerts">
+                                Системные предупреждения
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h6 class="setting-group-title">Telegram-уведомления</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="telegram-new-booking" checked>
+                            <label class="form-check-label" for="telegram-new-booking">
+                                Новые бронирования
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="telegram-booking-status">
+                            <label class="form-check-label" for="telegram-booking-status">
+                                Изменения статуса бронирования
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="telegram-new-message" checked>
+                            <label class="form-check-label" for="telegram-new-message">
+                                Новые сообщения
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="telegram-system-alerts">
+                            <label class="form-check-label" for="telegram-system-alerts">
+                                Системные предупреждения
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h6 class="setting-group-title">Настройки доставки</h6>
+                        <div class="mb-3">
+                            <label for="notification-email" class="form-label">Email для уведомлений</label>
+                            <input type="email" class="form-control" id="notification-email" value="manager@crystalbay.travel">
+                        </div>
+                        <div class="mb-3">
+                            <label for="telegram-chat-id" class="form-label">ID чата Telegram для уведомлений</label>
+                            <input type="text" class="form-control" id="telegram-chat-id" value="12345678">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <button type="button" class="btn btn-primary" id="save-notification-settings">
+                        <i class="bi bi-save me-2"></i> Сохранить настройки
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users Tab -->
+        <div class="tab-pane fade" id="users-content" role="tabpanel" aria-labelledby="users-tab">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Пользователи системы</h5>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#add-user-modal">
+                        <i class="bi bi-person-plus me-2"></i> Добавить пользователя
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Email</th>
+                                    <th>Роль</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Администратор</td>
+                                    <td>admin@crystalbay.travel</td>
+                                    <td>Администратор</td>
+                                    <td><span class="badge bg-success">Активен</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#edit-user-modal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Менеджер</td>
+                                    <td>manager@crystalbay.travel</td>
+                                    <td>Менеджер</td>
+                                    <td><span class="badge bg-success">Активен</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#edit-user-modal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Оператор</td>
+                                    <td>operator@crystalbay.travel</td>
+                                    <td>Оператор</td>
+                                    <td><span class="badge bg-secondary">Неактивен</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#edit-user-modal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Tab -->
+        <div class="tab-pane fade" id="system-content" role="tabpanel" aria-labelledby="system-tab">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Системная информация</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th>Версия системы</th>
+                                        <td>1.0.0</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Дата установки</th>
+                                        <td>01.04.2025</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Последнее обновление</th>
+                                        <td>18.04.2025</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Статус сервера</th>
+                                        <td><span class="badge bg-success">Online</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Использование диска</th>
+                                        <td>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">20%</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Использование памяти</th>
+                                        <td>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 35%;" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100">35%</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Настройки безопасности</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="session-timeout" class="form-label">Тайм-аут сессии (минуты)</label>
+                                <input type="number" class="form-control" id="session-timeout" value="30" min="5" max="120">
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="two-factor-auth">
+                                <label class="form-check-label" for="two-factor-auth">
+                                    Двухфакторная аутентификация
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="api-rate-limiting" checked>
+                                <label class="form-check-label" for="api-rate-limiting">
+                                    Ограничение скорости API запросов
+                                </label>
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <button type="button" class="btn btn-primary" id="save-security-settings">
+                                <i class="bi bi-save me-2"></i> Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Резервное копирование</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="backup-frequency" class="form-label">Частота резервного копирования</label>
+                                <select class="form-select" id="backup-frequency">
+                                    <option value="daily">Ежедневно</option>
+                                    <option value="weekly" selected>Еженедельно</option>
+                                    <option value="monthly">Ежемесячно</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="backup-time" class="form-label">Время резервного копирования</label>
+                                <input type="time" class="form-control" id="backup-time" value="03:00">
+                            </div>
+                            <div class="mb-3">
+                                <label for="backup-retention" class="form-label">Срок хранения резервных копий (дни)</label>
+                                <input type="number" class="form-control" id="backup-retention" value="30" min="1" max="365">
+                            </div>
+                            <div class="mt-4">
+                                <button type="button" class="btn btn-primary w-100" id="create-backup">
+                                    <i class="bi bi-cloud-arrow-up me-2"></i> Создать резервную копию сейчас
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Обслуживание</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-secondary mb-4">Инструменты для обслуживания системы</p>
+                            <div class="d-grid gap-3">
+                                <button type="button" class="btn btn-outline-primary" id="clear-cache">
+                                    <i class="bi bi-trash me-2"></i> Очистить кэш
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="optimize-db">
+                                    <i class="bi bi-speedometer2 me-2"></i> Оптимизировать базу данных
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" id="restart-services">
+                                    <i class="bi bi-arrow-clockwise me-2"></i> Перезапустить службы
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SAMO API Modal -->
+<div class="modal fade" id="samo-modal" tabindex="-1" aria-labelledby="samo-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="samo-modal-label">Настройки SAMO API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="samo-form">
+                    <div class="mb-3">
+                        <label for="samo-oauth-token" class="form-label">OAuth Token</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="samo-oauth-token" value="●●●●●●●●●●●●●●●●">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-samo-token">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="samo-api-url" class="form-label">API URL</label>
+                        <input type="text" class="form-control" id="samo-api-url" value="https://api.samo.ru/v1/">
+                    </div>
+                    <div class="mb-3">
+                        <label for="samo-api-timeout" class="form-label">Тайм-аут запросов (секунды)</label>
+                        <input type="number" class="form-control" id="samo-api-timeout" value="30" min="5" max="120">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="samo-api-cache" checked>
+                        <label class="form-check-label" for="samo-api-cache">
+                            Кэширование результатов
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="samo-cache-ttl" class="form-label">Время жизни кэша (минуты)</label>
+                        <input type="number" class="form-control" id="samo-cache-ttl" value="15" min="1" max="60">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-samo-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Telegram Bot Modal -->
+<div class="modal fade" id="telegram-modal" tabindex="-1" aria-labelledby="telegram-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="telegram-modal-label">Настройки Telegram Bot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="telegram-form">
+                    <div class="mb-3">
+                        <label for="telegram-bot-token" class="form-label">Bot Token</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="telegram-bot-token" value="●●●●●●●●●●●●●●●●">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-telegram-token">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telegram-bot-username" class="form-label">Имя бота</label>
+                        <input type="text" class="form-control" id="telegram-bot-username" value="CrystalBayBot">
+                    </div>
+                    <div class="mb-3">
+                        <label for="telegram-webhook-url" class="form-label">Webhook URL</label>
+                        <input type="text" class="form-control" id="telegram-webhook-url" value="https://crystalbay.travel/webhook/telegram">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="telegram-bot-active" checked>
+                        <label class="form-check-label" for="telegram-bot-active">
+                            Бот активен
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="telegram-logging" checked>
+                        <label class="form-check-label" for="telegram-logging">
+                            Логирование сообщений
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-telegram-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SendGrid Modal -->
+<div class="modal fade" id="sendgrid-modal" tabindex="-1" aria-labelledby="sendgrid-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sendgrid-modal-label">Настройки SendGrid</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sendgrid-form">
+                    <div class="mb-3">
+                        <label for="sendgrid-api-key" class="form-label">API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="sendgrid-api-key" placeholder="Введите API ключ SendGrid">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-sendgrid-key">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sendgrid-from-email" class="form-label">Email отправителя</label>
+                        <input type="email" class="form-control" id="sendgrid-from-email" placeholder="noreply@crystalbay.travel">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sendgrid-from-name" class="form-label">Имя отправителя</label>
+                        <input type="text" class="form-control" id="sendgrid-from-name" placeholder="Crystal Bay Travel">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="sendgrid-tracking">
+                        <label class="form-check-label" for="sendgrid-tracking">
+                            Отслеживание открытий и кликов
+                        </label>
+                    </div>
+                </form>
+                <!-- Test connection button -->
+                <button type="button" class="btn btn-outline-primary w-100 mt-3" id="test-sendgrid-connection">
+                    <i class="bi bi-envelope-check me-2"></i> Проверить подключение
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-sendgrid-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supabase Modal -->
+<div class="modal fade" id="supabase-modal" tabindex="-1" aria-labelledby="supabase-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supabase-modal-label">Настройки Supabase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="supabase-form">
+                    <div class="mb-3">
+                        <label for="supabase-url" class="form-label">URL</label>
+                        <input type="text" class="form-control" id="supabase-url" value="https://xxxxxxxxxxxx.supabase.co">
+                    </div>
+                    <div class="mb-3">
+                        <label for="supabase-key" class="form-label">API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="supabase-key" value="●●●●●●●●●●●●●●●●">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-supabase-key">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="supabase-timeout" class="form-label">Тайм-аут запросов (секунды)</label>
+                        <input type="number" class="form-control" id="supabase-timeout" value="20" min="5" max="120">
+                    </div>
+                </form>
+                <!-- Test connection button -->
+                <button type="button" class="btn btn-outline-primary w-100 mt-3" id="test-supabase-connection">
+                    <i class="bi bi-hdd-network me-2"></i> Проверить подключение
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-supabase-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- OpenAI Modal -->
+<div class="modal fade" id="openai-modal" tabindex="-1" aria-labelledby="openai-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="openai-modal-label">Настройки OpenAI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="openai-form">
+                    <div class="mb-3">
+                        <label for="openai-api-key" class="form-label">API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="openai-api-key" value="●●●●●●●●●●●●●●●●">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-openai-key">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="openai-model" class="form-label">Модель</label>
+                        <select class="form-select" id="openai-model">
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="openai-temperature" class="form-label">Температура (0.0 - 1.0)</label>
+                        <input type="range" class="form-range" id="openai-temperature" min="0" max="1" step="0.1" value="0.7">
+                        <div class="d-flex justify-content-between">
+                            <small>Точные ответы</small>
+                            <small id="temperature-value">0.7</small>
+                            <small>Творческие ответы</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="openai-max-tokens" class="form-label">Максимальное количество токенов</label>
+                        <input type="number" class="form-control" id="openai-max-tokens" value="500" min="50" max="2000">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="openai-caching" checked>
+                        <label class="form-check-label" for="openai-caching">
+                            Кэширование результатов
+                        </label>
+                    </div>
+                </form>
+                <!-- Test connection button -->
+                <button type="button" class="btn btn-outline-primary w-100 mt-3" id="test-openai-connection">
+                    <i class="bi bi-lightning me-2"></i> Проверить подключение
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-openai-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Integration Modal -->
+<div class="modal fade" id="add-integration-modal" tabindex="-1" aria-labelledby="add-integration-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="add-integration-modal-label">Добавить интеграцию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="integration-type" class="form-label">Тип интеграции</label>
+                    <select class="form-select" id="integration-type">
+                        <option value="" selected disabled>Выберите тип интеграции</option>
+                        <option value="payment">Платежная система</option>
+                        <option value="sms">SMS-сервис</option>
+                        <option value="analytics">Аналитика</option>
+                        <option value="crm">CRM система</option>
+                        <option value="custom">Другое</option>
+                    </select>
+                </div>
+                
+                <div id="integration-details" style="display: none;">
+                    <div class="mb-3">
+                        <label for="integration-name" class="form-label">Название</label>
+                        <input type="text" class="form-control" id="integration-name" placeholder="Введите название интеграции">
+                    </div>
+                    <div class="mb-3">
+                        <label for="integration-api-url" class="form-label">API URL</label>
+                        <input type="text" class="form-control" id="integration-api-url" placeholder="https://api.example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="integration-api-key" class="form-label">API Key</label>
+                        <input type="text" class="form-control" id="integration-api-key" placeholder="Введите API ключ">
+                    </div>
+                    <div class="mb-3">
+                        <label for="integration-description" class="form-label">Описание</label>
+                        <textarea class="form-control" id="integration-description" rows="3" placeholder="Краткое описание интеграции"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-integration" disabled>
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="add-user-modal" tabindex="-1" aria-labelledby="add-user-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="add-user-modal-label">Добавить пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="mb-3">
+                        <label for="user-name" class="form-label">Имя</label>
+                        <input type="text" class="form-control" id="user-name" placeholder="Введите имя пользователя">
+                    </div>
+                    <div class="mb-3">
+                        <label for="user-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="user-email" placeholder="user@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="user-role" class="form-label">Роль</label>
+                        <select class="form-select" id="user-role">
+                            <option value="admin">Администратор</option>
+                            <option value="manager" selected>Менеджер</option>
+                            <option value="operator">Оператор</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user-password" class="form-label">Пароль</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="user-password" placeholder="Введите пароль">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-user-password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send-welcome-email" checked>
+                            <label class="form-check-label" for="send-welcome-email">
+                                Отправить приветственное письмо
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-user">
+                    <i class="bi bi-save me-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Save all settings button
+        document.getElementById('save-all-settings').addEventListener('click', function() {
+            saveAllSettings();
+        });
+        
+        // OpenAI temperature slider
+        const temperatureSlider = document.getElementById('openai-temperature');
+        const temperatureValue = document.getElementById('temperature-value');
+        
+        temperatureSlider.addEventListener('input', function() {
+            temperatureValue.textContent = this.value;
+        });
+        
+        // Toggle password visibility
+        document.querySelectorAll('[id^="toggle-"]').forEach(button => {
+            button.addEventListener('click', function() {
+                const inputId = this.id.replace('toggle-', '');
+                const input = document.getElementById(inputId);
+                const icon = this.querySelector('i');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+        });
+        
+        // Integration type selection
+        document.getElementById('integration-type').addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('integration-details').style.display = 'block';
+                document.getElementById('save-integration').disabled = false;
+            } else {
+                document.getElementById('integration-details').style.display = 'none';
+                document.getElementById('save-integration').disabled = true;
+            }
+        });
+        
+        // System maintenance buttons
+        document.getElementById('clear-cache').addEventListener('click', function() {
+            simulateAction('Очистка кэша', 'Кэш успешно очищен');
+        });
+        
+        document.getElementById('optimize-db').addEventListener('click', function() {
+            simulateAction('Оптимизация базы данных', 'База данных успешно оптимизирована');
+        });
+        
+        document.getElementById('restart-services').addEventListener('click', function() {
+            simulateAction('Перезапуск служб', 'Службы успешно перезапущены');
+        });
+        
+        document.getElementById('create-backup').addEventListener('click', function() {
+            simulateAction('Создание резервной копии', 'Резервная копия успешно создана');
+        });
+        
+        // Save settings buttons
+        document.getElementById('save-notification-settings').addEventListener('click', function() {
+            showToast('Настройки уведомлений успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-security-settings').addEventListener('click', function() {
+            showToast('Настройки безопасности успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-samo-settings').addEventListener('click', function() {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('samo-modal'));
+            modal.hide();
+            
+            showToast('Настройки SAMO API успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-telegram-settings').addEventListener('click', function() {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('telegram-modal'));
+            modal.hide();
+            
+            showToast('Настройки Telegram Bot успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-sendgrid-settings').addEventListener('click', function() {
+            // Get API key
+            const apiKey = document.getElementById('sendgrid-api-key').value;
+            
+            if (!apiKey || apiKey === '') {
+                showToast('Пожалуйста, введите API Key', 'warning');
+                return;
+            }
+            
+            // Update SendGrid status
+            document.getElementById('sendgrid-status').className = 'connection-status status-connected';
+            document.getElementById('sendgrid-status').textContent = 'Подключено';
+            
+            // Update integration status in the table
+            const sendgridStatusRow = document.querySelector('#integration-status-container .row div:first-child div:nth-child(5)');
+            sendgridStatusRow.innerHTML = '<span>SendGrid</span><span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>';
+            
+            const sendgridProgressBar = document.querySelector('#integration-status-container .row div:first-child div:nth-child(6) .progress-bar');
+            sendgridProgressBar.style.width = '100%';
+            sendgridProgressBar.className = 'progress-bar bg-success';
+            
+            // Update general status
+            const generalStatusRow = document.querySelector('#integration-status-container .row div:nth-child(2) div:nth-child(5)');
+            generalStatusRow.innerHTML = '<span>Общий статус</span><span class="text-success"><i class="bi bi-check-circle"></i> Активно</span>';
+            
+            const generalProgressBar = document.querySelector('#integration-status-container .row div:nth-child(2) div:nth-child(6) .progress-bar');
+            generalProgressBar.style.width = '100%';
+            generalProgressBar.className = 'progress-bar bg-success';
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('sendgrid-modal'));
+            modal.hide();
+            
+            // Show success message
+            showToast('Настройки SendGrid успешно сохранены', 'success');
+            
+            // Add a log entry
+            addLogEntry('Подключение к SendGrid API успешно установлено', 'info');
+        });
+        
+        document.getElementById('save-supabase-settings').addEventListener('click', function() {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('supabase-modal'));
+            modal.hide();
+            
+            showToast('Настройки Supabase успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-openai-settings').addEventListener('click', function() {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('openai-modal'));
+            modal.hide();
+            
+            showToast('Настройки OpenAI успешно сохранены', 'success');
+        });
+        
+        document.getElementById('save-integration').addEventListener('click', function() {
+            // Get integration details
+            const type = document.getElementById('integration-type').value;
+            const name = document.getElementById('integration-name').value;
+            
+            if (!type || !name) {
+                showToast('Пожалуйста, заполните все обязательные поля', 'warning');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('add-integration-modal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('integration-type').value = '';
+            document.getElementById('integration-name').value = '';
+            document.getElementById('integration-api-url').value = '';
+            document.getElementById('integration-api-key').value = '';
+            document.getElementById('integration-description').value = '';
+            document.getElementById('integration-details').style.display = 'none';
+            document.getElementById('save-integration').disabled = true;
+            
+            showToast(`Интеграция "${name}" успешно добавлена`, 'success');
+        });
+        
+        document.getElementById('save-user').addEventListener('click', function() {
+            // Get user details
+            const name = document.getElementById('user-name').value;
+            const email = document.getElementById('user-email').value;
+            
+            if (!name || !email) {
+                showToast('Пожалуйста, заполните все обязательные поля', 'warning');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('add-user-modal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('add-user-form').reset();
+            
+            showToast(`Пользователь "${name}" успешно добавлен`, 'success');
+        });
+        
+        // Test connection buttons
+        document.getElementById('test-sendgrid-connection').addEventListener('click', function() {
+            // Get API key
+            const apiKey = document.getElementById('sendgrid-api-key').value;
+            
+            if (!apiKey || apiKey === '') {
+                showToast('Пожалуйста, введите API Key', 'warning');
+                return;
+            }
+            
+            // Simulate testing
+            const button = this;
+            const originalButtonText = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Проверка...';
+            button.disabled = true;
+            
+            setTimeout(function() {
+                button.innerHTML = originalButtonText;
+                button.disabled = false;
+                
+                showToast('Подключение к SendGrid успешно установлено', 'success');
+            }, 1500);
+        });
+        
+        document.getElementById('test-supabase-connection').addEventListener('click', function() {
+            // Simulate testing
+            const button = this;
+            const originalButtonText = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Проверка...';
+            button.disabled = true;
+            
+            setTimeout(function() {
+                button.innerHTML = originalButtonText;
+                button.disabled = false;
+                
+                showToast('Подключение к Supabase успешно установлено', 'success');
+            }, 1500);
+        });
+        
+        document.getElementById('test-openai-connection').addEventListener('click', function() {
+            // Simulate testing
+            const button = this;
+            const originalButtonText = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Проверка...';
+            button.disabled = true;
+            
+            setTimeout(function() {
+                button.innerHTML = originalButtonText;
+                button.disabled = false;
+                
+                showToast('Подключение к OpenAI успешно установлено', 'success');
+            }, 1500);
+        });
+        
+        // Refresh logs
+        document.getElementById('refresh-logs').addEventListener('click', function() {
+            refreshLogs();
+        });
+    });
+    
+    // Save all settings
+    function saveAllSettings() {
+        showToast('Все настройки успешно сохранены', 'success');
+    }
+    
+    // Simulate action with loading
+    function simulateAction(actionName, successMessage) {
+        // Show loading toast
+        const loadingToast = document.createElement('div');
+        loadingToast.className = 'toast align-items-center text-white bg-primary border-0';
+        loadingToast.role = 'alert';
+        loadingToast.ariaLive = 'assertive';
+        loadingToast.ariaAtomic = 'true';
+        loadingToast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    ${actionName}...
+                </div>
+            </div>
+        `;
+        
+        document.querySelector('.toast-container').appendChild(loadingToast);
+        const toast = new bootstrap.Toast(loadingToast, { autohide: false });
+        toast.show();
+        
+        // Simulate processing
+        setTimeout(function() {
+            // Hide loading toast
+            toast.dispose();
+            loadingToast.remove();
+            
+            // Show success toast
+            showToast(successMessage, 'success');
+        }, 2000);
+    }
+    
+    // Add log entry
+    function addLogEntry(message, level = 'info') {
+        const logs = document.getElementById('integration-logs');
+        const now = new Date();
+        const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+        
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${level}`;
+        
+        let levelText = level.toUpperCase();
+        let levelClass = 'text-info';
+        
+        if (level === 'warning') {
+            levelClass = 'text-warning';
+        } else if (level === 'error') {
+            levelClass = 'text-danger';
+        }
+        
+        logEntry.innerHTML = `
+            <span class="text-secondary">[${timestamp}]</span> <span class="${levelClass}">${levelText}</span> - ${message}
+        `;
+        
+        logs.insertBefore(logEntry, logs.firstChild);
+    }
+    
+    // Refresh logs
+    function refreshLogs() {
+        // Simulate refreshing logs
+        const refreshButton = document.getElementById('refresh-logs');
+        const originalButtonText = refreshButton.innerHTML;
+        refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        refreshButton.disabled = true;
+        
+        setTimeout(function() {
+            refreshButton.innerHTML = originalButtonText;
+            refreshButton.disabled = false;
+            
+            // Add a new log entry
+            const levels = ['info', 'warning', 'error'];
+            const level = levels[Math.floor(Math.random() * levels.length)];
+            
+            let message = '';
+            if (level === 'info') {
+                message = 'Синхронизация данных с SAMO API выполнена успешно';
+            } else if (level === 'warning') {
+                message = 'Предупреждение: Высокая нагрузка на API';
+            } else {
+                message = 'Ошибка: Не удалось выполнить запрос к API';
+            }
+            
+            addLogEntry(message, level);
+            
+            showToast('Логи обновлены', 'success');
+        }, 1000);
+    }
+</script>
+{% endblock %}

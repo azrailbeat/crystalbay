@@ -66,9 +66,7 @@ def home():
     
     bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
     
-    return render_template('index.html', 
-                          bot_status=bot_status, 
-                          missing_vars=missing_vars)
+    return render_template('home.html', active_page='home')
 
 @app.route('/start_bot', methods=['POST'])
 def start_bot():
@@ -76,11 +74,56 @@ def start_bot():
     success = start_bot_process()
     return redirect(url_for('home'))
 
+@app.route('/dashboard')
+def dashboard():
+    """Render the dashboard page"""
+    # Check if required environment variables are set
+    required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"]
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
+    
+    return render_template('index.html', 
+                          bot_status=bot_status, 
+                          missing_vars=missing_vars)
+
+@app.route('/tours')
+def tours():
+    """Render the tours page"""
+    return render_template('tours.html', active_page='tours')
+
+@app.route('/bookings')
+def bookings():
+    """Render the bookings page"""
+    return render_template('bookings.html', active_page='bookings')
+
+@app.route('/messages')
+def messages():
+    """Render the messages page"""
+    return render_template('messages.html', active_page='messages')
+
+@app.route('/settings')
+def settings():
+    """Render the settings page"""
+    return render_template('settings.html', active_page='settings')
+
 @app.route('/bot_logs')
 def bot_logs():
     """Show bot logs (this would need to be implemented with proper log file handling)"""
     # This is a placeholder. In a real implementation, you'd read from a log file
-    return render_template('logs.html', logs="Bot logs will appear here")
+    logs = ""
+    try:
+        # Check if log file exists and read it
+        log_path = "bot_logs.log"
+        if os.path.exists(log_path):
+            with open(log_path, "r") as f:
+                logs = f.read()
+        else:
+            logs = "No log file found. The log will appear after the bot has been started."
+    except Exception as e:
+        logs = f"Error reading log file: {str(e)}"
+        
+    return render_template('logs.html', logs=logs)
 
 # API Endpoints for the Web Interface
 @app.route('/api/bot/status', methods=['GET'])
@@ -183,6 +226,150 @@ def update_booking_status(booking_id):
             }), 404
     except Exception as e:
         logger.error(f"Error updating booking status: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/cities', methods=['GET'])
+def get_cities():
+    """Get available departure cities from SAMO API"""
+    try:
+        from helpers import fetch_cities
+        samo_token = os.getenv("SAMO_OAUTH_TOKEN")
+        if not samo_token:
+            return jsonify({
+                "success": False,
+                "error": "SAMO_OAUTH_TOKEN is required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        cities = fetch_cities(samo_token)
+        return jsonify({
+            "success": True,
+            "cities": cities,
+            "count": len(cities),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error fetching cities: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/countries', methods=['GET'])
+def get_countries():
+    """Get available countries based on departure city from SAMO API"""
+    try:
+        from helpers import fetch_countries
+        samo_token = os.getenv("SAMO_OAUTH_TOKEN")
+        city_id = request.args.get('city_id')
+        
+        if not samo_token:
+            return jsonify({
+                "success": False,
+                "error": "SAMO_OAUTH_TOKEN is required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        if not city_id:
+            return jsonify({
+                "success": False,
+                "error": "city_id is required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        countries = fetch_countries(samo_token, city_id)
+        return jsonify({
+            "success": True,
+            "countries": countries,
+            "count": len(countries),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error fetching countries: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/tours', methods=['GET'])
+def get_tours():
+    """Get available tours based on selected criteria from SAMO API"""
+    try:
+        from helpers import fetch_tours
+        samo_token = os.getenv("SAMO_OAUTH_TOKEN")
+        city_id = request.args.get('city_id')
+        country_id = request.args.get('country_id')
+        checkin_date = request.args.get('checkin_date')
+        
+        if not samo_token:
+            return jsonify({
+                "success": False,
+                "error": "SAMO_OAUTH_TOKEN is required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        if not city_id or not country_id or not checkin_date:
+            return jsonify({
+                "success": False,
+                "error": "city_id, country_id, and checkin_date are required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        tours = fetch_tours(samo_token, city_id, country_id, checkin_date)
+        return jsonify({
+            "success": True,
+            "tours": tours,
+            "count": len(tours),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error fetching tours: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/booking', methods=['POST'])
+def create_booking():
+    """Create a new booking with SAMO API and store in Supabase"""
+    try:
+        from models import BookingService
+        data = request.json
+        
+        required_fields = ['customer_name', 'customer_phone', 'customer_email', 
+                          'tour_id', 'departure_city', 'destination_country',
+                          'checkin_date', 'nights', 'adults', 'price', 'currency']
+        
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            return jsonify({
+                "success": False,
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        # Optional fields
+        if 'children' not in data:
+            data['children'] = 0
+        if 'status' not in data:
+            data['status'] = 'pending'
+            
+        booking = BookingService.create_booking(data)
+        return jsonify({
+            "success": True,
+            "booking": booking,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error creating booking: {e}")
         return jsonify({
             "success": False,
             "error": str(e),

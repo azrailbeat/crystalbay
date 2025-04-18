@@ -1,0 +1,997 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Tours - Поиск туров{% endblock %}
+
+{% block head %}
+<style>
+    .tour-filters {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .tour-card {
+        height: 100%;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .tour-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .tour-card .card-img-top {
+        height: 200px;
+        object-fit: cover;
+    }
+    
+    .tour-card .badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 0.8rem;
+        padding: 0.5em 0.8em;
+    }
+    
+    .tour-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .tour-details-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .tour-details-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+    }
+    
+    .tour-details-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .tour-details-list li i {
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 0;
+    }
+    
+    .loading-spinner {
+        margin-bottom: 1rem;
+    }
+    
+    .filter-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-section h5 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .filter-options label {
+        display: block;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+    }
+    
+    .pagination .page-link {
+        color: #fff;
+        background-color: var(--card-background);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .pagination .page-link:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Tour Search Header -->
+<div class="container mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="display-5">Поиск туров</h1>
+            <p class="lead text-secondary" id="search-results-info">Найдите идеальный тур для вашего отпуска</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="/" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#search-modal">
+                <i class="bi bi-funnel"></i> Изменить параметры
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tour Search and Results -->
+<div class="container">
+    <div class="row">
+        <!-- Filters Sidebar -->
+        <div class="col-lg-3">
+            <div class="tour-filters sticky-top" style="top: 20px; z-index: 1;">
+                <h4 class="mb-3">Фильтры</h4>
+                
+                <!-- Price Range Filter -->
+                <div class="filter-section">
+                    <h5>Цена</h5>
+                    <div class="mb-3">
+                        <label for="price-min" class="form-label">От:</label>
+                        <input type="number" class="form-control" id="price-min" placeholder="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="price-max" class="form-label">До:</label>
+                        <input type="number" class="form-control" id="price-max" placeholder="1000000">
+                    </div>
+                </div>
+                
+                <!-- Hotel Stars Filter -->
+                <div class="filter-section">
+                    <h5>Категория отеля</h5>
+                    <div class="filter-options">
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="5"> 5 звезд
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="4"> 4 звезды
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="3"> 3 звезды
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="2"> 2 звезды
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Meal Type Filter -->
+                <div class="filter-section">
+                    <h5>Питание</h5>
+                    <div class="filter-options">
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="AI"> Все включено
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="FB"> Полный пансион
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="HB"> Полупансион
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="BB"> Завтрак
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="RO"> Без питания
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Beach Distance Filter -->
+                <div class="filter-section">
+                    <h5>Расстояние до пляжа</h5>
+                    <div class="filter-options">
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="first"> Первая линия
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="second"> Вторая линия
+                        </label>
+                        <label>
+                            <input type="checkbox" class="form-check-input me-2" value="far"> Далеко от пляжа
+                        </label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary w-100 mt-3" id="apply-filters">
+                    <i class="bi bi-filter"></i> Применить фильтры
+                </button>
+                <button class="btn btn-outline-secondary w-100 mt-2" id="reset-filters">
+                    <i class="bi bi-arrow-counterclockwise"></i> Сбросить
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tour Results -->
+        <div class="col-lg-9">
+            <!-- Sort Options -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <span id="tours-count">0 туров найдено</span>
+                        </div>
+                        <div class="col-md-8 d-flex justify-content-md-end">
+                            <label for="sort-options" class="me-2 align-self-center">Сортировать:</label>
+                            <select class="form-select w-auto" id="sort-options">
+                                <option value="price-asc">По цене (сначала дешевые)</option>
+                                <option value="price-desc">По цене (сначала дорогие)</option>
+                                <option value="rating-desc">По рейтингу (сначала высокие)</option>
+                                <option value="date-asc">По дате (сначала ближайшие)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tours List -->
+            <div id="tours-container">
+                <!-- Loading Indicator -->
+                <div class="loading-container" id="loading-indicator">
+                    <div class="loading-spinner"></div>
+                    <p class="text-secondary">Загрузка туров...</p>
+                </div>
+                
+                <!-- No Results Message (hidden initially) -->
+                <div class="card text-center py-5" id="no-results" style="display: none;">
+                    <div class="card-body">
+                        <i class="bi bi-search text-secondary" style="font-size: 3rem;"></i>
+                        <h3 class="mt-3">Туры не найдены</h3>
+                        <p class="text-secondary">Попробуйте изменить параметры поиска</p>
+                        <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#search-modal">
+                            <i class="bi bi-funnel"></i> Изменить параметры поиска
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Tours Results Grid -->
+                <div class="row g-4" id="tours-grid">
+                    <!-- Tour cards will be dynamically inserted here -->
+                </div>
+                
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="my-4">
+                    <ul class="pagination justify-content-center" id="pagination-container">
+                        <!-- Pagination will be dynamically inserted here -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Modal -->
+<div class="modal fade" id="search-modal" tabindex="-1" aria-labelledby="search-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="search-modal-label">Параметры поиска туров</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="search-form">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="modal-departure-city" class="form-label">Город вылета</label>
+                            <select class="form-select" id="modal-departure-city" name="departure_city" required>
+                                <option value="" selected disabled>Выберите город</option>
+                                <option value="moscow">Москва</option>
+                                <option value="spb">Санкт-Петербург</option>
+                                <option value="yekaterinburg">Екатеринбург</option>
+                                <option value="kazan">Казань</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modal-destination-country" class="form-label">Страна</label>
+                            <select class="form-select" id="modal-destination-country" name="destination_country" required>
+                                <option value="" selected disabled>Выберите страну</option>
+                                <option value="turkey">Турция</option>
+                                <option value="egypt">Египет</option>
+                                <option value="thailand">Таиланд</option>
+                                <option value="uae">ОАЭ</option>
+                                <option value="cyprus">Кипр</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modal-departure-date" class="form-label">Дата вылета</label>
+                            <input type="date" class="form-control" id="modal-departure-date" name="departure_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modal-return-date" class="form-label">Дата возвращения</label>
+                            <input type="date" class="form-control" id="modal-return-date" name="return_date">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modal-nights" class="form-label">Ночей</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="modal-nights-min" name="nights_min" value="7" min="1" max="30">
+                                <span class="input-group-text">—</span>
+                                <input type="number" class="form-control" id="modal-nights-max" name="nights_max" value="14" min="1" max="30">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modal-adults" class="form-label">Взрослых</label>
+                            <select class="form-select" id="modal-adults" name="adults">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modal-children" class="form-label">Детей</label>
+                            <select class="form-select" id="modal-children" name="children">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="apply-search">Найти туры</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tour Details Modal -->
+<div class="modal fade" id="tour-details-modal" tabindex="-1" aria-labelledby="tour-details-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tour-details-modal-label">Детали тура</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="tour-carousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                            <div class="carousel-inner" id="tour-images">
+                                <!-- Images will be inserted here -->
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#tour-carousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#tour-carousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                        <h3 id="hotel-name">Загрузка...</h3>
+                        <div class="d-flex align-items-center mb-3">
+                            <div id="hotel-stars"></div>
+                            <span class="badge bg-primary ms-2" id="hotel-rating">0.0</span>
+                        </div>
+                        <p id="hotel-address">Загрузка...</p>
+                        <hr>
+                        <h4>Описание</h4>
+                        <p id="hotel-description">Загрузка...</p>
+                        
+                        <h4 class="mt-4">Удобства</h4>
+                        <div class="row" id="hotel-amenities">
+                            <!-- Amenities will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Информация о туре</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="tour-details-list">
+                                    <li>
+                                        <i class="bi bi-calendar"></i>
+                                        <div>
+                                            <strong>Даты:</strong>
+                                            <div id="tour-dates">Загрузка...</div>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-moon"></i>
+                                        <div>
+                                            <strong>Ночей:</strong>
+                                            <div id="tour-nights">Загрузка...</div>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-people"></i>
+                                        <div>
+                                            <strong>Туристы:</strong>
+                                            <div id="tour-tourists">Загрузка...</div>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-house"></i>
+                                        <div>
+                                            <strong>Размещение:</strong>
+                                            <div id="tour-room">Загрузка...</div>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-cup-hot"></i>
+                                        <div>
+                                            <strong>Питание:</strong>
+                                            <div id="tour-meal">Загрузка...</div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Стоимость</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span>Полная стоимость:</span>
+                                    <span class="tour-price" id="tour-price">Загрузка...</span>
+                                </div>
+                                <button class="btn btn-primary w-100" id="book-tour-btn">
+                                    <i class="bi bi-calendar-check"></i> Забронировать
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let toursData = [];
+    let currentPage = 1;
+    const toursPerPage = 9;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set minimum date for date inputs to today
+        const today = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('input[type="date"]').forEach(input => {
+            input.min = today;
+            input.value = today;
+        });
+        
+        // Return date should be after departure date
+        const departureDateInput = document.getElementById('modal-departure-date');
+        const returnDateInput = document.getElementById('modal-return-date');
+        
+        departureDateInput.addEventListener('change', function() {
+            if (returnDateInput.value && returnDateInput.value < departureDateInput.value) {
+                // Set return date to departure date + 7 days by default
+                const departureDate = new Date(departureDateInput.value);
+                departureDate.setDate(departureDate.getDate() + 7);
+                returnDateInput.value = departureDate.toISOString().split('T')[0];
+            }
+            returnDateInput.min = departureDateInput.value;
+        });
+        
+        // Handle search form submission
+        document.getElementById('apply-search').addEventListener('click', function() {
+            const form = document.getElementById('search-form');
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams();
+            
+            for (const [key, value] of formData.entries()) {
+                if (value) {
+                    searchParams.append(key, value);
+                }
+            }
+            
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('search-modal'));
+            modal.hide();
+            
+            // Show loading
+            document.getElementById('loading-indicator').style.display = 'flex';
+            document.getElementById('tours-grid').innerHTML = '';
+            document.getElementById('pagination-container').innerHTML = '';
+            document.getElementById('no-results').style.display = 'none';
+            
+            // Fetch tours with search parameters
+            fetchTours(searchParams.toString());
+        });
+        
+        // Handle filters
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            applyFilters();
+        });
+        
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            resetFilters();
+        });
+        
+        // Handle sorting
+        document.getElementById('sort-options').addEventListener('change', function() {
+            sortTours(this.value);
+        });
+        
+        // Fetch initial tours on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.toString()) {
+            // Fill search form with URL parameters
+            for (const [key, value] of urlParams.entries()) {
+                const input = document.querySelector(`[name="${key}"]`);
+                if (input) {
+                    input.value = value;
+                }
+            }
+            
+            fetchTours(urlParams.toString());
+        } else {
+            // Show no results message if no search parameters
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('no-results').style.display = 'block';
+        }
+    });
+    
+    // Fetch tours from API
+    async function fetchTours(searchParams) {
+        try {
+            // In a real application, this would call the SAMO API
+            // For now, we'll simulate API response
+            document.getElementById('loading-indicator').style.display = 'flex';
+            
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Example API call (commented out)
+            // const response = await fetch(`/api/tours?${searchParams}`);
+            // const data = await response.json();
+            
+            // Simulate API response with placeholder data
+            const data = generateMockTours(searchParams);
+            
+            // Update global data
+            toursData = data;
+            
+            // Hide loading indicator
+            document.getElementById('loading-indicator').style.display = 'none';
+            
+            // Update tours count
+            document.getElementById('tours-count').textContent = `${data.length} туров найдено`;
+            document.getElementById('search-results-info').textContent = 
+                `Найдено ${data.length} туров по вашему запросу`;
+            
+            // Display tours
+            if (data.length > 0) {
+                displayTours(data);
+                setupPagination(data.length);
+            } else {
+                document.getElementById('no-results').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error fetching tours:', error);
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('no-results').style.display = 'block';
+            document.getElementById('search-results-info').textContent = 
+                'Ошибка при поиске туров. Пожалуйста, попробуйте снова.';
+        }
+    }
+    
+    // Display tours in the grid
+    function displayTours(tours, page = 1) {
+        const toursGrid = document.getElementById('tours-grid');
+        toursGrid.innerHTML = '';
+        
+        // Calculate pagination
+        const startIndex = (page - 1) * toursPerPage;
+        const endIndex = startIndex + toursPerPage;
+        const paginatedTours = tours.slice(startIndex, endIndex);
+        
+        paginatedTours.forEach(tour => {
+            const tourCard = document.createElement('div');
+            tourCard.className = 'col-md-6 col-lg-4';
+            
+            // Format meal type
+            let mealType = 'Не указано';
+            switch(tour.meal) {
+                case 'AI': mealType = 'Все включено'; break;
+                case 'FB': mealType = 'Полный пансион'; break;
+                case 'HB': mealType = 'Полупансион'; break;
+                case 'BB': mealType = 'Завтрак'; break;
+                case 'RO': mealType = 'Без питания'; break;
+            }
+            
+            // Generate stars display
+            let starsHTML = '';
+            for (let i = 0; i < tour.stars; i++) {
+                starsHTML += '<i class="bi bi-star-fill text-warning"></i>';
+            }
+            
+            tourCard.innerHTML = `
+                <div class="card tour-card">
+                    <div class="position-relative">
+                        <img src="${tour.image}" class="card-img-top" alt="${tour.hotel}">
+                        <span class="badge bg-primary">${tour.stars}★</span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">${tour.hotel}</h5>
+                        <p class="text-secondary mb-2">${tour.location}</p>
+                        <div class="mb-3">
+                            ${starsHTML}
+                        </div>
+                        <ul class="tour-details-list mb-3">
+                            <li>
+                                <i class="bi bi-calendar"></i>
+                                ${tour.dates}
+                            </li>
+                            <li>
+                                <i class="bi bi-moon"></i>
+                                ${tour.nights} ночей
+                            </li>
+                            <li>
+                                <i class="bi bi-cup-hot"></i>
+                                ${mealType}
+                            </li>
+                        </ul>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="tour-price">${tour.price.toLocaleString()} ₽</span>
+                            <button class="btn btn-outline-primary" onclick="showTourDetails(${tour.id})">
+                                Подробнее
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            toursGrid.appendChild(tourCard);
+        });
+    }
+    
+    // Setup pagination
+    function setupPagination(totalTours) {
+        const paginationContainer = document.getElementById('pagination-container');
+        paginationContainer.innerHTML = '';
+        
+        const totalPages = Math.ceil(totalTours / toursPerPage);
+        
+        if (totalPages <= 1) {
+            return;
+        }
+        
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Previous" onclick="changePage(${currentPage - 1})">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        `;
+        paginationContainer.appendChild(prevLi);
+        
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `
+                <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+            `;
+            paginationContainer.appendChild(pageLi);
+        }
+        
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Next" onclick="changePage(${currentPage + 1})">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        `;
+        paginationContainer.appendChild(nextLi);
+    }
+    
+    // Change page
+    function changePage(page) {
+        currentPage = page;
+        displayTours(toursData, currentPage);
+        setupPagination(toursData.length);
+        // Scroll to top of tours container
+        document.getElementById('tours-container').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Apply filters
+    function applyFilters() {
+        // Get filter values
+        const priceMin = parseInt(document.getElementById('price-min').value) || 0;
+        const priceMax = parseInt(document.getElementById('price-max').value) || Infinity;
+        
+        // Get checked hotel stars
+        const selectedStars = [];
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+            if (!isNaN(parseInt(checkbox.value))) {
+                selectedStars.push(parseInt(checkbox.value));
+            }
+        });
+        
+        // Filter tours
+        const filteredTours = toursData.filter(tour => {
+            // Price filter
+            if (tour.price < priceMin || tour.price > priceMax) {
+                return false;
+            }
+            
+            // Stars filter (if any selected)
+            if (selectedStars.length > 0 && !selectedStars.includes(tour.stars)) {
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Update display
+        currentPage = 1;
+        document.getElementById('tours-count').textContent = `${filteredTours.length} туров найдено`;
+        
+        if (filteredTours.length > 0) {
+            document.getElementById('no-results').style.display = 'none';
+            displayTours(filteredTours);
+            setupPagination(filteredTours.length);
+        } else {
+            document.getElementById('tours-grid').innerHTML = '';
+            document.getElementById('pagination-container').innerHTML = '';
+            document.getElementById('no-results').style.display = 'block';
+        }
+    }
+    
+    // Reset filters
+    function resetFilters() {
+        // Reset input values
+        document.getElementById('price-min').value = '';
+        document.getElementById('price-max').value = '';
+        
+        // Uncheck all checkboxes
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Reset to original data
+        currentPage = 1;
+        document.getElementById('tours-count').textContent = `${toursData.length} туров найдено`;
+        displayTours(toursData);
+        setupPagination(toursData.length);
+        document.getElementById('no-results').style.display = 'none';
+    }
+    
+    // Sort tours
+    function sortTours(sortOption) {
+        let sortedTours = [...toursData];
+        
+        switch(sortOption) {
+            case 'price-asc':
+                sortedTours.sort((a, b) => a.price - b.price);
+                break;
+            case 'price-desc':
+                sortedTours.sort((a, b) => b.price - a.price);
+                break;
+            case 'rating-desc':
+                sortedTours.sort((a, b) => b.stars - a.stars);
+                break;
+            case 'date-asc':
+                // This would normally sort by actual dates, but for our mock data we'll use the tour ID as a proxy
+                sortedTours.sort((a, b) => a.id - b.id);
+                break;
+        }
+        
+        currentPage = 1;
+        displayTours(sortedTours);
+        setupPagination(sortedTours.length);
+    }
+    
+    // Show tour details
+    function showTourDetails(tourId) {
+        // Find tour by ID
+        const tour = toursData.find(t => t.id === tourId);
+        
+        if (!tour) {
+            console.error(`Tour with ID ${tourId} not found`);
+            return;
+        }
+        
+        // Update modal content
+        document.getElementById('hotel-name').textContent = tour.hotel;
+        document.getElementById('hotel-address').textContent = tour.location;
+        
+        // Stars
+        const starsContainer = document.getElementById('hotel-stars');
+        starsContainer.innerHTML = '';
+        for (let i = 0; i < tour.stars; i++) {
+            const star = document.createElement('i');
+            star.className = 'bi bi-star-fill text-warning me-1';
+            starsContainer.appendChild(star);
+        }
+        
+        // Rating
+        document.getElementById('hotel-rating').textContent = (Math.random() * 2 + 8).toFixed(1);
+        
+        // Tour details
+        document.getElementById('tour-dates').textContent = tour.dates;
+        document.getElementById('tour-nights').textContent = `${tour.nights} ночей`;
+        document.getElementById('tour-tourists').textContent = `2 взрослых`;
+        document.getElementById('tour-room').textContent = 'Стандартный номер';
+        
+        // Meal type
+        let mealType = 'Не указано';
+        switch(tour.meal) {
+            case 'AI': mealType = 'Все включено'; break;
+            case 'FB': mealType = 'Полный пансион'; break;
+            case 'HB': mealType = 'Полупансион'; break;
+            case 'BB': mealType = 'Завтрак'; break;
+            case 'RO': mealType = 'Без питания'; break;
+        }
+        document.getElementById('tour-meal').textContent = mealType;
+        
+        // Price
+        document.getElementById('tour-price').textContent = `${tour.price.toLocaleString()} ₽`;
+        
+        // Description (placeholder)
+        document.getElementById('hotel-description').textContent = 
+            'Этот отель расположен в живописном месте и предлагает комфортабельное размещение для всех гостей. К услугам гостей бассейн, ресторан, спа-центр и различные развлекательные программы.';
+        
+        // Hotel amenities (placeholder)
+        const amenitiesContainer = document.getElementById('hotel-amenities');
+        amenitiesContainer.innerHTML = `
+            <div class="col-6 mb-2"><i class="bi bi-wifi me-2"></i> Wi-Fi</div>
+            <div class="col-6 mb-2"><i class="bi bi-water me-2"></i> Бассейн</div>
+            <div class="col-6 mb-2"><i class="bi bi-p-circle me-2"></i> Парковка</div>
+            <div class="col-6 mb-2"><i class="bi bi-flower1 me-2"></i> Сад</div>
+            <div class="col-6 mb-2"><i class="bi bi-cup-hot me-2"></i> Ресторан</div>
+            <div class="col-6 mb-2"><i class="bi bi-snow me-2"></i> Кондиционер</div>
+        `;
+        
+        // Images (placeholder)
+        const imagesContainer = document.getElementById('tour-images');
+        imagesContainer.innerHTML = `
+            <div class="carousel-item active">
+                <img src="${tour.image}" class="d-block w-100" alt="${tour.hotel}" style="height: 400px; object-fit: cover;">
+            </div>
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" class="d-block w-100" alt="Hotel room" style="height: 400px; object-fit: cover;">
+            </div>
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1584132967334-10e028bd69f7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" class="d-block w-100" alt="Hotel pool" style="height: 400px; object-fit: cover;">
+            </div>
+        `;
+        
+        // Book button action
+        document.getElementById('book-tour-btn').onclick = function() {
+            window.location.href = `/booking?tour_id=${tourId}`;
+        };
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('tour-details-modal'));
+        modal.show();
+    }
+    
+    // Function to generate mock tour data for demonstration
+    function generateMockTours(searchParams) {
+        const params = new URLSearchParams(searchParams);
+        const country = params.get('destination_country') || '';
+        
+        // Number of tours to generate
+        const count = Math.floor(Math.random() * 20) + 5;
+        const tours = [];
+        
+        // Country-specific details
+        const countryData = {
+            'turkey': {
+                name: 'Турция',
+                locations: ['Анталия', 'Белек', 'Аланья', 'Кемер', 'Мармарис'],
+                basePrice: 60000
+            },
+            'egypt': {
+                name: 'Египет',
+                locations: ['Шарм-эль-Шейх', 'Хургада', 'Макади Бей', 'Эль Гуна', 'Сафага'],
+                basePrice: 70000
+            },
+            'thailand': {
+                name: 'Таиланд',
+                locations: ['Пхукет', 'Паттайя', 'Самуи', 'Бангкок', 'Краби'],
+                basePrice: 90000
+            },
+            'uae': {
+                name: 'ОАЭ',
+                locations: ['Дубай', 'Абу-Даби', 'Шарджа', 'Рас-эль-Хайма', 'Фуджейра'],
+                basePrice: 85000
+            },
+            'cyprus': {
+                name: 'Кипр',
+                locations: ['Айя-Напа', 'Пафос', 'Лимассол', 'Ларнака', 'Протарас'],
+                basePrice: 75000
+            }
+        };
+        
+        // Default values if country not specified
+        const defaultData = {
+            name: 'Разные страны',
+            locations: ['Курорт', 'Пляж', 'Город', 'Остров', 'Бухта'],
+            basePrice: 65000
+        };
+        
+        // Get country specific data or use default
+        const data = countryData[country] || defaultData;
+        
+        // Generate tours
+        for (let i = 1; i <= count; i++) {
+            const starRating = Math.floor(Math.random() * 3) + 3; // 3-5 stars
+            const nights = Math.floor(Math.random() * 8) + 7; // 7-14 nights
+            const locationIndex = Math.floor(Math.random() * data.locations.length);
+            const location = data.locations[locationIndex];
+            
+            // Calculate price based on star rating and nights
+            const price = data.basePrice + (starRating * 10000) + (nights * 3000);
+            
+            // Randomly determine meal type
+            const mealTypes = ['AI', 'FB', 'HB', 'BB', 'RO'];
+            const mealType = mealTypes[Math.floor(Math.random() * mealTypes.length)];
+            
+            // Generate mock dates
+            const today = new Date();
+            const departureDate = new Date(today);
+            departureDate.setDate(today.getDate() + Math.floor(Math.random() * 30) + 1);
+            const returnDate = new Date(departureDate);
+            returnDate.setDate(departureDate.getDate() + nights);
+            
+            const formatDate = (date) => {
+                return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+            };
+            
+            const dateRange = `${formatDate(departureDate)} - ${formatDate(returnDate)}`;
+            
+            // Choose a random hotel image
+            const imageIndex = Math.floor(Math.random() * 5) + 1;
+            let imageUrl;
+            
+            switch(imageIndex) {
+                case 1:
+                    imageUrl = 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80';
+                    break;
+                case 2:
+                    imageUrl = 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80';
+                    break;
+                case 3:
+                    imageUrl = 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80';
+                    break;
+                case 4:
+                    imageUrl = 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80';
+                    break;
+                case 5:
+                    imageUrl = 'https://images.unsplash.com/photo-1455587734955-081b22074882?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80';
+                    break;
+            }
+            
+            tours.push({
+                id: i,
+                hotel: `Отель ${data.name} ${starRating}★ №${i}`,
+                location: `${location}, ${data.name}`,
+                stars: starRating,
+                nights: nights,
+                dates: dateRange,
+                meal: mealType,
+                price: price,
+                image: imageUrl
+            });
+        }
+        
+        return tours;
+    }
+</script>
+{% endblock %}
