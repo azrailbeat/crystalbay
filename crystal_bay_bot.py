@@ -323,14 +323,58 @@ def finalize_booking(query):
         query.message.reply_text("Сессия истекла. Пожалуйста, начните поиск заново с команды /start")
         return
     
-    # In a real implementation, here we would send the booking to the API
-    # or save it to a database for the travel agency staff
+    # Get booking details from user session
+    tour_id = user_sessions[user_id].get("tour_id")
+    selected_tour = None
+    for tour in user_sessions[user_id].get("tours", []):
+        if tour["id"] == tour_id:
+            selected_tour = tour
+            break
     
-    query.message.reply_text(
-        "✅ Ваша бронь успешно оформлена!\n\n"
-        "Наш менеджер свяжется с вами в ближайшее время для подтверждения деталей и оплаты.\n\n"
-        "Спасибо за выбор Crystal Bay Travel! 🏝️"
-    )
+    if not selected_tour:
+        query.message.reply_text("Ошибка: Информация о туре не найдена. Пожалуйста, начните поиск заново.")
+        return
+    
+    # Save to Supabase
+    try:
+        from models import BookingService
+        import random
+        
+        # Prepare booking data for Supabase
+        booking_data = {
+            "customer_name": user_sessions[user_id].get("name", ""),
+            "customer_phone": user_sessions[user_id].get("phone", ""),
+            "tour_id": tour_id,
+            "departure_city": user_sessions[user_id].get("departure_city", ""),
+            "destination_country": user_sessions[user_id].get("country", ""),
+            "checkin_date": user_sessions[user_id].get("checkin", ""),
+            "nights": selected_tour.get("nights", 7),
+            "adults": 2,  # Default value
+            "price": selected_tour.get("price", 0),
+            "currency": "RUB",
+            "status": "pending",
+            "telegram_user_id": str(user_id),
+            "hotel_name": selected_tour.get("nameAlt", "Unknown"),
+            "tour_name": f"{selected_tour.get('nameAlt', 'Tour')} - {selected_tour.get('nights', 7)} nights"
+        }
+        
+        # Create booking in Supabase
+        result = BookingService.create_booking(booking_data)
+        
+        booking_number = f"CB{random.randint(100000, 999999)}"
+        
+        query.message.reply_text(
+            f"🎉 Ваш тур успешно забронирован!\n\n"
+            f"Номер бронирования: *{booking_number}*\n\n"
+            f"Наш менеджер свяжется с вами в ближайшее время для подтверждения деталей и оплаты.\n\n"
+            f"Спасибо за выбор Crystal Bay Travel! 🏝️",
+            parse_mode='Markdown'
+        )
+    except Exception as e:
+        logger.error(f"Error during booking: {e}")
+        query.message.reply_text(
+            "😔 Произошла ошибка при бронировании. Пожалуйста, попробуйте позже или свяжитесь с нами по телефону."
+        )
     
     # Clean up session data
     del user_sessions[user_id]

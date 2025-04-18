@@ -1,8 +1,10 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import subprocess
 import threading
 import logging
+from flask_cors import CORS
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -12,6 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 bot_process = None
 
 def start_bot_process():
@@ -58,7 +61,7 @@ def home():
     auto_start_bot()
     
     # Check if required environment variables are set
-    required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY"]
+    required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
@@ -78,6 +81,113 @@ def bot_logs():
     """Show bot logs (this would need to be implemented with proper log file handling)"""
     # This is a placeholder. In a real implementation, you'd read from a log file
     return render_template('logs.html', logs="Bot logs will appear here")
+
+# API Endpoints for the Web Interface
+@app.route('/api/bot/status', methods=['GET'])
+def get_bot_status():
+    """Get the current bot status for the API"""
+    required_vars = ["TELEGRAM_BOT_TOKEN", "SAMO_OAUTH_TOKEN", "OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_KEY"]
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
+    
+    return jsonify({
+        "status": bot_status,
+        "missing_vars": missing_vars,
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.route('/api/bot/start', methods=['POST'])
+def api_start_bot():
+    """API endpoint to start the bot"""
+    success = start_bot_process()
+    return jsonify({
+        "success": success,
+        "message": "Bot started successfully" if success else "Failed to start bot",
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.route('/api/bookings', methods=['GET'])
+def get_bookings():
+    """Get all bookings from Supabase"""
+    try:
+        from models import BookingService
+        bookings = BookingService.get_bookings()
+        return jsonify({
+            "success": True,
+            "bookings": bookings,
+            "count": len(bookings),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error fetching bookings: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/bookings/<booking_id>', methods=['GET'])
+def get_booking(booking_id):
+    """Get a specific booking by ID"""
+    try:
+        from models import BookingService
+        booking = BookingService.get_booking(booking_id)
+        if booking:
+            return jsonify({
+                "success": True,
+                "booking": booking,
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Booking not found",
+                "timestamp": datetime.now().isoformat()
+            }), 404
+    except Exception as e:
+        logger.error(f"Error fetching booking: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/bookings/<booking_id>/status', methods=['PUT'])
+def update_booking_status(booking_id):
+    """Update the status of a booking"""
+    try:
+        from models import BookingService
+        data = request.json
+        status = data.get('status')
+        
+        if not status:
+            return jsonify({
+                "success": False,
+                "error": "Status is required",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        updated_booking = BookingService.update_booking_status(booking_id, status)
+        if updated_booking:
+            return jsonify({
+                "success": True,
+                "booking": updated_booking,
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Booking not found or update failed",
+                "timestamp": datetime.now().isoformat()
+            }), 404
+    except Exception as e:
+        logger.error(f"Error updating booking status: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
 
 # Initialize the app
 if __name__ == '__main__':
