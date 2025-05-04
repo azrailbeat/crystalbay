@@ -325,7 +325,7 @@
                     </div>
                 </div>
                 
-                <div class="lead-card">
+                <div class="lead-card" data-lead-id="2">
                     <div class="lead-source">
                         <i class="bi bi-globe source-icon"></i> Веб-сайт
                     </div>
@@ -751,70 +751,100 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/leads.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Add data-lead-id attributes to all cards for functionality
+        // Add data-lead-id attributes to all cards without them
         const leadCards = document.querySelectorAll('.lead-card:not([data-lead-id])');
+        console.log('Adding IDs to', leadCards.length, 'cards without data-lead-id');
         leadCards.forEach((card, index) => {
+            // Уникальный ID для карточки, начиная с 100 для тех, у которых нет ID
             card.setAttribute('data-lead-id', 100 + index);
+            console.log('Added ID', 100 + index, 'to card');
         });
         
-        // Initialize lead cards click handling
-        initLeadCards();
+        // Add cursor style and click handlers to all lead cards
+        document.querySelectorAll('.lead-card').forEach(card => {
+            // Make card look clickable
+            card.style.cursor = 'pointer';
+            
+            // Remove existing click handlers (if any) and add new ones
+            const newCard = card.cloneNode(true);
+            card.parentNode.replaceChild(newCard, card);
+            
+            // Add new click handler
+            newCard.addEventListener('click', function(e) {
+                // Don't trigger if clicked on buttons or actions
+                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+                
+                // Set lead ID in modal for reference
+                const leadId = this.getAttribute('data-lead-id');
+                document.getElementById('viewLeadModal').setAttribute('data-lead-id', leadId);
+                
+                modal.show();
+                console.log('Opened modal for lead ID:', leadId);
+            });
+        });
         
-        // Initialize automatic status checking
-        if (typeof scheduleStatusCheck === 'function') {
-            scheduleStatusCheck();
+        // Initialize process buttons for AI analysis and other actions
+        if (typeof initProcessButtons === 'function') {
+            initProcessButtons();
         }
         
         // Show toast notification on page load
         showToast('Загружено 22 обращения', 'info');
     });
     
-    // Handle clicks on lead cards
-    function initLeadCards() {
-        const leadCards = document.querySelectorAll('.lead-card');
+    // Generic toast notification function
+    function showToast(message, type = 'info') {
+        // Check if toast container exists, create if not
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
         
-        leadCards.forEach(card => {
-            // Remove any existing click listeners
-            const newCard = card.cloneNode(true);
-            card.parentNode.replaceChild(newCard, card);
-            
-            // Add click event listener
-            newCard.addEventListener('click', function(e) {
-                // Get lead ID from data attribute
-                const leadId = this.getAttribute('data-lead-id');
-                
-                // Show a simple modal for now
-                const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
-                modal.show();
-            });
+        // Create toast element
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        // Create toast content
+        const toastBody = document.createElement('div');
+        toastBody.className = 'd-flex';
+        
+        const toastContent = document.createElement('div');
+        toastContent.className = 'toast-body';
+        toastContent.textContent = message;
+        
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close btn-close-white me-2 m-auto';
+        closeButton.setAttribute('data-bs-dismiss', 'toast');
+        closeButton.setAttribute('aria-label', 'Close');
+        
+        // Assemble toast
+        toastBody.appendChild(toastContent);
+        toastBody.appendChild(closeButton);
+        toastEl.appendChild(toastBody);
+        toastContainer.appendChild(toastEl);
+        
+        // Initialize and show toast
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
         });
+        toast.show();
     }
     
-    // Handle clicks on lead cards
-    function initLeadCards() {
-        const leadCards = document.querySelectorAll('.lead-card');
-        
-        leadCards.forEach(card => {
-            card.addEventListener('click', function(e) {
-                // Don't trigger if clicked on action buttons
-                if (e.target.closest('.lead-actions') || e.target.closest('.lead-actions button')) {
-                    return;
-                }
-                
-                // Get lead ID from data attribute
-                const leadId = this.getAttribute('data-lead-id');
-                if (leadId) {
-                    // Show lead details modal
-                    openLeadModal(leadId);
-                } else {
-                    console.warn('Lead card missing data-lead-id attribute');
-                }
-            });
-        });
-    }
+    // Here we can add custom functions later
     
     // Open the lead details modal for a specific lead
     function openLeadModal(leadId) {
