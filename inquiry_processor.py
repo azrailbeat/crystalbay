@@ -28,6 +28,13 @@ class InquiryProcessor:
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.client = openai.OpenAI(api_key=self.openai_api_key)
         
+        # Default AI configuration
+        self.config = {
+            'model': 'gpt-4o',  # Default to gpt-4o
+            'temperature': 0.2,  # Default temperature
+            'active': True  # Default system state
+        }
+        
         # Status transitions map (current_status -> possible next statuses)
         self.status_transitions = {
             'new': ['in_progress', 'cancelled'],
@@ -36,6 +43,49 @@ class InquiryProcessor:
             'confirmed': ['closed', 'cancelled'],
             'closed': [],  # Terminal state
             'cancelled': []  # Terminal state
+        }
+        
+        # Agent definitions
+        self.agents = {
+            'inquiry_analyzer': {
+                'name': 'Анализатор запросов',
+                'type': 'classification',
+                'description': 'Основной агент для анализа и классификации входящих запросов',
+                'active': True,
+                'prompt': self._get_inquiry_analysis_prompt(),
+                'usage': {
+                    'total_calls': 0,
+                    'successful_calls': 0,
+                    'failed_calls': 0,
+                    'last_used': None
+                }
+            },
+            'booking_checker': {
+                'name': 'Проверка бронирований',
+                'type': 'search',
+                'description': 'Агент для поиска и проверки информации о бронированиях',
+                'active': True,
+                'prompt': self._get_booking_checker_prompt(),
+                'usage': {
+                    'total_calls': 0,
+                    'successful_calls': 0,
+                    'failed_calls': 0,
+                    'last_used': None
+                }
+            },
+            'tour_recommender': {
+                'name': 'Рекомендатель туров',
+                'type': 'recommendation',
+                'description': 'Агент для подбора и рекомендации туров на основе предпочтений клиента',
+                'active': False,
+                'prompt': self._get_tour_recommender_prompt(),
+                'usage': {
+                    'total_calls': 0,
+                    'successful_calls': 0,
+                    'failed_calls': 0,
+                    'last_used': None
+                }
+            }
         }
     
     def process_new_inquiry(self, inquiry_data):
@@ -199,59 +249,85 @@ class InquiryProcessor:
                 'error': str(e)
             }
     
-    def _analyze_with_ai(self, text):
+    def _analyze_with_ai(self, text, agent_id='inquiry_analyzer'):
         """Analyze text with OpenAI to categorize and extract insights
         
         Args:
             text (str): The text to analyze
+            agent_id (str, optional): The agent ID to use for analysis
             
         Returns:
             dict: Analysis results
         """
-        try:
-            system_prompt = """
-            You are an AI assistant for a travel agency. Analyze the customer inquiry and extract key information.
-            Return a JSON response with the following fields:
-            - category: The type of inquiry (e.g., beach_vacation, city_tour, cruise, flight_only, custom_tour, etc.)
-            - urgency: Rate from 1-5 how urgent this inquiry seems (5 being most urgent)
-            - summary: A brief 1-2 sentence summary of the inquiry
-            - suggested_actions: A list of 2-3 specific actions the travel agent should take
+        # Check if AI system is active
+        if not self.config.get('active', True):
+            return {
+                'category': 'system_inactive',
+                'urgency': 3,
+                'summary': 'AI analysis system is currently inactive',
+                'suggested_actions': ['Activate AI system', 'Perform manual analysis'],
+                'sentiment': 'neutral'
+            }
             
-            Base your analysis only on the facts in the text. If information is missing, suggest requesting it rather than making assumptions.
-            """
+        # Check if the agent exists and is active
+        agent = self.agents.get(agent_id)
+        if not agent or not agent.get('active', False):
+            logger.warning(f"Agent {agent_id} not found or inactive")
+            # Fall back to inquiry analyzer if available and active
+            if agent_id != 'inquiry_analyzer' and 'inquiry_analyzer' in self.agents and self.agents['inquiry_analyzer'].get('active', False):
+                return self._analyze_with_ai(text, 'inquiry_analyzer')
+            else:
+                return {
+                    'category': 'agent_inactive',
+                    'urgency': 3,
+                    'summary': f'AI agent {agent_id} is not available or inactive',
+                    'suggested_actions': ['Activate agent', 'Perform manual analysis'],
+                    'sentiment': 'neutral'
+                }
+        
+        try:
+            # Get agent prompt or fall back to default
+            system_prompt = agent.get('prompt', self._get_inquiry_analysis_prompt())
             
             # Use the newest OpenAI model - gpt-4o which was released May 13, 2024.
             # Do not change this unless explicitly requested by the user
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=self.config.get('model', 'gpt-4o'),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text}
                 ],
+                temperature=self.config.get('temperature', 0.2),
                 response_format={"type": "json_object"}
             )
             
             try:
                 analysis = json.loads(response.choices[0].message.content)
+                # Track usage for admin dashboard
+                self._track_agent_usage(agent_id, successful=True)
                 return analysis
             except json.JSONDecodeError:
                 # If JSON parsing fails, return a structured format of the raw content
                 content = response.choices[0].message.content
+                self._track_agent_usage(agent_id, successful=False)
                 return {
                     'category': 'parsing_error',
                     'urgency': 3,
                     'summary': 'Failed to parse AI response',
                     'suggested_actions': ['Review the raw analysis', 'Contact customer for clarification'],
+                    'sentiment': 'neutral',
                     'raw_content': content
                 }
                 
         except Exception as e:
             logger.error(f"Error analyzing with AI: {e}")
+            self._track_agent_usage(agent_id, successful=False)
             return {
                 'category': 'error',
                 'urgency': 3,
                 'summary': f"Error during analysis: {str(e)}",
-                'suggested_actions': ['Check AI service status', 'Try manual analysis']
+                'suggested_actions': ['Check AI service status', 'Try manual analysis'],
+                'sentiment': 'neutral'
             }
     
     def _determine_next_status(self, lead):
@@ -286,6 +362,229 @@ class InquiryProcessor:
         
         # No status change determined
         return None
+
+
+    def _get_inquiry_analysis_prompt(self):
+        """Get the prompt for the inquiry analysis agent
+        
+        Returns:
+            str: The prompt text
+        """
+        return """
+        You are an AI assistant for a travel agency called 'Crystal Bay Travel'. 
+        Analyze the customer inquiry and extract key information.
+        
+        Return a JSON response with the following fields:
+        - category: The type of inquiry (e.g., beach_vacation, city_tour, cruise, flight_only, custom_tour, etc.)
+        - urgency: Rate from 1-5 how urgent this inquiry seems (5 being most urgent)
+        - summary: A brief 1-2 sentence summary of the inquiry
+        - suggested_actions: A list of 2-3 specific actions the travel agent should take
+        - sentiment: The customer's sentiment (positive, neutral, negative)
+        
+        Base your analysis only on the facts in the text. If information is missing, suggest requesting it rather than making assumptions.
+        """
+    
+    def _get_booking_checker_prompt(self):
+        """Get the prompt for the booking checker agent
+        
+        Returns:
+            str: The prompt text
+        """
+        return """
+        You are an AI assistant for a travel agency called 'Crystal Bay Travel'.
+        Your task is to extract booking reference numbers from customer messages.
+        
+        Return a JSON response with the following fields:
+        - booking_references: An array of potential booking reference numbers found in the text (e.g., "CB-12345", "BK-98765")
+        - has_booking_inquiry: Boolean indicating if this appears to be a booking-related inquiry
+        - booking_inquiry_type: The type of booking inquiry (e.g., "status_check", "modification", "cancellation", "question")
+        - additional_info_needed: An array of any additional information needed to process the booking inquiry
+        
+        Only extract actual booking references - do not make up or assume references that aren't explicitly mentioned.
+        """
+    
+    def _get_tour_recommender_prompt(self):
+        """Get the prompt for the tour recommender agent
+        
+        Returns:
+            str: The prompt text
+        """
+        return """
+        You are an AI assistant for a travel agency called 'Crystal Bay Travel'.
+        Your task is to analyze customer preferences and recommend suitable tour types.
+        
+        Return a JSON response with the following fields:
+        - preferences: An object containing extracted customer preferences (destination_type, budget_level, travel_style, etc.)
+        - recommended_tour_types: An array of 2-4 tour types that would suit this customer
+        - suggested_destinations: An array of 2-4 destinations that match their preferences
+        - questions_to_ask: An array of follow-up questions to better understand their needs
+        
+        Base recommendations only on explicitly stated preferences. For unstated preferences, include appropriate follow-up questions.
+        """
+    
+    def update_agent_config(self, config_data):
+        """Update the agent configuration
+        
+        Args:
+            config_data (dict): New configuration data
+            
+        Returns:
+            dict: Updated configuration
+        """
+        if 'model' in config_data:
+            self.config['model'] = config_data['model']
+            
+        if 'temperature' in config_data:
+            try:
+                self.config['temperature'] = float(config_data['temperature'])
+            except (ValueError, TypeError):
+                pass  # Keep existing value if invalid
+                
+        if 'active' in config_data:
+            self.config['active'] = bool(config_data['active'])
+            
+        return self.config
+    
+    def update_agent(self, agent_id, agent_data):
+        """Update an agent's configuration
+        
+        Args:
+            agent_id (str): The agent ID to update
+            agent_data (dict): New agent data
+            
+        Returns:
+            dict: Updated agent data or None if not found
+        """
+        if agent_id not in self.agents:
+            return None
+            
+        # Update allowed fields
+        allowed_fields = ['name', 'description', 'active', 'prompt']
+        for field in allowed_fields:
+            if field in agent_data:
+                self.agents[agent_id][field] = agent_data[field]
+                
+        return self.agents[agent_id]
+    
+    def add_agent(self, agent_data):
+        """Add a new agent
+        
+        Args:
+            agent_data (dict): Agent data including id, name, type, description, prompt
+            
+        Returns:
+            dict: Created agent data or None if invalid
+        """
+        required_fields = ['id', 'name', 'type', 'description', 'prompt']
+        if not all(field in agent_data for field in required_fields):
+            return None
+            
+        agent_id = agent_data['id']
+        if agent_id in self.agents:
+            return None  # Agent ID already exists
+            
+        # Create new agent
+        self.agents[agent_id] = {
+            'name': agent_data['name'],
+            'type': agent_data['type'],
+            'description': agent_data['description'],
+            'active': agent_data.get('active', True),
+            'prompt': agent_data['prompt']
+        }
+        
+        return self.agents[agent_id]
+    
+    def get_agents(self):
+        """Get all configured agents
+        
+        Returns:
+            dict: Agent configurations
+        """
+        return self.agents
+    
+    def get_agent(self, agent_id):
+        """Get a specific agent's configuration
+        
+        Args:
+            agent_id (str): The agent ID
+            
+        Returns:
+            dict: Agent configuration or None if not found
+        """
+        return self.agents.get(agent_id)
+    
+    def get_config(self):
+        """Get the current AI configuration
+        
+        Returns:
+            dict: Current configuration
+        """
+        return self.config
+        
+    def _track_agent_usage(self, agent_id, successful=True):
+        """Track usage statistics for an agent
+        
+        Args:
+            agent_id (str): The agent ID
+            successful (bool, optional): Whether the call was successful
+            
+        Returns:
+            None
+        """
+        if agent_id not in self.agents:
+            return
+            
+        # Initialize usage tracking if not present
+        if 'usage' not in self.agents[agent_id]:
+            self.agents[agent_id]['usage'] = {
+                'total_calls': 0,
+                'successful_calls': 0,
+                'failed_calls': 0,
+                'last_used': None
+            }
+            
+        # Update stats
+        usage = self.agents[agent_id]['usage']
+        usage['total_calls'] += 1
+        
+        if successful:
+            usage['successful_calls'] += 1
+        else:
+            usage['failed_calls'] += 1
+            
+        usage['last_used'] = datetime.now().isoformat()
+        
+    def get_agent_usage_stats(self):
+        """Get usage statistics for all agents
+        
+        Returns:
+            dict: Agent usage statistics
+        """
+        stats = {
+            'total_processed': 0,
+            'total_successful': 0,
+            'total_failed': 0,
+            'agents': {}
+        }
+        
+        for agent_id, agent in self.agents.items():
+            usage = agent.get('usage', {})
+            stats['total_processed'] += usage.get('total_calls', 0)
+            stats['total_successful'] += usage.get('successful_calls', 0)
+            stats['total_failed'] += usage.get('failed_calls', 0)
+            
+            stats['agents'][agent_id] = {
+                'name': agent.get('name', agent_id),
+                'type': agent.get('type', 'unknown'),
+                'active': agent.get('active', False),
+                'total_calls': usage.get('total_calls', 0),
+                'successful_calls': usage.get('successful_calls', 0),
+                'failed_calls': usage.get('failed_calls', 0),
+                'success_rate': round(usage.get('successful_calls', 0) / max(1, usage.get('total_calls', 1)) * 100, 1),
+                'last_used': usage.get('last_used')
+            }
+            
+        return stats
 
 
 def get_inquiry_processor():

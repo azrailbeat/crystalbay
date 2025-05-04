@@ -271,6 +271,10 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize by loading current config and stats
+        loadAgentConfig();
+        loadAgentStats();
+        
         // Temperature slider
         const temperatureSlider = document.getElementById('temperature-slider');
         const temperatureValue = document.getElementById('temperature-value');
@@ -285,19 +289,7 @@
         const saveSettingsBtn = document.getElementById('save-openai-settings');
         if (saveSettingsBtn) {
             saveSettingsBtn.addEventListener('click', function() {
-                const model = document.getElementById('model-select').value;
-                const temperature = document.getElementById('temperature-slider').value;
-                
-                // Show saving indicator
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
-                this.disabled = true;
-                
-                // Simulate API call
-                setTimeout(() => {
-                    this.innerHTML = 'Сохранить настройки';
-                    this.disabled = false;
-                    showToast('Настройки OpenAI сохранены', 'success');
-                }, 1000);
+                saveAgentConfig();
             });
         }
         
@@ -313,21 +305,7 @@
         const toggleBtn = document.getElementById('toggle-agent-btn');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', function() {
-                const statusIndicator = document.querySelector('.status-indicator');
-                
-                if (statusIndicator.classList.contains('active')) {
-                    // Deactivate
-                    statusIndicator.classList.remove('active');
-                    document.querySelector('.status-indicator + h5').textContent = 'Система AI-агентов отключена';
-                    this.innerHTML = '<i class="bi bi-power"></i> Включить систему';
-                    showToast('Система AI-агентов отключена', 'warning');
-                } else {
-                    // Activate
-                    statusIndicator.classList.add('active');
-                    document.querySelector('.status-indicator + h5').textContent = 'Система AI-агентов активна';
-                    this.innerHTML = '<i class="bi bi-power"></i> Отключить систему';
-                    showToast('Система AI-агентов активирована', 'success');
-                }
+                toggleAgentSystem();
             });
         }
         
@@ -335,28 +313,7 @@
         const saveKeysBtn = document.getElementById('save-api-keys');
         if (saveKeysBtn) {
             saveKeysBtn.addEventListener('click', function() {
-                const apiKey = document.getElementById('openai-api-key').value;
-                
-                if (!apiKey) {
-                    showToast('Пожалуйста, введите API ключ', 'error');
-                    return;
-                }
-                
-                // Show saving indicator
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
-                this.disabled = true;
-                
-                // Simulate API call
-                setTimeout(() => {
-                    this.innerHTML = 'Сохранить';
-                    this.disabled = false;
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('apiKeysModal'));
-                    modal.hide();
-                    
-                    showToast('API ключи сохранены', 'success');
-                }, 1000);
+                saveApiKeys();
             });
         }
         
@@ -364,37 +321,308 @@
         const saveAgentBtn = document.getElementById('save-new-agent');
         if (saveAgentBtn) {
             saveAgentBtn.addEventListener('click', function() {
-                // Get form values
-                const name = document.getElementById('agent-name').value;
-                const type = document.getElementById('agent-type').value;
-                const description = document.getElementById('agent-description').value;
-                const prompt = document.getElementById('agent-prompt').value;
-                
-                if (!name || !description || !prompt) {
-                    showToast('Пожалуйста, заполните все обязательные поля', 'error');
-                    return;
-                }
-                
-                // Show saving indicator
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Создание...';
-                this.disabled = true;
-                
-                // Simulate API call
-                setTimeout(() => {
-                    this.innerHTML = 'Создать агента';
-                    this.disabled = false;
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('newAgentModal'));
-                    modal.hide();
-                    
-                    showToast('Новый агент создан', 'success');
-                    
-                    // In a real app, we would refresh the agent list here
-                }, 1000);
+                addNewAgent();
             });
         }
     });
+    
+    // Load agent configuration
+    async function loadAgentConfig() {
+        try {
+            const response = await fetch('/api/agents/config');
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            if (data.success && data.config) {
+                // Update UI with config
+                const config = data.config;
+                
+                // Update model select
+                const modelSelect = document.getElementById('model-select');
+                if (modelSelect && config.model) {
+                    modelSelect.value = config.model;
+                }
+                
+                // Update temperature slider
+                const temperatureSlider = document.getElementById('temperature-slider');
+                const temperatureValue = document.getElementById('temperature-value');
+                if (temperatureSlider && temperatureValue && config.temperature !== undefined) {
+                    temperatureSlider.value = config.temperature;
+                    temperatureValue.textContent = config.temperature;
+                }
+                
+                // Update system status indicator
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusText = document.querySelector('.status-indicator + h5');
+                const toggleBtn = document.getElementById('toggle-agent-btn');
+                
+                if (statusIndicator && statusText && toggleBtn) {
+                    if (config.active) {
+                        statusIndicator.classList.add('active');
+                        statusText.textContent = 'Система AI-агентов активна';
+                        toggleBtn.innerHTML = '<i class="bi bi-power"></i> Отключить систему';
+                    } else {
+                        statusIndicator.classList.remove('active');
+                        statusText.textContent = 'Система AI-агентов отключена';
+                        toggleBtn.innerHTML = '<i class="bi bi-power"></i> Включить систему';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading agent config:', error);
+            showToast('Ошибка при загрузке конфигурации AI', 'danger');
+        }
+    }
+    
+    // Load agent usage statistics
+    async function loadAgentStats() {
+        try {
+            const response = await fetch('/api/agents/stats');
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            if (data.success && data.stats) {
+                // Update stats cards
+                const stats = data.stats;
+                
+                // Update processed inquiries count
+                const processedElem = document.querySelector('.card-title:contains("Обработано обращений") + h3');
+                if (processedElem) {
+                    processedElem.textContent = stats.total_processed || 0;
+                }
+                
+                // Update successful analyses count and percentage
+                const successElem = document.querySelector('.card-title:contains("Успешных анализов") + h3');
+                if (successElem && stats.total_processed > 0) {
+                    const successRate = Math.round((stats.total_successful / stats.total_processed) * 100 * 10) / 10;
+                    successElem.innerHTML = `${stats.total_successful} <small class="text-success">(${successRate}%)</small>`;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading agent stats:', error);
+            // Silently fail, not critical
+        }
+    }
+    
+    // Save agent configuration
+    async function saveAgentConfig() {
+        const btn = document.getElementById('save-openai-settings');
+        if (!btn) return;
+        
+        const model = document.getElementById('model-select').value;
+        const temperature = document.getElementById('temperature-slider').value;
+        
+        // Show saving indicator
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/agents/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model,
+                    temperature: parseFloat(temperature)
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Настройки OpenAI сохранены', 'success');
+            } else {
+                throw new Error(data.error || 'Ошибка при сохранении настроек');
+            }
+        } catch (error) {
+            console.error('Error saving agent config:', error);
+            showToast('Ошибка при сохранении настроек', 'danger');
+        } finally {
+            // Restore button
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+    
+    // Toggle agent system on/off
+    async function toggleAgentSystem() {
+        const statusIndicator = document.querySelector('.status-indicator');
+        const statusText = document.querySelector('.status-indicator + h5');
+        const toggleBtn = document.getElementById('toggle-agent-btn');
+        
+        if (!statusIndicator || !statusText || !toggleBtn) return;
+        
+        const currentlyActive = statusIndicator.classList.contains('active');
+        const newActiveState = !currentlyActive;
+        
+        // Show processing indicator
+        const originalHtml = toggleBtn.innerHTML;
+        toggleBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка...';
+        toggleBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/agents/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    active: newActiveState
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (newActiveState) {
+                    // Activated
+                    statusIndicator.classList.add('active');
+                    statusText.textContent = 'Система AI-агентов активна';
+                    toggleBtn.innerHTML = '<i class="bi bi-power"></i> Отключить систему';
+                    showToast('Система AI-агентов активирована', 'success');
+                } else {
+                    // Deactivated
+                    statusIndicator.classList.remove('active');
+                    statusText.textContent = 'Система AI-агентов отключена';
+                    toggleBtn.innerHTML = '<i class="bi bi-power"></i> Включить систему';
+                    showToast('Система AI-агентов отключена', 'warning');
+                }
+            } else {
+                throw new Error(data.error || 'Ошибка при изменении статуса системы');
+            }
+        } catch (error) {
+            console.error('Error toggling agent system:', error);
+            showToast('Ошибка при изменении статуса системы', 'danger');
+            
+            // Restore original state
+            toggleBtn.disabled = false;
+            toggleBtn.innerHTML = originalHtml;
+        }
+    }
+    
+    // Save API keys
+    async function saveApiKeys() {
+        const btn = document.getElementById('save-api-keys');
+        if (!btn) return;
+        
+        const apiKey = document.getElementById('openai-api-key').value;
+        
+        if (!apiKey) {
+            showToast('Пожалуйста, введите API ключ', 'danger');
+            return;
+        }
+        
+        // Show saving indicator
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Сохранение...';
+        btn.disabled = true;
+        
+        try {
+            // This would typically involve a separate API endpoint to update environment variables
+            // For this demo, we'll simulate the API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('apiKeysModal'));
+            modal.hide();
+            
+            showToast('API ключи сохранены', 'success');
+        } catch (error) {
+            console.error('Error saving API keys:', error);
+            showToast('Ошибка при сохранении API ключей', 'danger');
+        } finally {
+            // Restore button
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+    
+    // Add new agent
+    async function addNewAgent() {
+        const btn = document.getElementById('save-new-agent');
+        if (!btn) return;
+        
+        // Get form values
+        const name = document.getElementById('agent-name').value;
+        const type = document.getElementById('agent-type').value;
+        const description = document.getElementById('agent-description').value;
+        const prompt = document.getElementById('agent-prompt').value;
+        const outputFormat = document.getElementById('agent-output-format').value;
+        
+        if (!name || !description || !prompt) {
+            showToast('Пожалуйста, заполните все обязательные поля', 'danger');
+            return;
+        }
+        
+        // Generate an ID from the name
+        const id = name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+        
+        // Show saving indicator
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Создание...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/agents', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id,
+                    name,
+                    type,
+                    description,
+                    prompt,
+                    active: true,
+                    output_format: outputFormat || null
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newAgentModal'));
+                modal.hide();
+                
+                showToast('Новый агент создан', 'success');
+                
+                // In a real app, we would refresh the agent list here
+                // For demo, we'll reload the page after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error(data.error || 'Ошибка при создании агента');
+            }
+        } catch (error) {
+            console.error('Error adding new agent:', error);
+            showToast('Ошибка при создании агента', 'danger');
+        } finally {
+            // Restore button
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
     
     // Process all leads with AI
     async function processAll() {
@@ -423,17 +651,28 @@
             const data = await response.json();
             
             // Show success message with count
-            showToast(`Обработка завершена: обработано ${data.processed} обращений, обновлено ${data.updated} статусов`, 'success');
+            showToast(`Обработка завершена: обработано ${data.total} обращений, обновлено ${data.updated} статусов`, 'success');
+            
+            // Refresh stats after processing
+            setTimeout(loadAgentStats, 1000);
             
         } catch (error) {
             console.error('Error processing all leads:', error);
-            showToast('Ошибка при обработке обращений', 'error');
+            showToast('Ошибка при обработке обращений', 'danger');
         } finally {
             // Restore button
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         }
     }
+    
+    // Helper: JQuery-like selector for contains
+    Document.prototype.querySelectorAll.prototype.contains = function(text) {
+        let elements = document.querySelectorAll(this);
+        return Array.from(elements).filter(element => {
+            return element.textContent.includes(text);
+        });
+    };
     
     // Toast notification function
     function showToast(message, type = 'info') {

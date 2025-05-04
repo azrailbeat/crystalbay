@@ -287,5 +287,181 @@ def register_api_routes(app):
             }), 500
     
     
+    # AI Agents API Routes
+    @app.route('/api/agents/config', methods=['GET'])
+    def get_agents_config_api():
+        """Get the current AI configuration"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            processor = get_inquiry_processor()
+            config = processor.get_config()
+            
+            return jsonify({
+                'success': True,
+                'config': config,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error getting agent config: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents/config', methods=['PUT'])
+    def update_agents_config_api():
+        """Update the AI configuration"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            data = request.json
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            processor = get_inquiry_processor()
+            config = processor.update_agent_config(data)
+            
+            return jsonify({
+                'success': True,
+                'config': config,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error updating agent config: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents', methods=['GET'])
+    def get_agents_api():
+        """Get all AI agents"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            processor = get_inquiry_processor()
+            agents = processor.get_agents()
+            
+            return jsonify({
+                'success': True,
+                'agents': agents,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error getting agents: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents/<agent_id>', methods=['GET'])
+    def get_agent_api(agent_id):
+        """Get a specific AI agent"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            processor = get_inquiry_processor()
+            agent = processor.get_agent(agent_id)
+            
+            if not agent:
+                return jsonify({'error': 'Agent not found'}), 404
+            
+            return jsonify({
+                'success': True,
+                'agent': agent,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error getting agent {agent_id}: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents/<agent_id>', methods=['PUT'])
+    def update_agent_api(agent_id):
+        """Update an AI agent"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            data = request.json
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            processor = get_inquiry_processor()
+            agent = processor.update_agent(agent_id, data)
+            
+            if not agent:
+                return jsonify({'error': 'Agent not found'}), 404
+            
+            return jsonify({
+                'success': True,
+                'agent': agent,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error updating agent {agent_id}: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents', methods=['POST'])
+    def add_agent_api():
+        """Add a new AI agent"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            data = request.json
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            processor = get_inquiry_processor()
+            agent = processor.add_agent(data)
+            
+            if not agent:
+                return jsonify({'error': 'Invalid agent data or agent ID already exists'}), 400
+            
+            return jsonify({
+                'success': True,
+                'agent': agent,
+                'timestamp': datetime.now().isoformat()
+            }), 201
+        except Exception as e:
+            logger.error(f"Error adding agent: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/api/agents/stats', methods=['GET'])
+    def get_agent_stats_api():
+        """Get AI agent usage statistics"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            processor = get_inquiry_processor()
+            stats = processor.get_agent_usage_stats()
+            
+            return jsonify({
+                'success': True,
+                'stats': stats,
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Error getting agent stats: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    
     logger.info('API routes registered successfully')
     return app
