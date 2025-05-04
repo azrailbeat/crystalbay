@@ -66,6 +66,11 @@ def home():
     
     bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
     
+    return render_template('dashboard.html', active_page='dashboard')
+
+@app.route('/public')
+def public_home():
+    """Render the public-facing home page"""
     return render_template('home.html', active_page='home')
 
 @app.route('/start_bot', methods=['POST'])
@@ -83,14 +88,17 @@ def dashboard():
     
     bot_status = "running" if bot_process is not None and bot_process.poll() is None else "ready" if not missing_vars else "missing_env"
     
-    return render_template('index.html', 
-                          bot_status=bot_status, 
-                          missing_vars=missing_vars)
+    return render_template('dashboard.html', active_page='dashboard')
 
 @app.route('/tours')
 def tours():
     """Render the tours page"""
     return render_template('tours.html', active_page='tours')
+
+@app.route('/leads')
+def leads():
+    """Render the leads page"""
+    return render_template('leads.html', active_page='leads')
 
 @app.route('/bookings')
 def bookings():

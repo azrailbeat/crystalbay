@@ -1,0 +1,763 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Обращения клиентов{% endblock %}
+
+{% block page_title %}Обращения клиентов{% endblock %}
+
+{% block head %}
+<style>
+    .leads-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-filters {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .kanban-board {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 70vh;
+    }
+    
+    .kanban-column {
+        min-width: 300px;
+        width: 300px;
+        background-color: var(--light-accent);
+        border-radius: var(--border-radius);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .kanban-column-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--light-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .column-title {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .column-count {
+        background-color: white;
+        border-radius: 20px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+    }
+    
+    .lead-list {
+        padding: 1rem;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    
+    .lead-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .lead-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .lead-source {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .source-icon {
+        color: var(--primary-color);
+    }
+    
+    .lead-name {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lead-details {
+        font-size: 0.9rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.75rem;
+    }
+    
+    .lead-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .lead-tag {
+        background-color: var(--light-accent);
+        border-radius: 20px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-color);
+    }
+    
+    .lead-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .lead-date {
+        color: var(--secondary-color);
+    }
+    
+    .lead-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .lead-actions button {
+        background: none;
+        border: none;
+        color: var(--secondary-color);
+        padding: 0.25rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .lead-actions button:hover {
+        color: var(--primary-color);
+    }
+    
+    .new-lead-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.75rem;
+        background-color: transparent;
+        border: 2px dashed var(--light-border);
+        border-radius: var(--border-radius);
+        color: var(--secondary-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .new-lead-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .lead-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    /* Lead modal */
+    .lead-modal .modal-header {
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .lead-modal .modal-footer {
+        border-top: 1px solid var(--light-border);
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .lead-info-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-info-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--secondary-color);
+    }
+    
+    .lead-info-value {
+        font-size: 1rem;
+    }
+    
+    .lead-status-select {
+        width: auto;
+    }
+    
+    .comment-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .comment-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comment-author {
+        font-weight: 500;
+    }
+    
+    .comment-date {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .comment-content {
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Leads Header -->
+    <div class="leads-header">
+        <div class="lead-filters">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Фильтр
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все обращения</a></li>
+                    <li><a class="dropdown-item" href="#">Мои обращения</a></li>
+                    <li><a class="dropdown-item" href="#">Неназначенные</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#">Новые за сегодня</a></li>
+                    <li><a class="dropdown-item" href="#">Новые за неделю</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Источник
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все источники</a></li>
+                    <li><a class="dropdown-item" href="#">Telegram</a></li>
+                    <li><a class="dropdown-item" href="#">Веб-сайт</a></li>
+                    <li><a class="dropdown-item" href="#">Телефон</a></li>
+                    <li><a class="dropdown-item" href="#">Email</a></li>
+                </ul>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" placeholder="Поиск...">
+                <button class="btn btn-sm btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+            <i class="bi bi-plus"></i> Новое обращение
+        </button>
+    </div>
+    
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <!-- New Leads Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-plus-circle text-primary"></i> Новые
+                    <span class="column-count">8</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Анна Смирнова</div>
+                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Пляжный отдых</span>
+                        <span class="lead-tag">Семья</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Иван Петров</div>
+                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Экскурсии</span>
+                        <span class="lead-tag">Европа</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Екатерина Васильева</div>
+                    <div class="lead-details">Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Горнолыжный</span>
+                        <span class="lead-tag">Зима</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">5 часов назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="new-lead-btn" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить новое обращение
+                </button>
+            </div>
+        </div>
+        
+        <!-- In Progress Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-clock-history text-warning"></i> В работе
+                    <span class="column-count">5</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Сергей Козлов</div>
+                    <div class="lead-details">Запрос о туре в Японию, интересует культурная программа и гастрономический туризм</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Япония</span>
+                        <span class="lead-tag">Культурный туризм</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">1 день назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Марина Соловьева</div>
+                    <div class="lead-details">Запрос на отдых на Мальдивах, люкс сегмент, медовый месяц, апрель 2026</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Мальдивы</span>
+                        <span class="lead-tag">Люкс</span>
+                        <span class="lead-tag">VIP</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 дня назад</div>
+                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Николай Макаров</div>
+                    <div class="lead-details">Запрос на круиз по Средиземному морю, осень 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Круиз</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 дня назад</div>
+                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Negotiation Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-chat-dots text-info"></i> Переговоры
+                    <span class="column-count">3</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Александр Белов</div>
+                    <div class="lead-details">Запрос на корпоративный тимбилдинг для компании (30 человек), Турция или Греция</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Корпоратив</span>
+                        <span class="lead-tag">VIP</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">4 дня назад</div>
+                        <div class="lead-avatar" title="Мария Иванова">МИ</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Ольга Михайлова</div>
+                    <div class="lead-details">Запрос на романтический тур в Париж, годовщина свадьбы, июнь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Романтика</span>
+                        <span class="lead-tag">Франция</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">5 дней назад</div>
+                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Booked Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-check-circle text-success"></i> Забронировано
+                    <span class="column-count">4</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Дмитрий Волков</div>
+                    <div class="lead-details">Бронирование тура в Египет, Хургада, 1-10 июня 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Египет</span>
+                        <span class="lead-tag">Пляжный отдых</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">$1,850</div>
+                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Татьяна Кузнецова</div>
+                    <div class="lead-details">Бронирование тура в Италию, экскурсионная программа по городам, 5-15 сентября 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Италия</span>
+                        <span class="lead-tag">Экскурсии</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">$2,240</div>
+                        <div class="lead-avatar" title="Мария Иванова">МИ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cancelled Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-x-circle text-danger"></i> Отменено
+                    <span class="column-count">2</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Максим Новиков</div>
+                    <div class="lead-details">Запрос на тур в Китай, отменен клиентом из-за изменения планов</div>
+                    <div class="lead-footer">
+                        <div class="lead-date">10 дней назад</div>
+                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Виктория Андреева</div>
+                    <div class="lead-details">Запрос на тур в Эмираты, отменен из-за недоступного для клиента бюджета</div>
+                    <div class="lead-footer">
+                        <div class="lead-date">12 дней назад</div>
+                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Lead Modal -->
+<div class="modal fade lead-modal" id="newLeadModal" tabindex="-1" aria-labelledby="newLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newLeadModalLabel">Новое обращение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newLeadForm">
+                    <div class="mb-3">
+                        <label for="leadName" class="form-label">ФИО клиента</label>
+                        <input type="text" class="form-control" id="leadName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadContact" class="form-label">Контакт</label>
+                        <input type="text" class="form-control" id="leadContact" placeholder="Телефон или email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadSource" class="form-label">Источник</label>
+                        <select class="form-select" id="leadSource" required>
+                            <option value="" selected disabled>Выберите источник</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="website">Веб-сайт</option>
+                            <option value="phone">Телефон</option>
+                            <option value="email">Email</option>
+                            <option value="referral">Рекомендация</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadInterest" class="form-label">Интерес</label>
+                        <select class="form-select" id="leadInterest" required>
+                            <option value="" selected disabled>Выберите интерес</option>
+                            <option value="beach">Пляжный отдых</option>
+                            <option value="excursion">Экскурсионный тур</option>
+                            <option value="ski">Горнолыжный отдых</option>
+                            <option value="cruise">Круиз</option>
+                            <option value="corporate">Корпоративный тур</option>
+                            <option value="visa">Визовая поддержка</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadDetails" class="form-label">Подробности</label>
+                        <textarea class="form-control" id="leadDetails" rows="4" placeholder="Детали запроса, предпочтения клиента, направления, даты"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadAgent" class="form-label">Назначить менеджера</label>
+                        <select class="form-select" id="leadAgent">
+                            <option value="" selected>Автоматическое назначение</option>
+                            <option value="1">Алексей Ковалев</option>
+                            <option value="2">Елена Кравцова</option>
+                            <option value="3">Мария Иванова</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Lead Modal -->
+<div class="modal fade lead-modal" id="viewLeadModal" tabindex="-1" aria-labelledby="viewLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewLeadModalLabel">Анна Смирнова</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Контактная информация</div>
+                            <div class="lead-info-value">
+                                <i class="bi bi-telephone me-2"></i> +7 (999) 123-45-67<br>
+                                <i class="bi bi-envelope me-2"></i> anna.smirnova@example.com
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Источник</div>
+                            <div class="lead-info-value"><i class="bi bi-telegram me-2 text-primary"></i> Telegram</div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Статус</div>
+                            <div class="lead-info-value">
+                                <select class="form-select lead-status-select">
+                                    <option value="new" selected>Новый</option>
+                                    <option value="in_progress">В работе</option>
+                                    <option value="negotiation">Переговоры</option>
+                                    <option value="booked">Забронировано</option>
+                                    <option value="cancelled">Отменено</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Менеджер</div>
+                            <div class="lead-info-value">
+                                <select class="form-select">
+                                    <option value="" selected>Не назначен</option>
+                                    <option value="1">Алексей Ковалев</option>
+                                    <option value="2">Елена Кравцова</option>
+                                    <option value="3">Мария Иванова</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Обращение</div>
+                            <div class="lead-info-value">
+                                Запрос на тур в Турцию, семейный отдых, июль-август 2025. Интересует отель 5* с аквапарком, всё включено. Бюджет около $3,000 на троих (2 взрослых + ребенок 7 лет).
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Теги</div>
+                            <div class="lead-tags mb-2">
+                                <span class="lead-tag">Пляжный отдых</span>
+                                <span class="lead-tag">Семья</span>
+                                <span class="lead-tag">Турция</span>
+                                <span class="lead-tag">All Inclusive</span>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-sm" placeholder="Добавить тег">
+                                <button class="btn btn-sm btn-outline-secondary" type="button">Добавить</button>
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Дата создания</div>
+                            <div class="lead-info-value">4 мая 2025, 15:32</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>История коммуникаций</h6>
+                <div class="comment-list">
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="lead-avatar">AК</span>
+                            <span class="comment-author">Алексей Ковалев</span>
+                            <span class="comment-date">4 мая 2025, 15:40</span>
+                        </div>
+                        <div class="comment-content">
+                            Связался с клиентом по телефону. Уточнил предпочтения по отелю. Интересуют курорты Белек или Аланья. Отправил подборку вариантов на email.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <textarea class="form-control" rows="3" placeholder="Добавить комментарий..."></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-2">
+                                <i class="bi bi-paperclip"></i> Прикрепить
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-calendar-event"></i> Запланировать
+                            </button>
+                        </div>
+                        <button class="btn btn-primary">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Drag and Drop functionality could be implemented here with JavaScript
+        // For example, using SortableJS or similar library
+        
+        // Show toast notification on page load
+        showToast('Загружено 22 обращения', 'info');
+    });
+</script>
+{% endblock %}
