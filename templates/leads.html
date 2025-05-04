@@ -306,7 +306,7 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
+                <div class="lead-card" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
                     <div class="lead-source">
                         <i class="bi bi-telegram source-icon"></i> Telegram
                     </div>
@@ -751,20 +751,47 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/leads.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Add data-lead-id attributes to all cards for functionality
+        const leadCards = document.querySelectorAll('.lead-card:not([data-lead-id])');
+        leadCards.forEach((card, index) => {
+            card.setAttribute('data-lead-id', 100 + index);
+        });
+        
         // Initialize lead cards click handling
         initLeadCards();
         
-        // Initialize lead processing buttons
-        initProcessButtons();
-        
         // Initialize automatic status checking
-        scheduleStatusCheck();
+        if (typeof scheduleStatusCheck === 'function') {
+            scheduleStatusCheck();
+        }
         
         // Show toast notification on page load
         showToast('Загружено 22 обращения', 'info');
     });
+    
+    // Handle clicks on lead cards
+    function initLeadCards() {
+        const leadCards = document.querySelectorAll('.lead-card');
+        
+        leadCards.forEach(card => {
+            // Remove any existing click listeners
+            const newCard = card.cloneNode(true);
+            card.parentNode.replaceChild(newCard, card);
+            
+            // Add click event listener
+            newCard.addEventListener('click', function(e) {
+                // Get lead ID from data attribute
+                const leadId = this.getAttribute('data-lead-id');
+                
+                // Show a simple modal for now
+                const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+                modal.show();
+            });
+        });
+    }
     
     // Handle clicks on lead cards
     function initLeadCards() {
@@ -796,6 +823,9 @@
         
         // Set lead ID in modal
         viewLeadModal.setAttribute('data-lead-id', leadId);
+        
+        // For now, just show the modal without API fetch
+        bsModal.show();
         
         // Populate lead data
         fetchLeadData(leadId).then(data => {
