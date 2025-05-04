@@ -94,6 +94,11 @@ def dashboard():
     
     return render_template('dashboard.html', active_page='dashboard')
 
+@app.route('/agents-ai')
+def agents_ai():
+    """Render the AI agents settings page"""
+    return render_template('agents.html', active_page='agents-ai')
+
 @app.route('/tours')
 def tours():
     """Render the tours page"""
