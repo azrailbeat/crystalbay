@@ -17,6 +17,10 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 bot_process = None
 
+# Import and register API routes
+from app_api import register_api_routes
+register_api_routes(app)
+
 def start_bot_process():
     """Start the Telegram bot in a separate process"""
     global bot_process

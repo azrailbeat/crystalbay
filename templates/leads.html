@@ -753,11 +753,537 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Drag and Drop functionality could be implemented here with JavaScript
-        // For example, using SortableJS or similar library
+        // Initialize lead cards click handling
+        initLeadCards();
+        
+        // Initialize lead processing buttons
+        initProcessButtons();
+        
+        // Initialize automatic status checking
+        scheduleStatusCheck();
         
         // Show toast notification on page load
         showToast('Загружено 22 обращения', 'info');
     });
+    
+    // Handle clicks on lead cards
+    function initLeadCards() {
+        const leadCards = document.querySelectorAll('.lead-card');
+        
+        leadCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Don't trigger if clicked on action buttons
+                if (e.target.closest('.lead-actions') || e.target.closest('.lead-actions button')) {
+                    return;
+                }
+                
+                // Get lead ID from data attribute
+                const leadId = this.getAttribute('data-lead-id');
+                if (leadId) {
+                    // Show lead details modal
+                    openLeadModal(leadId);
+                } else {
+                    console.warn('Lead card missing data-lead-id attribute');
+                }
+            });
+        });
+    }
+    
+    // Open the lead details modal for a specific lead
+    function openLeadModal(leadId) {
+        const viewLeadModal = document.getElementById('viewLeadModal');
+        const bsModal = new bootstrap.Modal(viewLeadModal);
+        
+        // Set lead ID in modal
+        viewLeadModal.setAttribute('data-lead-id', leadId);
+        
+        // Populate lead data
+        fetchLeadData(leadId).then(data => {
+            populateLeadModal(data);
+            bsModal.show();
+        }).catch(error => {
+            console.error('Error fetching lead data:', error);
+            showToast('Ошибка загрузки данных обращения', 'error');
+        });
+    }
+    
+    // Fetch lead data from API
+    async function fetchLeadData(leadId) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            return data.lead;
+        } catch (error) {
+            console.error('Error fetching lead data:', error);
+            throw error;
+        }
+    }
+    
+    // Populate the lead modal with data
+    function populateLeadModal(lead) {
+        const modal = document.getElementById('viewLeadModal');
+        
+        // Set lead details
+        modal.querySelector('.lead-name-title').textContent = lead.customer_name || 'Без имени';
+        modal.querySelector('.lead-source-info').textContent = lead.source || 'Неизвестный источник';
+        modal.querySelector('.lead-email').textContent = lead.customer_email || 'Нет данных';
+        modal.querySelector('.lead-phone').textContent = lead.customer_phone || 'Нет данных';
+        modal.querySelector('.lead-status').textContent = getStatusName(lead.status);
+        modal.querySelector('.lead-created').textContent = formatDate(lead.created_at);
+        
+        // Set lead notes
+        const notesElement = modal.querySelector('.lead-notes');
+        if (notesElement) {
+            notesElement.textContent = lead.notes || 'Нет заметок';
+        }
+        
+        // Set lead interactions
+        loadLeadInteractions(lead.id);
+    }
+    
+    // Load lead interactions
+    async function loadLeadInteractions(leadId) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}/interactions`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            
+            // Populate interactions list
+            const interactionsList = document.querySelector('.comment-list');
+            if (interactionsList && data.interactions && data.interactions.length > 0) {
+                interactionsList.innerHTML = '';
+                
+                data.interactions.forEach(interaction => {
+                    const interactionHtml = createInteractionHtml(interaction);
+                    interactionsList.insertAdjacentHTML('beforeend', interactionHtml);
+                });
+            } else if (interactionsList) {
+                interactionsList.innerHTML = '<div class="no-interactions">Нет истории взаимодействий</div>';
+            }
+        } catch (error) {
+            console.error('Error loading interactions:', error);
+            showToast('Ошибка загрузки взаимодействий', 'error');
+        }
+    }
+    
+    // Create HTML for an interaction
+    function createInteractionHtml(interaction) {
+        const date = formatDate(interaction.created_at);
+        const author = interaction.agent_name || 'Система';
+        const initials = getInitials(author);
+        
+        // Add special styling for AI interactions
+        const isAiAnalysis = interaction.type === 'ai_analysis';
+        const aiClass = isAiAnalysis ? 'ai-interaction' : '';
+        
+        return `
+            <div class="comment-item ${aiClass}">
+                <div class="comment-header">
+                    <span class="lead-avatar ${isAiAnalysis ? 'ai-avatar' : ''}">
+                        ${isAiAnalysis ? '<i class="bi bi-cpu"></i>' : initials}
+                    </span>
+                    <span class="comment-author">${author}</span>
+                    <span class="comment-date">${date}</span>
+                </div>
+                <div class="comment-content">
+                    ${formatInteractionNotes(interaction.notes)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Format interaction notes with line breaks
+    function formatInteractionNotes(notes) {
+        if (!notes) return 'Нет данных';
+        return notes.replace(/\n/g, '<br>');
+    }
+    
+    // Get initials from name
+    function getInitials(name) {
+        if (!name) return '??';
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+    
+    // Format date for display
+    function formatDate(dateStr) {
+        if (!dateStr) return 'Нет даты';
+        
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleString('ru-RU', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+    
+    // Get status name from status code
+    function getStatusName(status) {
+        const statusMap = {
+            'new': 'Новый',
+            'in_progress': 'В работе',
+            'pending': 'В ожидании',
+            'confirmed': 'Подтвержден',
+            'closed': 'Закрыт',
+            'cancelled': 'Отменен'
+        };
+        
+        return statusMap[status] || status;
+    }
+    
+    // Initialize process buttons
+    function initProcessButtons() {
+        // Add AI analysis button to modal
+        const modal = document.getElementById('viewLeadModal');
+        if (modal) {
+            const analyzeBtn = modal.querySelector('.analyze-lead-btn');
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', function() {
+                    const leadId = modal.getAttribute('data-lead-id');
+                    if (leadId) {
+                        analyzeLeadWithAI(leadId);
+                    }
+                });
+            }
+            
+            // Add check booking button
+            const checkBookingBtn = modal.querySelector('.check-booking-btn');
+            if (checkBookingBtn) {
+                checkBookingBtn.addEventListener('click', function() {
+                    const leadId = modal.getAttribute('data-lead-id');
+                    if (leadId) {
+                        checkLeadBooking(leadId);
+                    }
+                });
+            }
+            
+            // Add status update buttons
+            const statusBtns = modal.querySelectorAll('.update-status-btn');
+            if (statusBtns.length > 0) {
+                statusBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const leadId = modal.getAttribute('data-lead-id');
+                        const status = this.getAttribute('data-status');
+                        if (leadId && status) {
+                            updateLeadStatus(leadId, status);
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Add process all button
+        const processAllBtn = document.querySelector('.process-all-btn');
+        if (processAllBtn) {
+            processAllBtn.addEventListener('click', function() {
+                processAllLeads();
+            });
+        }
+        
+        // Add column action buttons
+        const columnActionBtns = document.querySelectorAll('.column-action-btn');
+        if (columnActionBtns.length > 0) {
+            columnActionBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    const column = this.getAttribute('data-column');
+                    
+                    if (action === 'analyze') {
+                        analyzeColumnLeads(column);
+                    } else if (action === 'process') {
+                        processColumnLeads(column);
+                    }
+                });
+            });
+        }
+    }
+    
+    // Analyze lead with AI
+    async function analyzeLeadWithAI(leadId) {
+        try {
+            showToast('Анализирую обращение...', 'info');
+            
+            const response = await fetch(`/api/leads/${leadId}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Reload interactions to show the new analysis
+            loadLeadInteractions(leadId);
+            
+            // Show success message
+            showToast('Анализ обращения выполнен успешно', 'success');
+            
+        } catch (error) {
+            console.error('Error analyzing lead:', error);
+            showToast('Ошибка анализа обращения', 'error');
+        }
+    }
+    
+    // Check lead booking
+    async function checkLeadBooking(leadId) {
+        try {
+            // First get the lead to find booking reference
+            const lead = await fetchLeadData(leadId);
+            
+            // Extract booking reference from lead notes using regex
+            const bookingMatch = lead.notes.match(/\b([A-Z]{2}-\d{5,})\b/);
+            if (!bookingMatch) {
+                showToast('Номер брони не найден в тексте обращения', 'warning');
+                return;
+            }
+            
+            const bookingRef = bookingMatch[0];
+            showToast(`Проверяю бронь ${bookingRef}...`, 'info');
+            
+            // Check booking status
+            const response = await fetch(`/api/bookings/check/${bookingRef}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Add interaction with booking info
+            await addLeadInteraction(leadId, {
+                type: 'booking_check',
+                notes: `Данные бронирования ${bookingRef}:\n\n` +
+                       `Статус: ${data.booking.status}\n` +
+                       `Клиент: ${data.booking.customer_name}\n` +
+                       `Дата отправления: ${data.booking.departure_date}\n` +
+                       `Дата возвращения: ${data.booking.return_date}\n` +
+                       `Направление: ${data.booking.destination}\n` +
+                       `Отель: ${data.booking.hotel}\n` +
+                       `Оплачено: ${data.booking.amount_paid} / ${data.booking.total_amount}`
+            });
+            
+            // Show success message
+            showToast('Данные бронирования обновлены', 'success');
+            
+            // Reload interactions
+            loadLeadInteractions(leadId);
+            
+        } catch (error) {
+            console.error('Error checking booking:', error);
+            showToast('Ошибка проверки бронирования', 'error');
+        }
+    }
+    
+    // Add lead interaction
+    async function addLeadInteraction(leadId, interactionData) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}/interactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(interactionData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding interaction:', error);
+            throw error;
+        }
+    }
+    
+    // Update lead status
+    async function updateLeadStatus(leadId, status) {
+        try {
+            showToast('Обновляю статус...', 'info');
+            
+            const response = await fetch(`/api/leads/${leadId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    requested_status: status
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update UI to reflect status change
+            const modal = document.getElementById('viewLeadModal');
+            if (modal) {
+                modal.querySelector('.lead-status').textContent = getStatusName(data.lead.status);
+            }
+            
+            // Reload interactions
+            loadLeadInteractions(leadId);
+            
+            // Reload the page to reflect the new status in the kanban board
+            // This could be optimized to move the card without a page reload
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+            
+            showToast('Статус обновлен успешно', 'success');
+            
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showToast('Ошибка обновления статуса', 'error');
+        }
+    }
+    
+    // Process all leads
+    async function processAllLeads() {
+        try {
+            showToast('Обрабатываю все обращения...', 'info');
+            
+            const response = await fetch('/api/leads/process-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Show success message with stats
+            showToast(`Обработка завершена: обновлено ${data.updated} обращений`, 'success');
+            
+            // Reload the page to reflect the changes
+            if (data.updated > 0) {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+            
+        } catch (error) {
+            console.error('Error processing all leads:', error);
+            showToast('Ошибка обработки обращений', 'error');
+        }
+    }
+    
+    // Analyze all leads in a column
+    async function analyzeColumnLeads(column) {
+        try {
+            showToast(`Анализирую обращения в колонке "${column}"...`, 'info');
+            
+            // Get all lead IDs in the column
+            const leadCards = document.querySelectorAll(`.kanban-column[data-column="${column}"] .lead-card`);
+            const leadIds = Array.from(leadCards).map(card => card.getAttribute('data-lead-id')).filter(id => id);
+            
+            if (leadIds.length === 0) {
+                showToast('Нет обращений для анализа', 'warning');
+                return;
+            }
+            
+            // Process each lead
+            let successCount = 0;
+            for (const leadId of leadIds) {
+                try {
+                    const response = await fetch(`/api/leads/${leadId}/analyze`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (e) {
+                    console.error(`Error analyzing lead ${leadId}:`, e);
+                }
+            }
+            
+            showToast(`Анализ завершен: обработано ${successCount} из ${leadIds.length} обращений`, 'success');
+            
+        } catch (error) {
+            console.error('Error analyzing column leads:', error);
+            showToast('Ошибка анализа обращений', 'error');
+        }
+    }
+    
+    // Process all leads in a column
+    async function processColumnLeads(column) {
+        try {
+            showToast(`Обрабатываю обращения в колонке "${column}"...`, 'info');
+            
+            // Get all lead IDs in the column
+            const leadCards = document.querySelectorAll(`.kanban-column[data-column="${column}"] .lead-card`);
+            const leadIds = Array.from(leadCards).map(card => card.getAttribute('data-lead-id')).filter(id => id);
+            
+            if (leadIds.length === 0) {
+                showToast('Нет обращений для обработки', 'warning');
+                return;
+            }
+            
+            // Process each lead
+            let successCount = 0;
+            for (const leadId of leadIds) {
+                try {
+                    const response = await fetch(`/api/leads/${leadId}/update-status`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (e) {
+                    console.error(`Error processing lead ${leadId}:`, e);
+                }
+            }
+            
+            showToast(`Обработка завершена: обновлено ${successCount} из ${leadIds.length} обращений`, 'success');
+            
+            // Reload the page to reflect the changes
+            if (successCount > 0) {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+            
+        } catch (error) {
+            console.error('Error processing column leads:', error);
+            showToast('Ошибка обработки обращений', 'error');
+        }
+    }
+    
+    // Schedule periodic status check
+    function scheduleStatusCheck() {
+        // Check for status updates every 5 minutes
+        setInterval(processAllLeads, 5 * 60 * 1000);
+    }
 </script>
 {% endblock %}
