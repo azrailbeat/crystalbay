@@ -404,6 +404,163 @@ def create_booking():
             "timestamp": datetime.now().isoformat()
         }), 500
 
+# Email Integration API Endpoints
+@app.route('/api/email/status', methods=['GET'])
+def get_email_status():
+    """Get the status of email integration"""
+    try:
+        from email_integration import EmailIntegration
+        email = EmailIntegration()
+        
+        is_configured = email.is_configured()
+        status = "configured" if is_configured else "not_configured"
+        missing_vars = []
+        
+        if not os.getenv('SENDGRID_API_KEY'):
+            missing_vars.append('SENDGRID_API_KEY')
+        if not os.getenv('SENDGRID_FROM_EMAIL'):
+            missing_vars.append('SENDGRID_FROM_EMAIL')
+            
+        return jsonify({
+            "success": True,
+            "status": status,
+            "missing_vars": missing_vars,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error checking email status: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/email/send', methods=['POST'])
+def send_email():
+    """Send an email using SendGrid"""
+    try:
+        from email_integration import EmailIntegration
+        data = request.json
+        
+        required_fields = ['to_email', 'subject']
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            return jsonify({
+                "success": False,
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        to_email = data.get('to_email')
+        subject = data.get('subject')
+        text_content = data.get('text_content')
+        html_content = data.get('html_content')
+        
+        if not text_content and not html_content:
+            return jsonify({
+                "success": False,
+                "error": "Either text_content or html_content must be provided",
+                "timestamp": datetime.now().isoformat()
+            }), 400
+            
+        email = EmailIntegration()
+        if not email.is_configured():
+            return jsonify({
+                "success": False,
+                "error": "Email integration is not configured. Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL environment variables.",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+            
+        success = email.send_email(to_email, subject, text_content, html_content)
+        
+        return jsonify({
+            "success": success,
+            "message": "Email sent successfully" if success else "Failed to send email",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error sending email: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/email/process', methods=['POST'])
+def process_inbound_email():
+    """Process inbound email webhook from SendGrid"""
+    try:
+        from email_integration import EmailIntegration
+        data = request.json
+        
+        email = EmailIntegration()
+        lead = email.receive_webhook(data)
+        
+        if lead:
+            return jsonify({
+                "success": True,
+                "lead": lead,
+                "message": "Email processed and lead created",
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to process email or create lead",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+    except Exception as e:
+        logger.error(f"Error processing inbound email: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/email/messages', methods=['GET'])
+def get_email_messages():
+    """Get recent email messages"""
+    try:
+        # This is a placeholder. In a real implementation, you would fetch emails from your database
+        # where you've stored processed inbound emails
+        messages = [
+            {
+                "id": "1",
+                "sender_name": "Иван Иванов",
+                "sender_email": "ivan@example.com",
+                "subject": "Запрос о туре в Турцию",
+                "preview": "Здравствуйте! Интересуют туры в Турцию на июнь 2025 года для семьи из 2 взрослых и 1 ребенка...",
+                "received_date": "2025-05-04T15:42:00",
+                "is_read": False,
+                "lead_id": "abc123"
+            },
+            {
+                "id": "2",
+                "sender_name": "Елена Петрова",
+                "sender_email": "elena@example.com",
+                "subject": "Вопрос по визе",
+                "preview": "Добрый день! Подскажите, пожалуйста, какие документы необходимы для получения визы в Таиланд...",
+                "received_date": "2025-05-03T14:15:00",
+                "is_read": True,
+                "lead_id": "def456"
+            }
+        ]
+        
+        return jsonify({
+            "success": True,
+            "messages": messages,
+            "count": len(messages),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error fetching email messages: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
 # Initialize the app
 if __name__ == '__main__':
     # Start the bot immediately before the app starts
