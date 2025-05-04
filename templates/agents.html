@@ -390,16 +390,22 @@
                 const stats = data.stats;
                 
                 // Update processed inquiries count
-                const processedElem = document.querySelector('.card-title:contains("Обработано обращений") + h3');
-                if (processedElem) {
-                    processedElem.textContent = stats.total_processed || 0;
+                const processedElems = findElementsContainingText('.card-title', 'Обработано обращений');
+                if (processedElems.length > 0) {
+                    const processedCountElem = processedElems[0].nextElementSibling;
+                    if (processedCountElem && processedCountElem.tagName === 'H3') {
+                        processedCountElem.textContent = stats.total_processed || 0;
+                    }
                 }
                 
                 // Update successful analyses count and percentage
-                const successElem = document.querySelector('.card-title:contains("Успешных анализов") + h3');
-                if (successElem && stats.total_processed > 0) {
-                    const successRate = Math.round((stats.total_successful / stats.total_processed) * 100 * 10) / 10;
-                    successElem.innerHTML = `${stats.total_successful} <small class="text-success">(${successRate}%)</small>`;
+                const successElems = findElementsContainingText('.card-title', 'Успешных анализов');
+                if (successElems.length > 0 && stats.total_processed > 0) {
+                    const successCountElem = successElems[0].nextElementSibling;
+                    if (successCountElem && successCountElem.tagName === 'H3') {
+                        const successRate = Math.round((stats.total_successful / stats.total_processed) * 100 * 10) / 10;
+                        successCountElem.innerHTML = `${stats.total_successful} <small class="text-success">(${successRate}%)</small>`;
+                    }
                 }
             }
         } catch (error) {
@@ -666,13 +672,13 @@
         }
     }
     
-    // Helper: JQuery-like selector for contains
-    Document.prototype.querySelectorAll.prototype.contains = function(text) {
-        let elements = document.querySelectorAll(this);
+    // Helper function to find elements containing text
+    function findElementsContainingText(selector, text) {
+        const elements = document.querySelectorAll(selector);
         return Array.from(elements).filter(element => {
             return element.textContent.includes(text);
         });
-    };
+    }
     
     // Toast notification function
     function showToast(message, type = 'info') {
