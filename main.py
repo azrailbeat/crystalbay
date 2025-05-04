@@ -104,6 +104,11 @@ def leads():
     """Render the leads page"""
     return render_template('leads.html', active_page='leads')
 
+@app.route('/leads/new')
+def leads_new():
+    """Render the new leads page with enhanced functionality"""
+    return render_template('leads_new.html', active_page='leads')
+
 @app.route('/bookings')
 def bookings():
     """Render the bookings page"""

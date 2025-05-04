@@ -1,561 +1,302 @@
 import os
-import json
 import logging
+import json
 import openai
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-from models import BookingService, LeadService
-from email_processor import EmailProcessor
 import requests
+from dotenv import load_dotenv
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-openai_client = openai.OpenAI(api_key=openai_api_key)
-
-# SAMO API credentials
-samo_oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
+# Initialize singleton instance
+_inquiry_processor_instance = None
 
 class InquiryProcessor:
-    """
-    Process customer inquiries automatically and update their statuses
-    based on AI analysis and information from external systems.
-    """
+    """Process customer inquiries with AI and automated rules"""
     
     def __init__(self):
-        """
-        Initialize the inquiry processor with necessary services.
-        """
-        self.lead_service = LeadService
-        self.booking_service = BookingService
-        self.email_processor = EmailProcessor()
-        logger.info("Inquiry processor initialized")
+        """Initialize the inquiry processor"""
+        # Initialize OpenAI client
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.client = openai.OpenAI(api_key=self.openai_api_key)
         
+        # Status transitions map (current_status -> possible next statuses)
+        self.status_transitions = {
+            'new': ['in_progress', 'cancelled'],
+            'in_progress': ['pending', 'cancelled'],
+            'pending': ['confirmed', 'cancelled'],
+            'confirmed': ['closed', 'cancelled'],
+            'closed': [],  # Terminal state
+            'cancelled': []  # Terminal state
+        }
+    
     def process_new_inquiry(self, inquiry_data):
-        """
-        Process a new inquiry coming from any source (email, Telegram, etc.)
-        and determine its category, urgency, and next actions.
+        """Process a new inquiry with AI analysis
         
         Args:
-            inquiry_data (dict): Data about the inquiry including:
-                - source: Source of the inquiry (email, telegram, etc.)
-                - content: Text content of the inquiry
-                - customer_info: Any available customer information
-                
+            inquiry_data (dict): The inquiry data to process
+            
         Returns:
-            dict: Processed inquiry with AI analysis and suggested actions
+            dict: Processing results
         """
         try:
-            logger.info(f"Processing new inquiry from {inquiry_data.get('source')}")
+            # Analyze the inquiry text with AI
+            if 'notes' in inquiry_data and inquiry_data['notes']:
+                analysis = self._analyze_with_ai(inquiry_data['notes'])
+            else:
+                analysis = {
+                    'category': 'unknown',
+                    'urgency': 1,
+                    'summary': 'No content to analyze',
+                    'suggested_actions': ['Contact customer for more information']
+                }
             
-            # Extract content and customer info
-            content = inquiry_data.get('content', '')
-            customer_info = inquiry_data.get('customer_info', {})
+            # Create the lead in the database
+            from models import LeadService
             
-            # Perform AI analysis on the inquiry
-            analysis = self._analyze_with_ai(content)
+            # Add analysis results to lead data
+            inquiry_data['category'] = analysis.get('category')
+            inquiry_data['urgency'] = analysis.get('urgency')
             
-            # Check if there's booking information
-            booking_info = None
-            if analysis.get('booking_reference'):
-                booking_info = self._check_booking(analysis.get('booking_reference'))
+            # Set initial status
+            if 'status' not in inquiry_data:
+                inquiry_data['status'] = 'new'
             
-            # Check flight information if available
-            flight_info = None
-            if analysis.get('flight_number'):
-                flight_info = self._check_flight(analysis.get('flight_number'), 
-                                               analysis.get('flight_date'))
+            # Create lead
+            lead = LeadService.create_lead(inquiry_data)
             
-            # Determine the appropriate column/status based on analysis
-            status = self._determine_status(analysis, booking_info, flight_info)
-            
-            # Create or update lead in the database
-            lead_data = {
-                'customer_name': customer_info.get('name', ''),
-                'customer_email': customer_info.get('email', ''),
-                'customer_phone': customer_info.get('phone', ''),
-                'source': inquiry_data.get('source', ''),
-                'interest': analysis.get('interest', 'General inquiry'),
-                'status': status,
-                'notes': f"AI Analysis: {analysis.get('summary')}\n\n" + 
+            # Add an interaction with the analysis
+            interaction_data = {
+                'type': 'ai_analysis',
+                'notes': f"AI Analysis:\n\n" +
                         f"Category: {analysis.get('category')}\n" +
-                        f"Urgency: {analysis.get('urgency')}\n\n" +
-                        content
+                        f"Urgency: {analysis.get('urgency')}/5\n" +
+                        f"Summary: {analysis.get('summary')}\n\n" +
+                        f"Suggested Actions:\n" + '\n'.join([f"- {action}" for action in analysis.get('suggested_actions', [])])
             }
             
-            # Create the lead
-            lead_id = self.lead_service.create_lead(lead_data)
+            LeadService.add_lead_interaction(lead['id'], interaction_data)
             
-            # Add processed data to the result
-            result = {
-                'lead_id': lead_id,
-                'status': status,
-                'analysis': analysis,
-                'booking_info': booking_info,
-                'flight_info': flight_info,
-                'suggested_actions': analysis.get('suggested_actions', [])
+            return {
+                'success': True,
+                'lead': lead,
+                'analysis': analysis
             }
-            
-            logger.info(f"Successfully processed inquiry, assigned status: {status}")
-            return result
             
         except Exception as e:
-            logger.error(f"Error processing inquiry: {str(e)}")
-            raise
+            logger.error(f"Error processing inquiry: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
     
-    def update_inquiry_status(self, lead_id, new_data=None):
-        """
-        Automatically update the status of an inquiry based on new information
-        or periodic checks against external systems.
+    def update_inquiry_status(self, lead_id, data=None):
+        """Update the status of an inquiry based on rules or requested status
         
         Args:
-            lead_id (str): The ID of the lead to update
-            new_data (dict, optional): New data related to the inquiry
+            lead_id (str): The lead ID to update
+            data (dict, optional): Optional data with requested status
             
         Returns:
-            dict: Updated lead information
+            dict: Updated lead data or None if not found
         """
         try:
+            from models import LeadService
+            
             # Get current lead data
-            lead = self.lead_service.get_lead(lead_id)
+            lead = LeadService.get_lead(lead_id)
             if not lead:
-                logger.error(f"Lead {lead_id} not found")
                 return None
             
             current_status = lead.get('status')
-            logger.info(f"Updating inquiry {lead_id}, current status: {current_status}")
+            requested_status = data.get('requested_status') if data else None
             
-            # Check if there's booking information to update
-            booking_reference = None
-            # Try to extract booking reference from lead notes
-            if lead.get('notes') and 'booking reference' in lead.get('notes').lower():
-                # Extract the booking reference using simple pattern matching
-                # This could be enhanced with more sophisticated extraction
-                notes = lead.get('notes').lower()
-                if 'booking reference:' in notes:
-                    booking_reference = notes.split('booking reference:')[1].split('\n')[0].strip()
-                elif 'reference number:' in notes:
-                    booking_reference = notes.split('reference number:')[1].split('\n')[0].strip()
+            # Determine next status
+            next_status = None
             
-            # If new data contains a booking reference, use that instead
-            if new_data and new_data.get('booking_reference'):
-                booking_reference = new_data.get('booking_reference')
+            # If specific status requested, check if it's a valid transition
+            if requested_status and requested_status in self.status_transitions.get(current_status, []):
+                next_status = requested_status
+            else:
+                # Apply automatic rules based on current status
+                next_status = self._determine_next_status(lead)
             
-            booking_info = None
-            if booking_reference:
-                booking_info = self._check_booking(booking_reference)
-            
-            # Perform AI analysis on any new content
-            analysis = None
-            if new_data and new_data.get('content'):
-                analysis = self._analyze_with_ai(new_data.get('content'))
-            
-            # Determine if status should be updated
-            new_status = self._determine_updated_status(
-                current_status, 
-                booking_info, 
-                analysis,
-                new_data
-            )
-            
-            # If status changed, update the lead
-            if new_status != current_status:
-                update_data = {'status': new_status}
+            # If status change determined, update the lead
+            if next_status and next_status != current_status:
+                update_data = {'status': next_status}
                 
-                # If we have new notes, append them
-                if new_data and new_data.get('content'):
-                    update_data['notes'] = f"{lead.get('notes', '')}\n\n--- {datetime.now().strftime('%Y-%m-%d %H:%M')} ---\n{new_data.get('content')}"
-                
-                # Update the lead in the database
-                updated_lead = self.lead_service.update_lead(lead_id, update_data)
-                
-                # Add an interaction record for the status change
+                # Add a status change interaction
                 interaction_data = {
                     'type': 'status_change',
-                    'notes': f"Status automatically updated from {current_status} to {new_status}\n" +
-                             f"Reason: {self._get_status_change_reason(current_status, new_status, booking_info, analysis)}"
+                    'notes': f"Status changed automatically from '{current_status}' to '{next_status}'"
                 }
+                LeadService.add_lead_interaction(lead_id, interaction_data)
                 
-                self.lead_service.add_lead_interaction(lead_id, interaction_data)
-                
-                logger.info(f"Updated inquiry {lead_id} status from {current_status} to {new_status}")
-                return updated_lead
+                # Update the lead status
+                return LeadService.update_lead(lead_id, update_data)
             
-            logger.info(f"No status update needed for inquiry {lead_id}")
             return lead
             
         except Exception as e:
-            logger.error(f"Error updating inquiry status: {str(e)}")
-            raise
-    
-    def check_flight_status(self, flight_number, departure_date):
-        """
-        Check the status of a flight by its number and departure date.
-        
-        Args:
-            flight_number (str): The flight number
-            departure_date (str): The departure date in YYYY-MM-DD format
-            
-        Returns:
-            dict: Flight status information
-        """
-        try:
-            # In a real implementation, this would call a flight status API
-            # For now we'll use a simulated response
-            logger.info(f"Checking status for flight {flight_number} on {departure_date}")
-            
-            # Simulate API call to flight status service
-            return self._check_flight(flight_number, departure_date)
-            
-        except Exception as e:
-            logger.error(f"Error checking flight status: {str(e)}")
-            return {'error': str(e)}
-    
-    def check_booking_details(self, booking_reference):
-        """
-        Check details of a booking by its reference number.
-        
-        Args:
-            booking_reference (str): The booking reference number
-            
-        Returns:
-            dict: Booking details information
-        """
-        try:
-            # In a real implementation, this would call the booking system API
-            logger.info(f"Checking details for booking {booking_reference}")
-            
-            # Call SAMO API or use local database
-            return self._check_booking(booking_reference)
-            
-        except Exception as e:
-            logger.error(f"Error checking booking details: {str(e)}")
-            return {'error': str(e)}
+            logger.error(f"Error updating inquiry status: {e}")
+            return None
     
     def process_all_inquiries(self):
-        """
-        Process all active inquiries and update their statuses if needed.
-        This method can be scheduled to run periodically.
+        """Process all active inquiries with AI and rules
         
         Returns:
-            dict: Summary of processed inquiries and status changes
+            dict: Processing results
         """
         try:
-            logger.info("Starting batch processing of all active inquiries")
+            from models import LeadService
             
-            # Get all leads that are not in terminal statuses
-            active_statuses = ['new', 'in_progress', 'pending']
-            all_leads = []
+            # Get all active leads (excluding closed and cancelled)
+            active_statuses = ['new', 'in_progress', 'pending', 'confirmed']
+            leads = []
             
             for status in active_statuses:
-                leads = self.lead_service.get_leads(status=status)
-                all_leads.extend(leads)
+                status_leads = LeadService.get_leads(status=status)
+                if status_leads:
+                    leads.extend(status_leads)
             
-            logger.info(f"Found {len(all_leads)} active inquiries to process")
-            
-            # Process each lead
             results = {
-                'total': len(all_leads),
+                'total': len(leads),
                 'updated': 0,
-                'unchanged': 0,
-                'errors': 0,
-                'status_changes': {}
+                'failed': 0,
+                'details': []
             }
             
-            for lead in all_leads:
+            # Process each lead
+            for lead in leads:
                 try:
-                    lead_id = lead.get('id')
-                    old_status = lead.get('status')
+                    updated_lead = self.update_inquiry_status(lead['id'])
                     
-                    # Update the inquiry status
-                    updated_lead = self.update_inquiry_status(lead_id)
-                    
-                    if updated_lead.get('status') != old_status:
+                    if updated_lead and updated_lead.get('status') != lead.get('status'):
                         results['updated'] += 1
-                        new_status = updated_lead.get('status')
-                        
-                        # Track status changes
-                        status_key = f"{old_status}_to_{new_status}"
-                        if status_key not in results['status_changes']:
-                            results['status_changes'][status_key] = 0
-                        results['status_changes'][status_key] += 1
-                    else:
-                        results['unchanged'] += 1
-                        
+                        results['details'].append({
+                            'lead_id': lead['id'],
+                            'old_status': lead['status'],
+                            'new_status': updated_lead['status']
+                        })
                 except Exception as e:
-                    logger.error(f"Error processing lead {lead.get('id')}: {str(e)}")
-                    results['errors'] += 1
+                    results['failed'] += 1
+                    logger.error(f"Error processing lead {lead['id']}: {e}")
             
-            logger.info(f"Batch processing complete: {results['updated']} inquiries updated")
             return results
             
         except Exception as e:
-            logger.error(f"Error in batch processing inquiries: {str(e)}")
-            raise
+            logger.error(f"Error processing all inquiries: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
     
-    def _analyze_with_ai(self, content):
-        """
-        Analyze inquiry content with AI to categorize and prioritize.
+    def _analyze_with_ai(self, text):
+        """Analyze text with OpenAI to categorize and extract insights
         
         Args:
-            content (str): The inquiry text content
+            text (str): The text to analyze
             
         Returns:
-            dict: Analysis results including category, urgency, etc.
+            dict: Analysis results
         """
         try:
-            logger.info("Analyzing inquiry content with AI")
+            system_prompt = """
+            You are an AI assistant for a travel agency. Analyze the customer inquiry and extract key information.
+            Return a JSON response with the following fields:
+            - category: The type of inquiry (e.g., beach_vacation, city_tour, cruise, flight_only, custom_tour, etc.)
+            - urgency: Rate from 1-5 how urgent this inquiry seems (5 being most urgent)
+            - summary: A brief 1-2 sentence summary of the inquiry
+            - suggested_actions: A list of 2-3 specific actions the travel agent should take
             
-            # Create the prompt for OpenAI
-            prompt = f"""
-            Analyze the following customer inquiry for a travel agency and provide structured information:
-            
-            INQUIRY: {content}
-            
-            Provide a JSON response with the following fields:
-            - category: The category of the inquiry (booking, cancellation, modification, complaint, information, etc.)
-            - urgency: A rating from 1-5 where 5 is extremely urgent
-            - summary: A brief summary of the inquiry
-            - interest: What travel products/destinations the customer is interested in
-            - booking_reference: Any booking reference numbers mentioned (null if none)
-            - flight_number: Any flight numbers mentioned (null if none)
-            - flight_date: Any flight dates mentioned in YYYY-MM-DD format (null if none)
-            - suggested_actions: A list of 1-3 suggested actions for the travel agent
+            Base your analysis only on the facts in the text. If information is missing, suggest requesting it rather than making assumptions.
             """
             
-            # Call OpenAI API
-            response = openai_client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                messages=[{"role": "user", "content": prompt}],
+            # Use the newest OpenAI model - gpt-4o which was released May 13, 2024.
+            # Do not change this unless explicitly requested by the user
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": text}
+                ],
                 response_format={"type": "json_object"}
             )
             
-            # Parse the JSON response
-            analysis = json.loads(response.choices[0].message.content)
-            logger.info(f"AI analysis complete: {analysis['category']}, urgency: {analysis['urgency']}")
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"Error analyzing with AI: {str(e)}")
-            # Return a basic analysis as fallback
-            return {
-                'category': 'general',
-                'urgency': 3,
-                'summary': 'Could not analyze content',
-                'interest': 'Unknown',
-                'booking_reference': None,
-                'flight_number': None,
-                'flight_date': None,
-                'suggested_actions': ['Review manually']
-            }
-    
-    def _check_booking(self, booking_reference):
-        """
-        Check booking details using the SAMO API or local database.
-        
-        Args:
-            booking_reference (str): The booking reference number
-            
-        Returns:
-            dict: Booking information or None if not found
-        """
-        try:
-            logger.info(f"Checking booking: {booking_reference}")
-            
-            # First try in local database
-            booking = self.booking_service.get_booking(booking_reference)
-            if booking:
-                return booking
-            
-            # If not found locally, check SAMO API if token is available
-            if samo_oauth_token:
-                # This would be a real API call to the SAMO system
-                # For now, we'll return a simulated response
-                # In a real implementation, replace with actual API call
-                
-                # Simulated booking information
+            try:
+                analysis = json.loads(response.choices[0].message.content)
+                return analysis
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return a structured format of the raw content
+                content = response.choices[0].message.content
                 return {
-                    'reference': booking_reference,
-                    'status': 'confirmed',  # or 'pending', 'cancelled'
-                    'customer_name': 'John Smith',
-                    'departure_date': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
-                    'return_date': (datetime.now() + timedelta(days=37)).strftime('%Y-%m-%d'),
-                    'destination': 'Turkey',
-                    'hotel': 'Sea View Resort',
-                    'amount_paid': 1250.00,
-                    'total_amount': 1500.00,
-                    'balance_due': 250.00,
-                    'payment_deadline': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
+                    'category': 'parsing_error',
+                    'urgency': 3,
+                    'summary': 'Failed to parse AI response',
+                    'suggested_actions': ['Review the raw analysis', 'Contact customer for clarification'],
+                    'raw_content': content
                 }
-            
-            logger.warning(f"Booking {booking_reference} not found")
-            return None
-            
+                
         except Exception as e:
-            logger.error(f"Error checking booking: {str(e)}")
-            return None
-    
-    def _check_flight(self, flight_number, flight_date):
-        """
-        Check flight status using a flight status API.
-        
-        Args:
-            flight_number (str): The flight number
-            flight_date (str): The flight date in YYYY-MM-DD format
-            
-        Returns:
-            dict: Flight information or None if not found
-        """
-        try:
-            logger.info(f"Checking flight: {flight_number} on {flight_date}")
-            
-            # In a real implementation, this would call a flight status API
-            # For now, we'll return a simulated response
-            # Replace with actual API call in production
-            
-            # Simulated flight information
+            logger.error(f"Error analyzing with AI: {e}")
             return {
-                'flight_number': flight_number,
-                'departure_date': flight_date,
-                'status': 'scheduled',  # or 'delayed', 'cancelled', 'completed'
-                'departure_time': '10:30',
-                'arrival_time': '13:45',
-                'departure_airport': 'SVO',
-                'arrival_airport': 'AYT',
-                'terminal': 'D',
-                'delay_minutes': 0,
+                'category': 'error',
+                'urgency': 3,
+                'summary': f"Error during analysis: {str(e)}",
+                'suggested_actions': ['Check AI service status', 'Try manual analysis']
             }
-            
-        except Exception as e:
-            logger.error(f"Error checking flight: {str(e)}")
-            return None
     
-    def _determine_status(self, analysis, booking_info, flight_info):
-        """
-        Determine the appropriate status/column for an inquiry based on analysis.
+    def _determine_next_status(self, lead):
+        """Determine the next status for a lead based on its current state
         
         Args:
-            analysis (dict): AI analysis of the inquiry
-            booking_info (dict): Booking information if available
-            flight_info (dict): Flight information if available
+            lead (dict): The lead data
             
         Returns:
-            str: The determined status
+            str: Next status or None if no change needed
         """
-        # Default status is 'new'
-        status = 'new'
+        current_status = lead.get('status')
         
-        # High urgency inquiries go to 'in_progress'
-        if analysis.get('urgency', 0) >= 4:
-            status = 'in_progress'
-        
-        # Complaints go to 'in_progress'
-        if analysis.get('category') == 'complaint':
-            status = 'in_progress'
-        
-        # Booking confirmations go to 'confirmed'
-        if (analysis.get('category') == 'booking_confirmation' and 
-            booking_info and booking_info.get('status') == 'confirmed'):
-            status = 'confirmed'
-        
-        # Cancellations that are confirmed go to 'closed'
-        if (analysis.get('category') == 'cancellation' and 
-            booking_info and booking_info.get('status') == 'cancelled'):
-            status = 'closed'
-        
-        # Flight issues that are urgent go to 'in_progress'
-        if (analysis.get('category') == 'flight_issue' and 
-            flight_info and flight_info.get('status') in ['delayed', 'cancelled']):
-            status = 'in_progress'
-        
-        logger.info(f"Determined status: {status} based on analysis and external data")
-        return status
-    
-    def _determine_updated_status(self, current_status, booking_info, analysis, new_data):
-        """
-        Determine if the status of an inquiry should be updated based on new information.
-        
-        Args:
-            current_status (str): The current status of the inquiry
-            booking_info (dict): Updated booking information if available
-            analysis (dict): AI analysis of new content if available
-            new_data (dict): Any new data related to the inquiry
-            
-        Returns:
-            str: The updated status or the current status if no update needed
-        """
-        # Start with the current status
-        new_status = current_status
-        
-        # Status transition rules
+        # Simple state machine logic
         if current_status == 'new':
-            # New inquiries can move to in_progress or confirmed
-            if booking_info and booking_info.get('status') == 'confirmed':
-                new_status = 'confirmed'
-            elif analysis and analysis.get('urgency', 0) >= 4:
-                new_status = 'in_progress'
+            # Move new leads to in_progress if they're urgent
+            urgency = lead.get('urgency', 0)
+            if urgency >= 4:
+                return 'in_progress'
                 
         elif current_status == 'in_progress':
-            # In-progress inquiries can move to confirmed or closed
-            if booking_info:
-                if booking_info.get('status') == 'confirmed':
-                    new_status = 'confirmed'
-                elif booking_info.get('status') == 'cancelled':
-                    new_status = 'closed'
+            # Check if there are recent interactions that might warrant moving to pending
+            interactions = lead.get('interactions', [])
+            if len(interactions) >= 3:
+                return 'pending'
+                
+        elif current_status == 'pending':
+            # Look for booking references in the notes that might indicate a confirmation
+            notes = lead.get('notes', '')
+            if 'booking confirmed' in notes.lower() or any(ref_pattern in notes for ref_pattern in ['CB-', 'BK-']):
+                return 'confirmed'
         
-        # Handle explicit status change requests in new data
-        if new_data and new_data.get('requested_status'):
-            requested_status = new_data.get('requested_status')
-            # Validate that the requested status is valid
-            valid_statuses = ['new', 'in_progress', 'confirmed', 'closed']
-            if requested_status in valid_statuses:
-                new_status = requested_status
-        
-        logger.info(f"Status determination: {current_status} -> {new_status}")
-        return new_status
-    
-    def _get_status_change_reason(self, old_status, new_status, booking_info, analysis):
-        """
-        Generate a human-readable reason for a status change.
-        
-        Args:
-            old_status (str): The previous status
-            new_status (str): The new status
-            booking_info (dict): Booking information if available
-            analysis (dict): AI analysis if available
-            
-        Returns:
-            str: The reason for the status change
-        """
-        reason = "Automatic status update"  # Default reason
-        
-        # Add more specific reasons based on the statuses and data
-        if new_status == 'confirmed' and booking_info:
-            reason = f"Booking confirmed in reservation system: {booking_info.get('reference')}"
-            
-        elif new_status == 'closed' and booking_info and booking_info.get('status') == 'cancelled':
-            reason = f"Booking cancelled in reservation system: {booking_info.get('reference')}"
-            
-        elif new_status == 'in_progress' and analysis and analysis.get('urgency', 0) >= 4:
-            reason = f"High urgency inquiry (level {analysis.get('urgency')}): {analysis.get('summary')}"
-        
-        return reason
+        # No status change determined
+        return None
 
-# Singleton instance
-_inquiry_processor = None
 
 def get_inquiry_processor():
+    """Get the singleton instance of InquiryProcessor
+    
+    Returns:
+        InquiryProcessor: The singleton instance
     """
-    Get the singleton instance of the InquiryProcessor.
-    """
-    global _inquiry_processor
-    if _inquiry_processor is None:
-        _inquiry_processor = InquiryProcessor()
-    return _inquiry_processor
+    global _inquiry_processor_instance
+    
+    if _inquiry_processor_instance is None:
+        _inquiry_processor_instance = InquiryProcessor()
+        
+    return _inquiry_processor_instance
