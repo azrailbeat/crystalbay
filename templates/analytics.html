@@ -546,7 +546,6 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
 <!-- AI Analysis Modal -->
 <div class="modal fade" id="aiAnalysisModal" tabindex="-1" aria-labelledby="aiAnalysisModalLabel" aria-hidden="true">
@@ -635,422 +634,251 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // AI Analysis Modal Functionality - Only initialize on analytics page
-        const analysisTypeSelect = document.getElementById('analysisType');
-        const dateRangeSelect = document.getElementById('dateRange');
-        const customDateRangeDiv = document.getElementById('customDateRange');
-        const customQueryDiv = document.getElementById('customQueryDiv');
-        const aiResultDiv = document.querySelector('.ai-result');
-        const aiResultContent = document.getElementById('aiResultContent');
-        const analyzeBtn = document.querySelector('.analyze-btn');
-        
-        // If we're not on the analytics page, don't continue with this initialization
-        if (!analysisTypeSelect || !dateRangeSelect || !analyzeBtn) {
-            return; // Exit early if elements don't exist
-        }
-        
-        // Show/hide custom date range based on selection
-        dateRangeSelect.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customDateRangeDiv.classList.remove('d-none');
-            } else {
-                customDateRangeDiv.classList.add('d-none');
-            }
-        });
-        
-        // Show/hide custom query field based on analysis type
-        analysisTypeSelect.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customQueryDiv.classList.remove('d-none');
-            } else {
-                customQueryDiv.classList.add('d-none');
-            }
-        });
-        
-        // Handle analyze button click
-        analyzeBtn.addEventListener('click', function() {
-            // Validate form
-            if (!analysisTypeSelect.value) {
-                alert('Выберите тип анализа');
-                return;
-            }
-            
-            // Show loading state
-            analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Анализирую...';
-            
-            // In a real app, this would make an API call to your backend
-            // For demo purposes, we'll simulate a response after a delay
-            setTimeout(function() {
-                // Show result section
-                aiResultDiv.classList.remove('d-none');
-                
-                // Update result content based on analysis type
-                let resultHtml = '';
-                
-                switch(analysisTypeSelect.value) {
-                    case 'sales_forecast':
-                        resultHtml = `
-                            <h5>Прогноз продаж на следующий квартал</h5>
-                            <p>На основе анализа исторических данных и сезонных трендов, прогнозируется рост продаж на <strong>12.5%</strong> в следующем квартале.</p>
-                            <div class="alert alert-info">
-                                <h6>Ключевые факторы роста:</h6>
-                                <ul>
-                                    <li>Увеличение спроса на направления Турция и Египет</li>
-                                    <li>Сезонный пик бронирований на летние месяцы</li>
-                                    <li>Рост конверсии благодаря улучшенному опыту бронирования</li>
-                                </ul>
-                            </div>
-                            
-                            <h6>Прогноз по направлениям:</h6>
-                            <div class="table-responsive mb-3">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Направление</th>
-                                            <th>Текущие продажи</th>
-                                            <th>Прогноз</th>
-                                            <th>Изменение</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Турция</td>
-                                            <td>$285,800</td>
-                                            <td>$325,812</td>
-                                            <td class="text-success">+14.0%</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Египет</td>
-                                            <td>$196,240</td>
-                                            <td>$219,788</td>
-                                            <td class="text-success">+12.0%</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Таиланд</td>
-                                            <td>$140,680</td>
-                                            <td>$162,687</td>
-                                            <td class="text-success">+15.6%</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <h6>Рекомендации:</h6>
-                            <ol>
-                                <li>Увеличить маркетинговый бюджет на направления Таиланд и Турция</li>
-                                <li>Запустить раннее бронирование со скидкой 10% на высокий сезон</li>
-                                <li>Расширить предложения по отелям высокой категории для увеличения среднего чека</li>
-                            </ol>
-                        `;
-                        break;
-                    case 'trend_analysis':
-                        resultHtml = `
-                            <h5>Анализ трендов за последний квартал</h5>
-                            <p>Результаты анализа показывают следующие ключевые тренды:</p>
-                            
-                            <div class="mb-3">
-                                <h6>Растущие тренды:</h6>
-                                <ul>
-                                    <li><strong>Рост спроса на премиальные пакеты</strong> - увеличение на 32% по сравнению с предыдущим кварталом</li>
-                                    <li><strong>Популярность Таиланда</strong> - рост бронирований на 25%</li>
-                                    <li><strong>Раннее бронирование</strong> - клиенты бронируют на 18% раньше, чем в прошлом году</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <h6>Снижающиеся тренды:</h6>
-                                <ul>
-                                    <li><strong>Короткие поездки</strong> - снижение бронирований на короткие сроки (2-3 дня) на 12%</li>
-                                    <li><strong>Бюджетные отели</strong> - снижение бронирований в отели 3* на 8%</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="alert alert-warning">
-                                <h6>Внимание! Возникающие тренды:</h6>
-                                <ul>
-                                    <li><strong>Эко-туризм</strong> - рост запросов на 28% (низкая база, но сильный рост)</li>
-                                    <li><strong>Местные экскурсии</strong> - увеличение спроса на аутентичные местные экскурсии на 15%</li>
-                                </ul>
-                            </div>
-                            
-                            <h6>Рекомендации на основе трендов:</h6>
-                            <ol>
-                                <li>Расширить предложения премиальных пакетов и отелей высокой категории</li>
-                                <li>Добавить больше опций для Таиланда и развивать это направление</li>
-                                <li>Предложить специальные условия для раннего бронирования</li>
-                                <li>Добавить эко-туры и аутентичные экскурсии в каталог предложений</li>
-                            </ol>
-                        `;
-                        break;
-                    case 'customer_segmentation':
-                        resultHtml = `
-                            <h5>Сегментация клиентов</h5>
-                            <p>Анализ клиентской базы выявил следующие ключевые сегменты:</p>
-                            
-                            <div class="table-responsive mb-3">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Сегмент</th>
-                                            <th>Доля клиентов</th>
-                                            <th>Доля дохода</th>
-                                            <th>Средний чек</th>
-                                            <th>Частота покупок</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>Лояльные премиум</strong></td>
-                                            <td>15%</td>
-                                            <td>38%</td>
-                                            <td>$3,250</td>
-                                            <td>2.4 в год</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Семейные путешественники</strong></td>
-                                            <td>32%</td>
-                                            <td>29%</td>
-                                            <td>$2,180</td>
-                                            <td>1.2 в год</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Молодые исследователи</strong></td>
-                                            <td>28%</td>
-                                            <td>20%</td>
-                                            <td>$1,850</td>
-                                            <td>1.5 в год</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Бюджетные путешественники</strong></td>
-                                            <td>25%</td>
-                                            <td>13%</td>
-                                            <td>$1,230</td>
-                                            <td>1.1 в год</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6>Лояльные премиум (15%)</h6>
-                                            <p class="mb-2"><small>Ключевые характеристики:</small></p>
-                                            <ul class="small">
-                                                <li>Возраст: 35-55 лет</li>
-                                                <li>Предпочитают отели 4-5*</li>
-                                                <li>Ценят комфорт и эксклюзивность</li>
-                                                <li>Часто путешествуют вдвоем</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6>Семейные путешественники (32%)</h6>
-                                            <p class="mb-2"><small>Ключевые характеристики:</small></p>
-                                            <ul class="small">
-                                                <li>Возраст: 30-45 лет</li>
-                                                <li>Путешествуют с детьми (1-2 ребенка)</li>
-                                                <li>Выбирают отели с детскими программами</li>
-                                                <li>Предпочитают "всё включено"</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <h6>Рекомендации по сегментам:</h6>
-                            <div class="alert alert-primary">
-                                <p class="mb-2"><strong>Лояльные премиум:</strong></p>
-                                <ul class="mb-0">
-                                    <li>Разработать программу лояльности с эксклюзивными предложениями</li>
-                                    <li>Предлагать персонализированные туры и бонусы</li>
-                                </ul>
-                            </div>
-                            <div class="alert alert-success">
-                                <p class="mb-2"><strong>Семейные путешественники:</strong></p>
-                                <ul class="mb-0">
-                                    <li>Расширить предложения с детскими программами</li>
-                                    <li>Создать специальные пакеты "дети бесплатно" в низкий сезон</li>
-                                </ul>
-                            </div>
-                        `;
-                        break;
-                    case 'pricing_optimization':
-                        resultHtml = `
-                            <h5>Оптимизация ценовой политики</h5>
-                            <p>Анализ показывает, что вы можете оптимизировать цены для увеличения дохода и конверсии.</p>
-                            
-                            <div class="alert alert-info mb-4">
-                                <h6>Ключевые выводы:</h6>
-                                <ul class="mb-0">
-                                    <li>Оптимальный уровень наценки для премиальных направлений: 22-28%</li>
-                                    <li>Оптимальный уровень наценки для массовых направлений: 18-24%</li>
-                                    <li>Ценовая эластичность выше для бюджетных туров (-0.8) в сравнении с премиальными (-0.4)</li>
-                                </ul>
-                            </div>
-                            
-                            <h6>Рекомендуемые изменения цен:</h6>
-                            <div class="table-responsive mb-4">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Направление/тип</th>
-                                            <th>Текущая наценка</th>
-                                            <th>Рекомендуемая наценка</th>
-                                            <th>Потенциальный рост дохода</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Турция - премиум</td>
-                                            <td>20%</td>
-                                            <td>26% <span class="text-success">(+6%)</span></td>
-                                            <td>$42,500</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Турция - стандарт</td>
-                                            <td>19%</td>
-                                            <td>21% <span class="text-success">(+2%)</span></td>
-                                            <td>$18,200</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Египет - все включено</td>
-                                            <td>22%</td>
-                                            <td>24% <span class="text-success">(+2%)</span></td>
-                                            <td>$12,800</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Таиланд - премиум</td>
-                                            <td>24%</td>
-                                            <td>28% <span class="text-success">(+4%)</span></td>
-                                            <td>$29,700</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Кипр - стандарт</td>
-                                            <td>17%</td>
-                                            <td>15% <span class="text-danger">(-2%)</span></td>
-                                            <td>$8,500*</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <p class="small text-muted">* Для Кипра снижение цены может увеличить объем продаж и общий доход</p>
-                            </div>
-                            
-                            <h6>Стратегия динамического ценообразования:</h6>
-                            <ol>
-                                <li>Ввести сезонные коэффициенты для автоматической корректировки цен</li>
-                                <li>Реализовать стратегию раннего бронирования со скидками до 15%</li>
-                                <li>Ввести надбавку за позднее бронирование в высокий сезон (5-10%)</li>
-                                <li>Разработать систему мониторинга цен конкурентов</li>
-                            </ol>
-                        `;
-                        break;
-                    case 'custom':
-                    default:
-                        // For custom query or default
-                        resultHtml = `
-                            <h5>Анализ на основе запроса</h5>
-                            <div class="alert alert-secondary">
-                                <p class="mb-0">Для генерации полного анализа на основе вашего запроса, необходимо подключение к API с искусственным интеллектом.</p>
-                            </div>
-                            <p>Для получения детального и персонализированного анализа, пожалуйста, укажите конкретные параметры и вопросы в разделе "Пользовательский запрос".</p>
-                        `;
-                }
-                
-                // Set content
-                aiResultContent.innerHTML = resultHtml;
-                
-                // Reset button state
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = 'Анализировать';
-                
-            }, 1500); // Simulated delay for API call
-        });
-        
         // Sales Chart
-        const salesCtx = document.getElementById('salesChart').getContext('2d');
-        const salesChart = new Chart(salesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
-                datasets: [{
-                    label: 'Выручка ($)',
-                    data: [68000, 72500, 98700, 105400, 110200, 120500, 135600, 142300, 128700, 105200, 87500, 94800],
-                    backgroundColor: 'rgba(0, 113, 227, 0.6)',
-                    borderColor: 'rgba(0, 113, 227, 1)',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
+        const salesCtx = document.getElementById('salesChart');
+        if (salesCtx) {
+            const salesChart = new Chart(salesCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                    datasets: [{
+                        label: 'Выручка ($)',
+                        data: [68000, 72500, 98700, 105400, 110200, 120500, 135600, 142300, 128700, 105200, 87500, 94800],
+                        backgroundColor: 'rgba(0, 113, 227, 0.6)',
+                        borderColor: 'rgba(0, 113, 227, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     },
-                    x: {
-                        grid: {
+                    plugins: {
+                        legend: {
                             display: false
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
                 }
-            }
-        });
+            });
+        }
         
         // Destinations Chart
-        const destinationsCtx = document.getElementById('destinationsChart').getContext('2d');
-        const destinationsChart = new Chart(destinationsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Турция', 'Египет', 'Таиланд', 'ОАЭ', 'Кипр', 'Другие'],
-                datasets: [{
-                    data: [35.1, 25.3, 18.2, 12.8, 8.4, 0.2],
-                    backgroundColor: [
-                        'rgba(0, 113, 227, 0.8)',
-                        'rgba(52, 199, 89, 0.8)',
-                        'rgba(255, 149, 0, 0.8)',
-                        'rgba(90, 200, 250, 0.8)',
-                        'rgba(175, 82, 222, 0.8)',
-                        'rgba(142, 142, 147, 0.8)'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            boxWidth: 12
-                        }
-                    }
+        const destinationsCtx = document.getElementById('destinationsChart');
+        if (destinationsCtx) {
+            const destinationsChart = new Chart(destinationsCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Турция', 'Египет', 'Таиланд', 'ОАЭ', 'Кипр', 'Другие'],
+                    datasets: [{
+                        data: [35.1, 25.3, 18.2, 12.8, 8.4, 0.2],
+                        backgroundColor: [
+                            'rgba(0, 113, 227, 0.8)',
+                            'rgba(52, 199, 89, 0.8)',
+                            'rgba(255, 149, 0, 0.8)',
+                            'rgba(90, 200, 250, 0.8)',
+                            'rgba(175, 82, 222, 0.8)',
+                            'rgba(142, 142, 147, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
                 },
-                cutout: '70%'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                boxWidth: 12
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+        
+        // Handle AI Analysis Modal
+        const aiAnalysisModal = document.getElementById('aiAnalysisModal');
+        if (aiAnalysisModal) {
+            const analysisTypeSelect = document.getElementById('analysisType');
+            const dateRangeSelect = document.getElementById('dateRange');
+            const customDateRangeDiv = document.getElementById('customDateRange');
+            const customQueryDiv = document.getElementById('customQueryDiv');
+            const aiResultDiv = document.querySelector('.ai-result');
+            const aiResultContent = document.getElementById('aiResultContent');
+            const analyzeBtn = document.querySelector('.analyze-btn');
+            
+            if (analysisTypeSelect && dateRangeSelect) {
+                // Show/hide custom date range based on selection
+                dateRangeSelect.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customDateRangeDiv.classList.remove('d-none');
+                    } else {
+                        customDateRangeDiv.classList.add('d-none');
+                    }
+                });
+                
+                // Show/hide custom query field based on analysis type
+                analysisTypeSelect.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customQueryDiv.classList.remove('d-none');
+                    } else {
+                        customQueryDiv.classList.add('d-none');
+                    }
+                });
             }
-        });
+            
+            // Handle analyze button click
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', function() {
+                    // Validate form
+                    if (!analysisTypeSelect || !analysisTypeSelect.value) {
+                        alert('Выберите тип анализа');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    analyzeBtn.disabled = true;
+                    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Анализирую...';
+                    
+                    // In a real app, this would make an API call to your backend
+                    // For demo purposes, we'll simulate a response after a delay
+                    setTimeout(function() {
+                        // Show result section
+                        if (aiResultDiv) {
+                            aiResultDiv.classList.remove('d-none');
+                        }
+                        
+                        // Update result content based on analysis type
+                        let resultHtml = '';
+                        
+                        switch(analysisTypeSelect.value) {
+                            case 'sales_forecast':
+                                resultHtml = `
+                                    <h5>Прогноз продаж на следующий квартал</h5>
+                                    <p>На основе анализа исторических данных и сезонных трендов, прогнозируется рост продаж на <strong>12.5%</strong> в следующем квартале.</p>
+                                    <div class="alert alert-info">
+                                        <h6>Ключевые факторы роста:</h6>
+                                        <ul>
+                                            <li>Увеличение спроса на направления Турция и Египет</li>
+                                            <li>Сезонный пик бронирований на летние месяцы</li>
+                                            <li>Рост конверсии благодаря улучшенному опыту бронирования</li>
+                                        </ul>
+                                    </div>
+                                `;
+                                break;
+                            case 'trend_analysis':
+                                resultHtml = `
+                                    <h5>Анализ трендов за последний квартал</h5>
+                                    <p>Результаты анализа показывают следующие ключевые тренды:</p>
+                                    
+                                    <div class="mb-3">
+                                        <h6>Растущие тренды:</h6>
+                                        <ul>
+                                            <li><strong>Рост спроса на премиальные пакеты</strong> - увеличение на 32% по сравнению с предыдущим кварталом</li>
+                                            <li><strong>Популярность Таиланда</strong> - рост бронирований на 25%</li>
+                                            <li><strong>Раннее бронирование</strong> - клиенты бронируют на 18% раньше, чем в прошлом году</li>
+                                        </ul>
+                                    </div>
+                                `;
+                                break;
+                            case 'customer_segmentation':
+                                resultHtml = `
+                                    <h5>Сегментация клиентов</h5>
+                                    <p>Анализ клиентской базы выявил четыре ключевых сегмента клиентов:</p>
+                                    
+                                    <ul>
+                                        <li><strong>Лояльные премиум</strong> (15% клиентов, 38% дохода)</li>
+                                        <li><strong>Семейные путешественники</strong> (32% клиентов, 29% дохода)</li>
+                                        <li><strong>Молодые исследователи</strong> (28% клиентов, 20% дохода)</li>
+                                        <li><strong>Бюджетные путешественники</strong> (25% клиентов, 13% дохода)</li>
+                                    </ul>
+                                `;
+                                break;
+                            case 'pricing_optimization':
+                                resultHtml = `
+                                    <h5>Оптимизация ценовой политики</h5>
+                                    <p>Анализ показывает, что вы можете увеличить доход на 7.8%, оптимизируя цены без изменения волюме продаж.</p>
+                                    
+                                    <div class="alert alert-info mb-4">
+                                        <h6>Ключевые выводы:</h6>
+                                        <ul class="mb-0">
+                                            <li>Оптимальный уровень наценки для премиальных направлений: 22-28%</li>
+                                            <li>Оптимальный уровень наценки для массовых направлений: 18-24%</li>
+                                        </ul>
+                                    </div>
+                                `;
+                                break;
+                            case 'custom':
+                            default:
+                                resultHtml = `
+                                    <h5>Анализ на основе запроса</h5>
+                                    <div class="alert alert-secondary">
+                                        <p class="mb-0">Для генерации полного анализа на основе вашего запроса, необходимо подключение к API с искусственным интеллектом.</p>
+                                    </div>
+                                    <p>Для получения детального и персонализированного анализа, пожалуйста, укажите конкретные параметры и вопросы в разделе "Пользовательский запрос".</p>
+                                `;
+                        }
+                        
+                        // Set content
+                        if (aiResultContent) {
+                            aiResultContent.innerHTML = resultHtml;
+                        }
+                        
+                        // Reset button state
+                        analyzeBtn.disabled = false;
+                        analyzeBtn.innerHTML = 'Анализировать';
+                        
+                    }, 1500); // Simulated delay for API call
+                });
+            }
+            
+            // Reset form and hide results when modal is opened
+            aiAnalysisModal.addEventListener('show.bs.modal', function() {
+                if (aiResultDiv) {
+                    aiResultDiv.classList.add('d-none');
+                }
+                
+                if (analysisTypeSelect) {
+                    analysisTypeSelect.selectedIndex = 0;
+                }
+                
+                if (dateRangeSelect) {
+                    // Reset to 'last_quarter'
+                    dateRangeSelect.value = 'last_quarter';
+                }
+                
+                if (customDateRangeDiv) {
+                    customDateRangeDiv.classList.add('d-none');
+                }
+                
+                if (customQueryDiv) {
+                    customQueryDiv.classList.add('d-none');
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
