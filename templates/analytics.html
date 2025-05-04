@@ -640,7 +640,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // AI Analysis Modal Functionality
+        // AI Analysis Modal Functionality - Only initialize on analytics page
         const analysisTypeSelect = document.getElementById('analysisType');
         const dateRangeSelect = document.getElementById('dateRange');
         const customDateRangeDiv = document.getElementById('customDateRange');
@@ -648,6 +648,11 @@
         const aiResultDiv = document.querySelector('.ai-result');
         const aiResultContent = document.getElementById('aiResultContent');
         const analyzeBtn = document.querySelector('.analyze-btn');
+        
+        // If we're not on the analytics page, don't continue with this initialization
+        if (!analysisTypeSelect || !dateRangeSelect || !analyzeBtn) {
+            return; // Exit early if elements don't exist
+        }
         
         // Show/hide custom date range based on selection
         dateRangeSelect.addEventListener('change', function() {
