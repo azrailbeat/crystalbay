@@ -110,6 +110,26 @@ def messages():
     """Render the messages page"""
     return render_template('messages.html', active_page='messages')
 
+@app.route('/agents')
+def agents():
+    """Render the agents page"""
+    return render_template('agents.html', active_page='agents')
+
+@app.route('/analytics')
+def analytics():
+    """Render the analytics page"""
+    return render_template('analytics.html', active_page='analytics')
+
+@app.route('/history')
+def history():
+    """Render the history page"""
+    return render_template('history.html', active_page='history')
+
+@app.route('/integrations')
+def integrations():
+    """Render the integrations page"""
+    return render_template('integrations.html', active_page='integrations')
+
 @app.route('/settings')
 def settings():
     """Render the settings page"""

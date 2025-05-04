@@ -1,0 +1,626 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Аналитика{% endblock %}
+
+{% block page_title %}Аналитика{% endblock %}
+
+{% block head %}
+<style>
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .analytics-filters {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .time-period-selector {
+        display: inline-flex;
+        background-color: var(--light-accent);
+        border-radius: 8px;
+        padding: 0.3rem;
+    }
+    
+    .time-period-selector .btn {
+        border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        background: none;
+        border: none;
+        color: var(--text-color);
+    }
+    
+    .time-period-selector .btn.active {
+        background-color: white;
+        box-shadow: var(--card-shadow);
+        color: var(--primary-color);
+    }
+    
+    .analytics-card {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .analytics-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .analytics-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-color);
+    }
+    
+    .analytics-card-dropdown .btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        background-color: var(--light-accent);
+        border: none;
+        color: var(--text-color);
+    }
+    
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+    
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .metric-card {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .metric-title {
+        font-size: 0.9rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+    
+    .metric-change {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .metric-change.positive {
+        color: var(--success-color);
+    }
+    
+    .metric-change.negative {
+        color: var(--danger-color);
+    }
+    
+    .conversion-funnel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .funnel-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .funnel-step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 50px;
+        right: 0;
+        width: 90%;
+        height: 2px;
+        background-color: var(--light-border);
+    }
+    
+    .funnel-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .funnel-step.active .funnel-icon {
+        background-color: rgba(0, 113, 227, 0.1);
+        color: var(--primary-color);
+    }
+    
+    .funnel-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+    
+    .funnel-label {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .funnel-percent {
+        position: absolute;
+        right: -30px;
+        top: 50px;
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+        background-color: var(--light-accent);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        z-index: 2;
+    }
+    
+    .table-analytics th {
+        font-weight: 600;
+        white-space: nowrap;
+        color: var(--secondary-color);
+    }
+    
+    .table-analytics tbody tr:hover {
+        background-color: var(--light-accent);
+    }
+    
+    .table-analytics .country-name {
+        font-weight: 500;
+        color: var(--text-color);
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: var(--light-accent);
+    }
+    
+    .progress-bar {
+        background-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Analytics Header -->
+    <div class="analytics-header">
+        <div class="analytics-filters">
+            <div class="time-period-selector">
+                <button class="btn">День</button>
+                <button class="btn">Неделя</button>
+                <button class="btn active">Месяц</button>
+                <button class="btn">Квартал</button>
+                <button class="btn">Год</button>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-funnel"></i> Фильтры
+                </button>
+                <div class="dropdown-menu">
+                    <div class="px-3 py-2">
+                        <h6 class="dropdown-header">Источник клиентов</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="source-all" checked>
+                            <label class="form-check-label" for="source-all">Все источники</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="source-website">
+                            <label class="form-check-label" for="source-website">Сайт</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="source-telegram">
+                            <label class="form-check-label" for="source-telegram">Telegram</label>
+                        </div>
+                        
+                        <h6 class="dropdown-header mt-3">Направления</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dest-all" checked>
+                            <label class="form-check-label" for="dest-all">Все направления</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dest-turkey">
+                            <label class="form-check-label" for="dest-turkey">Турция</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dest-egypt">
+                            <label class="form-check-label" for="dest-egypt">Египет</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dest-thailand">
+                            <label class="form-check-label" for="dest-thailand">Таиланд</label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-3">
+                            <button class="btn btn-sm btn-light">Сбросить</button>
+                            <button class="btn btn-sm btn-primary">Применить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <span class="input-group-text" id="date-range-addon"><i class="bi bi-calendar-range"></i></span>
+                <input type="text" class="form-control" placeholder="Выберите период" aria-describedby="date-range-addon">
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download"></i> Экспорт
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#">CSV</a></li>
+                <li><a class="dropdown-item" href="#">Excel</a></li>
+                <li><a class="dropdown-item" href="#">PDF</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Key Metrics -->
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-title">Бронирования</div>
+            <div class="metric-value">385</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up-short"></i> +15.2% к прошлому периоду
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-title">Выручка</div>
+            <div class="metric-value">$784,500</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up-short"></i> +8.4% к прошлому периоду
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-title">Средний чек</div>
+            <div class="metric-value">$2,038</div>
+            <div class="metric-change negative">
+                <i class="bi bi-arrow-down-short"></i> -3.1% к прошлому периоду
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-title">Конверсия</div>
+            <div class="metric-value">24.8%</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up-short"></i> +2.3% к прошлому периоду
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sales Chart -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="analytics-card">
+                <div class="analytics-card-header">
+                    <h5 class="analytics-card-title">Продажи по месяцам</h5>
+                    <div class="analytics-card-dropdown">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                2025 год
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">2025 год</a></li>
+                                <li><a class="dropdown-item" href="#">2024 год</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="analytics-card">
+                <div class="analytics-card-header">
+                    <h5 class="analytics-card-title">Направления</h5>
+                    <div class="analytics-card-dropdown">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                По продажам
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">По продажам</a></li>
+                                <li><a class="dropdown-item" href="#">По количеству</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="destinationsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Conversion Funnel -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <h5 class="analytics-card-title">Воронка конверсии</h5>
+            <div class="analytics-card-dropdown">
+                <div class="dropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Все источники
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Все источники</a></li>
+                        <li><a class="dropdown-item" href="#">Сайт</a></li>
+                        <li><a class="dropdown-item" href="#">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="conversion-funnel">
+            <div class="funnel-step active">
+                <div class="funnel-icon">
+                    <i class="bi bi-eye"></i>
+                </div>
+                <div class="funnel-value">15,480</div>
+                <div class="funnel-label">Просмотры</div>
+                <div class="funnel-percent">100%</div>
+            </div>
+            
+            <div class="funnel-step active">
+                <div class="funnel-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="funnel-value">8,325</div>
+                <div class="funnel-label">Поиск туров</div>
+                <div class="funnel-percent">54%</div>
+            </div>
+            
+            <div class="funnel-step active">
+                <div class="funnel-icon">
+                    <i class="bi bi-heart"></i>
+                </div>
+                <div class="funnel-value">5,142</div>
+                <div class="funnel-label">Интерес к туру</div>
+                <div class="funnel-percent">62%</div>
+            </div>
+            
+            <div class="funnel-step active">
+                <div class="funnel-icon">
+                    <i class="bi bi-person-lines-fill"></i>
+                </div>
+                <div class="funnel-value">2,215</div>
+                <div class="funnel-label">Запрос бронирования</div>
+                <div class="funnel-percent">43%</div>
+            </div>
+            
+            <div class="funnel-step active">
+                <div class="funnel-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="funnel-value">1,552</div>
+                <div class="funnel-label">Бронирование</div>
+                <div class="funnel-percent">70%</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Countries -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <h5 class="analytics-card-title">Популярные направления</h5>
+            <button class="btn btn-sm btn-link">Подробнее</button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-analytics">
+                <thead>
+                    <tr>
+                        <th>Страна</th>
+                        <th>Бронирования</th>
+                        <th>Доход</th>
+                        <th>Средний чек</th>
+                        <th>Конверсия</th>
+                        <th>Доля рынка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="country-name">Турция</td>
+                        <td>136</td>
+                        <td>$285,800</td>
+                        <td>$2,101</td>
+                        <td>32.5%</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2">
+                                    <div class="progress-bar" style="width: 35%"></div>
+                                </div>
+                                <span>35.1%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="country-name">Египет</td>
+                        <td>98</td>
+                        <td>$196,240</td>
+                        <td>$2,002</td>
+                        <td>28.7%</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2">
+                                    <div class="progress-bar" style="width: 25%"></div>
+                                </div>
+                                <span>25.3%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="country-name">Таиланд</td>
+                        <td>58</td>
+                        <td>$140,680</td>
+                        <td>$2,425</td>
+                        <td>21.3%</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2">
+                                    <div class="progress-bar" style="width: 18%"></div>
+                                </div>
+                                <span>18.2%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="country-name">ОАЭ</td>
+                        <td>42</td>
+                        <td>$98,700</td>
+                        <td>$2,350</td>
+                        <td>18.9%</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2">
+                                    <div class="progress-bar" style="width: 12.8%"></div>
+                                </div>
+                                <span>12.8%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="country-name">Кипр</td>
+                        <td>32</td>
+                        <td>$64,640</td>
+                        <td>$2,020</td>
+                        <td>22.5%</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2">
+                                    <div class="progress-bar" style="width: 8.4%"></div>
+                                </div>
+                                <span>8.4%</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sales Chart
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(salesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                datasets: [{
+                    label: 'Выручка ($)',
+                    data: [68000, 72500, 98700, 105400, 110200, 120500, 135600, 142300, 128700, 105200, 87500, 94800],
+                    backgroundColor: 'rgba(0, 113, 227, 0.6)',
+                    borderColor: 'rgba(0, 113, 227, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Destinations Chart
+        const destinationsCtx = document.getElementById('destinationsChart').getContext('2d');
+        const destinationsChart = new Chart(destinationsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Турция', 'Египет', 'Таиланд', 'ОАЭ', 'Кипр', 'Другие'],
+                datasets: [{
+                    data: [35.1, 25.3, 18.2, 12.8, 8.4, 0.2],
+                    backgroundColor: [
+                        'rgba(0, 113, 227, 0.8)',
+                        'rgba(52, 199, 89, 0.8)',
+                        'rgba(255, 149, 0, 0.8)',
+                        'rgba(90, 200, 250, 0.8)',
+                        'rgba(175, 82, 222, 0.8)',
+                        'rgba(142, 142, 147, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            boxWidth: 12
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
+{% endblock %}

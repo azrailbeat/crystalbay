@@ -1,0 +1,292 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - История{% endblock %}
+
+{% block page_title %}История операций{% endblock %}
+
+{% block head %}
+<style>
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .history-filters {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .history-card {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .history-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--light-border);
+        display: flex;
+        align-items: center;
+    }
+    
+    .history-item:last-child {
+        border-bottom: none;
+    }
+    
+    .history-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .history-icon.booking {
+        background-color: rgba(0, 113, 227, 0.1);
+        color: var(--primary-color);
+    }
+    
+    .history-icon.lead {
+        background-color: rgba(255, 149, 0, 0.1);
+        color: var(--warning-color);
+    }
+    
+    .history-icon.payment {
+        background-color: rgba(52, 199, 89, 0.1);
+        color: var(--success-color);
+    }
+    
+    .history-icon.note {
+        background-color: rgba(90, 200, 250, 0.1);
+        color: var(--info-color);
+    }
+    
+    .history-icon.cancel {
+        background-color: rgba(255, 59, 48, 0.1);
+        color: var(--danger-color);
+    }
+    
+    .history-content {
+        flex-grow: 1;
+    }
+    
+    .history-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        color: var(--text-color);
+    }
+    
+    .history-details {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+    
+    .history-time {
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+        white-space: nowrap;
+        margin-left: 1rem;
+    }
+    
+    .history-date {
+        padding: 0.75rem 1.5rem;
+        background-color: var(--light-accent);
+        font-weight: 500;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+    
+    .history-pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+    
+    .history-pagination .page-link {
+        color: var(--text-color);
+        border-color: var(--light-border);
+    }
+    
+    .history-pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- History Header -->
+    <div class="history-header">
+        <div class="history-filters">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Тип события
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все типы</a></li>
+                    <li><a class="dropdown-item" href="#">Бронирования</a></li>
+                    <li><a class="dropdown-item" href="#">Обращения клиентов</a></li>
+                    <li><a class="dropdown-item" href="#">Платежи</a></li>
+                    <li><a class="dropdown-item" href="#">Отмены</a></li>
+                    <li><a class="dropdown-item" href="#">Заметки</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Менеджер
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все менеджеры</a></li>
+                    <li><a class="dropdown-item" href="#">Алексей Ковалев</a></li>
+                    <li><a class="dropdown-item" href="#">Елена Кравцова</a></li>
+                    <li><a class="dropdown-item" href="#">Мария Иванова</a></li>
+                </ul>
+            </div>
+            
+            <div class="input-group">
+                <span class="input-group-text" id="date-range-addon"><i class="bi bi-calendar-range"></i></span>
+                <input type="text" class="form-control form-control-sm" placeholder="Выберите период" aria-describedby="date-range-addon">
+            </div>
+            
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" placeholder="Поиск по истории...">
+                <button class="btn btn-sm btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download"></i> Экспорт
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#">CSV</a></li>
+                <li><a class="dropdown-item" href="#">Excel</a></li>
+                <li><a class="dropdown-item" href="#">PDF</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- History List -->
+    <div class="history-card">
+        <div class="history-date">
+            4 мая 2025
+        </div>
+        <div class="history-item">
+            <div class="history-icon booking">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Новое бронирование: Анталья, Турция</div>
+                <div class="history-details">Иванов Сергей · 10-20 мая 2025 · 2 взрослых · $1,850</div>
+            </div>
+            <div class="history-time">15:42</div>
+        </div>
+        <div class="history-item">
+            <div class="history-icon lead">
+                <i class="bi bi-person-plus"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Новое обращение: Запрос тура в Грецию</div>
+                <div class="history-details">Ольга Сидорова · Телефон · Назначено на Елену Кравцову</div>
+            </div>
+            <div class="history-time">14:35</div>
+        </div>
+        <div class="history-item">
+            <div class="history-icon note">
+                <i class="bi bi-chat-left-text"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Добавлен комментарий к бронированию #2853</div>
+                <div class="history-details">Алексей Ковалев: "Клиент попросил изменить тип питания на "всё включено". Необходимо связаться с отелем..."</div>
+            </div>
+            <div class="history-time">11:28</div>
+        </div>
+        <div class="history-item">
+            <div class="history-icon payment">
+                <i class="bi bi-credit-card"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Получен платеж за бронирование #2851</div>
+                <div class="history-details">Петрова Анна · Шарм-Эль-Шейх, Египет · $950 (предоплата 50%)</div>
+            </div>
+            <div class="history-time">09:15</div>
+        </div>
+    </div>
+    
+    <div class="history-card">
+        <div class="history-date">
+            3 мая 2025
+        </div>
+        <div class="history-item">
+            <div class="history-icon booking">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Новое бронирование: Шарм-Эль-Шейх, Египет</div>
+                <div class="history-details">Петрова Анна · 5-15 июня 2025 · 2 взрослых, 1 ребенок · $1,900</div>
+            </div>
+            <div class="history-time">16:28</div>
+        </div>
+        <div class="history-item">
+            <div class="history-icon lead">
+                <i class="bi bi-person-plus"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Новое обращение: Консультация по визе</div>
+                <div class="history-details">Андрей Николаев · Email · Назначено на Алексея Ковалева</div>
+            </div>
+            <div class="history-time">13:15</div>
+        </div>
+        <div class="history-item">
+            <div class="history-icon cancel">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-title">Отмена бронирования #2845</div>
+                <div class="history-details">Козлова Елена · Париж, Франция · Причина: изменение планов клиента</div>
+            </div>
+            <div class="history-time">09:42</div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <nav aria-label="History pagination">
+        <ul class="pagination history-pagination">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Placeholder for history functionality
+    });
+</script>
+{% endblock %}

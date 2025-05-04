@@ -1,0 +1,467 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Менеджеры{% endblock %}
+
+{% block page_title %}Менеджеры{% endblock %}
+
+{% block head %}
+<style>
+    .agents-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .agent-filters {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .agent-card {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 0;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .agent-header {
+        display: flex;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .agent-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 500;
+        color: var(--primary-color);
+    }
+    
+    .agent-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .agent-info {
+        flex-grow: 1;
+    }
+    
+    .agent-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .agent-position {
+        color: var(--secondary-color);
+        margin-bottom: 0.75rem;
+    }
+    
+    .agent-contact {
+        display: flex;
+        gap: 1rem;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+    
+    .agent-stats {
+        display: flex;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .agent-stat {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem;
+    }
+    
+    .agent-stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .agent-stat-label {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .agent-actions {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.active {
+        background-color: rgba(52, 199, 89, 0.1);
+        color: var(--success-color);
+    }
+    
+    .status-badge.inactive {
+        background-color: rgba(142, 142, 147, 0.1);
+        color: var(--secondary-color);
+    }
+    
+    .status-badge.vacation {
+        background-color: rgba(255, 149, 0, 0.1);
+        color: var(--warning-color);
+    }
+    
+    /* Agent modal */
+    .agent-modal .modal-header {
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .agent-modal .modal-footer {
+        border-top: 1px solid var(--light-border);
+    }
+    
+    .avatar-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .avatar-preview {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .avatar-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Agents Header -->
+    <div class="agents-header">
+        <div class="agent-filters">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Статус
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все менеджеры</a></li>
+                    <li><a class="dropdown-item" href="#">Активные</a></li>
+                    <li><a class="dropdown-item" href="#">В отпуске</a></li>
+                    <li><a class="dropdown-item" href="#">Неактивные</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Уровень
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все уровни</a></li>
+                    <li><a class="dropdown-item" href="#">Администраторы</a></li>
+                    <li><a class="dropdown-item" href="#">Менеджеры</a></li>
+                    <li><a class="dropdown-item" href="#">Стажёры</a></li>
+                </ul>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" placeholder="Поиск менеджера...">
+                <button class="btn btn-sm btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAgentModal">
+            <i class="bi bi-plus"></i> Добавить менеджера
+        </button>
+    </div>
+    
+    <!-- Agents Grid -->
+    <div class="row">
+        <!-- Agent Card 1 -->
+        <div class="col-lg-6">
+            <div class="agent-card">
+                <div class="agent-header">
+                    <div class="agent-avatar">
+                        АК
+                    </div>
+                    <div class="agent-info">
+                        <div class="d-flex justify-content-between">
+                            <h3 class="agent-name">Алексей Ковалев</h3>
+                            <span class="status-badge active">Активен</span>
+                        </div>
+                        <div class="agent-position">Старший менеджер</div>
+                        <div class="agent-contact">
+                            <div><i class="bi bi-envelope me-1"></i> a.kovalev@crystalbay.travel</div>
+                            <div><i class="bi bi-telephone me-1"></i> +7 (999) 111-22-33</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="agent-stats">
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">28</div>
+                        <div class="agent-stat-label">Бронирований</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">15</div>
+                        <div class="agent-stat-label">Активные лиды</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">32%</div>
+                        <div class="agent-stat-label">Конверсия</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">$53K</div>
+                        <div class="agent-stat-label">Продажи за месяц</div>
+                    </div>
+                </div>
+                <div class="agent-actions">
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-chat-dots"></i> Сообщение</button>
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Agent Card 2 -->
+        <div class="col-lg-6">
+            <div class="agent-card">
+                <div class="agent-header">
+                    <div class="agent-avatar">
+                        ЕК
+                    </div>
+                    <div class="agent-info">
+                        <div class="d-flex justify-content-between">
+                            <h3 class="agent-name">Елена Кравцова</h3>
+                            <span class="status-badge active">Активен</span>
+                        </div>
+                        <div class="agent-position">Менеджер по турам</div>
+                        <div class="agent-contact">
+                            <div><i class="bi bi-envelope me-1"></i> e.kravtsova@crystalbay.travel</div>
+                            <div><i class="bi bi-telephone me-1"></i> +7 (999) 222-33-44</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="agent-stats">
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">22</div>
+                        <div class="agent-stat-label">Бронирований</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">12</div>
+                        <div class="agent-stat-label">Активные лиды</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">28%</div>
+                        <div class="agent-stat-label">Конверсия</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">$41K</div>
+                        <div class="agent-stat-label">Продажи за месяц</div>
+                    </div>
+                </div>
+                <div class="agent-actions">
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-chat-dots"></i> Сообщение</button>
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Agent Card 3 -->
+        <div class="col-lg-6">
+            <div class="agent-card">
+                <div class="agent-header">
+                    <div class="agent-avatar">
+                        МИ
+                    </div>
+                    <div class="agent-info">
+                        <div class="d-flex justify-content-between">
+                            <h3 class="agent-name">Мария Иванова</h3>
+                            <span class="status-badge vacation">В отпуске</span>
+                        </div>
+                        <div class="agent-position">Менеджер по работе с VIP-клиентами</div>
+                        <div class="agent-contact">
+                            <div><i class="bi bi-envelope me-1"></i> m.ivanova@crystalbay.travel</div>
+                            <div><i class="bi bi-telephone me-1"></i> +7 (999) 333-44-55</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="agent-stats">
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">14</div>
+                        <div class="agent-stat-label">Бронирований</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">5</div>
+                        <div class="agent-stat-label">Активные лиды</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">45%</div>
+                        <div class="agent-stat-label">Конверсия</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">$67K</div>
+                        <div class="agent-stat-label">Продажи за месяц</div>
+                    </div>
+                </div>
+                <div class="agent-actions">
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-chat-dots"></i> Сообщение</button>
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Agent Card 4 -->
+        <div class="col-lg-6">
+            <div class="agent-card">
+                <div class="agent-header">
+                    <div class="agent-avatar">
+                        СП
+                    </div>
+                    <div class="agent-info">
+                        <div class="d-flex justify-content-between">
+                            <h3 class="agent-name">Сергей Петров</h3>
+                            <span class="status-badge inactive">Неактивен</span>
+                        </div>
+                        <div class="agent-position">Стажёр</div>
+                        <div class="agent-contact">
+                            <div><i class="bi bi-envelope me-1"></i> s.petrov@crystalbay.travel</div>
+                            <div><i class="bi bi-telephone me-1"></i> +7 (999) 444-55-66</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="agent-stats">
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">4</div>
+                        <div class="agent-stat-label">Бронирований</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">8</div>
+                        <div class="agent-stat-label">Активные лиды</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">18%</div>
+                        <div class="agent-stat-label">Конверсия</div>
+                    </div>
+                    <div class="agent-stat">
+                        <div class="agent-stat-value">$12K</div>
+                        <div class="agent-stat-label">Продажи за месяц</div>
+                    </div>
+                </div>
+                <div class="agent-actions">
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-chat-dots"></i> Сообщение</button>
+                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Agent Modal -->
+<div class="modal fade agent-modal" id="newAgentModal" tabindex="-1" aria-labelledby="newAgentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newAgentModalLabel">Добавить менеджера</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newAgentForm">
+                    <div class="avatar-upload">
+                        <div class="avatar-preview">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary">Загрузить фото</button>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="agentFirstName" class="form-label">Имя</label>
+                            <input type="text" class="form-control" id="agentFirstName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="agentLastName" class="form-label">Фамилия</label>
+                            <input type="text" class="form-control" id="agentLastName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="agentEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="agentEmail" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="agentPhone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="agentPhone" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="agentPosition" class="form-label">Должность</label>
+                            <select class="form-select" id="agentPosition" required>
+                                <option value="" selected disabled>Выберите должность</option>
+                                <option value="admin">Администратор</option>
+                                <option value="senior_manager">Старший менеджер</option>
+                                <option value="tour_manager">Менеджер по турам</option>
+                                <option value="vip_manager">Менеджер по работе с VIP-клиентами</option>
+                                <option value="intern">Стажёр</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="agentStatus" class="form-label">Статус</label>
+                            <select class="form-select" id="agentStatus" required>
+                                <option value="active" selected>Активен</option>
+                                <option value="vacation">В отпуске</option>
+                                <option value="inactive">Неактивен</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="agentPassword" class="form-label">Пароль</label>
+                            <input type="password" class="form-control" id="agentPassword" required>
+                            <div class="form-text">Пароль должен содержать минимум 8 символов, включая цифры и специальные символы.</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Placeholder for agent management functionality
+    });
+</script>
+{% endblock %}
