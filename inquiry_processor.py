@@ -659,7 +659,16 @@ class InquiryProcessor:
         Returns:
             dict: Current configuration
         """
-        return self.config
+        try:
+            # Refresh from database to ensure latest settings
+            from models import AIAgentService
+            self.config = AIAgentService.get_config()
+            logger.info("Retrieved updated AI configuration from database")
+            return self.config
+        except Exception as e:
+            logger.error(f"Error getting AI configuration: {e}")
+            # Return current cached configuration as fallback
+            return self.config
         
     def _track_agent_usage(self, agent_id, successful=True):
         """Track usage statistics for an agent
