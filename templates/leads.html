@@ -1349,5 +1349,362 @@
         // Check for status updates every 5 minutes
         setInterval(processAllLeads, 5 * 60 * 1000);
     }
+    
+    // Автоматическая обработка обращений
+    let processingActive = false;
+    let leadQueue = [];
+    let processedCount = 0;
+    let totalLeadsToProcess = 0;
+    
+    document.getElementById('start-process-btn')?.addEventListener('click', startAutoProcess);
+    document.getElementById('stop-process-btn')?.addEventListener('click', stopAutoProcess);
+    
+    function startAutoProcess() {
+        if (processingActive) return;
+        
+        // Сбор всех обращений для обработки
+        leadQueue = [];
+        processedCount = 0;
+        
+        // Получаем настройки
+        const processNew = document.getElementById('process-new').checked;
+        const processInProgress = document.getElementById('process-in-progress').checked;
+        const showAnimation = document.getElementById('show-animation').checked;
+        
+        // Собираем карточки для обработки
+        if (processNew) {
+            const newLeads = document.querySelectorAll('.kanban-column:nth-child(1) .lead-card');
+            newLeads.forEach(card => {
+                if (card.dataset.leadId) {
+                    leadQueue.push({
+                        id: card.dataset.leadId,
+                        element: card,
+                        fromStatus: 'new',
+                        toStatus: determineNextStatus('new', card.innerText)
+                    });
+                }
+            });
+        }
+        
+        if (processInProgress) {
+            const inProgressLeads = document.querySelectorAll('.kanban-column:nth-child(2) .lead-card');
+            inProgressLeads.forEach(card => {
+                if (card.dataset.leadId) {
+                    leadQueue.push({
+                        id: card.dataset.leadId,
+                        element: card,
+                        fromStatus: 'in_progress',
+                        toStatus: determineNextStatus('in_progress', card.innerText)
+                    });
+                }
+            });
+        }
+        
+        totalLeadsToProcess = leadQueue.length;
+        
+        // Обновляем интерфейс
+        updateProcessingUI('running', 0);
+        logProcessAction('Начата автоматическая обработка обращений');
+        logProcessAction(`Всего обращений для обработки: ${totalLeadsToProcess}`);
+        
+        // Переключаем кнопки управления процессом
+        document.getElementById('start-process-btn').classList.add('d-none');
+        document.getElementById('stop-process-btn').classList.remove('d-none');
+        
+        // Запускаем обработку
+        processingActive = true;
+        processNextLead();
+    }
+    
+    function stopAutoProcess() {
+        if (!processingActive) return;
+        
+        processingActive = false;
+        logProcessAction('Процесс обработки остановлен пользователем');
+        updateProcessingUI('stopped', (processedCount / totalLeadsToProcess) * 100);
+        
+        // Переключаем кнопки управления процессом
+        document.getElementById('start-process-btn').classList.remove('d-none');
+        document.getElementById('stop-process-btn').classList.add('d-none');
+    }
+    
+    function processNextLead() {
+        if (!processingActive || leadQueue.length === 0) {
+            if (processingActive) {
+                // Завершение процесса
+                logProcessAction('Процесс обработки завершен');
+                updateProcessingUI('completed', 100);
+                processingActive = false;
+                
+                // Переключаем кнопки управления процессом
+                document.getElementById('start-process-btn').classList.remove('d-none');
+                document.getElementById('stop-process-btn').classList.add('d-none');
+            }
+            return;
+        }
+        
+        const lead = leadQueue.shift();
+        processedCount++;
+        
+        // Обновляем прогресс
+        const progress = (processedCount / totalLeadsToProcess) * 100;
+        updateProcessingUI('running', progress);
+        
+        // Логируем действие
+        logProcessAction(`Обработка обращения #${lead.id}: перемещение из "${getStatusName(lead.fromStatus)}" в "${getStatusName(lead.toStatus)}"`); 
+        
+        // Анимируем перемещение карточки, если включено
+        if (document.getElementById('show-animation').checked) {
+            moveCardWithAnimation(lead.element, lead.fromStatus, lead.toStatus, () => {
+                // По завершении обработки текущей карточки запускаем следующую
+                setTimeout(processNextLead, 500); // Пауза между обработкой обращений
+            });
+        } else {
+            // Мгновенное перемещение без анимации
+            moveCard(lead.element, lead.toStatus);
+            // Запускаем следующую с небольшой задержкой
+            setTimeout(processNextLead, 300);
+        }
+    }
+    
+    function moveCardWithAnimation(cardElement, fromStatus, toStatus, callback) {
+        // Получаем колонки источника и назначения
+        const sourceColumn = getColumnByStatus(fromStatus);
+        const targetColumn = getColumnByStatus(toStatus);
+        
+        if (!sourceColumn || !targetColumn) {
+            callback();
+            return;
+        }
+        
+        // Создаем временный клон для анимации
+        const clone = cardElement.cloneNode(true);
+        document.body.appendChild(clone);
+        
+        // Устанавливаем стили для клона
+        const cardRect = cardElement.getBoundingClientRect();
+        const targetRect = targetColumn.querySelector('.lead-list').getBoundingClientRect();
+        
+        clone.style.position = 'fixed';
+        clone.style.top = cardRect.top + 'px';
+        clone.style.left = cardRect.left + 'px';
+        clone.style.width = cardRect.width + 'px';
+        clone.style.height = cardRect.height + 'px';
+        clone.style.zIndex = '9999';
+        clone.style.transition = 'all 0.7s ease-in-out';
+        clone.style.boxShadow = '0 0 15px rgba(0, 120, 255, 0.5)';
+        
+        // Запускаем анимацию после небольшой задержки
+        setTimeout(() => {
+            clone.style.top = targetRect.top + 10 + 'px';
+            clone.style.left = targetRect.left + (targetRect.width - cardRect.width) / 2 + 'px';
+        }, 50);
+        
+        // По завершении анимации
+        clone.addEventListener('transitionend', () => {
+            // Удаляем клон
+            clone.remove();
+            
+            // Перемещаем исходную карточку
+            moveCard(cardElement, toStatus);
+            
+            // Вызываем callback
+            callback();
+        });
+    }
+    
+    function moveCard(cardElement, toStatus) {
+        // Получаем колонку назначения
+        const targetColumn = getColumnByStatus(toStatus);
+        if (!targetColumn) return;
+        
+        // Удаляем карточку из текущей колонки
+        cardElement.remove();
+        
+        // Добавляем карточку в колонку назначения
+        const targetList = targetColumn.querySelector('.lead-list');
+        
+        // Вставляем перед кнопкой "Добавить" (если есть) или в конец списка
+        const addButton = targetList.querySelector('.new-lead-btn');
+        if (addButton) {
+            targetList.insertBefore(cardElement, addButton);
+        } else {
+            targetList.appendChild(cardElement);
+        }
+        
+        // Обновляем счетчики в колонках
+        updateColumnCounts();
+    }
+    
+    function getColumnByStatus(status) {
+        // Маппинг статусов к индексам колонок
+        const statusMap = {
+            'new': 1,
+            'in_progress': 2,
+            'negotiation': 3,
+            'booked': 4,
+            'canceled': 5
+        };
+        
+        const index = statusMap[status];
+        if (!index) return null;
+        
+        return document.querySelector(`.kanban-column:nth-child(${index})`);
+    }
+    
+    function determineNextStatus(currentStatus, content) {
+        // В реальном приложении здесь был бы вызов API для анализа контента обращения
+        // и определения следующего статуса на основе AI-анализа
+        
+        // Пример простой логики для демонстрации:
+        switch(currentStatus) {
+            case 'new':
+                return 'in_progress';
+            case 'in_progress':
+                // Проверяем содержимое карточки на ключевые слова
+                if (content.toLowerCase().includes('люкс') || content.toLowerCase().includes('vip')) {
+                    return 'negotiation';
+                } else if (content.toLowerCase().includes('бронирование') || content.toLowerCase().includes('забронировать')) {
+                    return 'booked';
+                } else {
+                    return 'negotiation';
+                }
+            case 'negotiation':
+                return 'booked';
+            default:
+                return currentStatus;
+        }
+    }
+    
+    function updateProcessingUI(status, progress) {
+        const statusEl = document.getElementById('process-status');
+        const progressBar = document.getElementById('process-progress');
+        
+        // Обновляем прогресс
+        progressBar.style.width = `${progress}%`;
+        progressBar.setAttribute('aria-valuenow', progress);
+        
+        // Обновляем статус
+        switch(status) {
+            case 'running':
+                statusEl.textContent = 'Выполняется';
+                statusEl.className = 'badge bg-primary';
+                break;
+            case 'completed':
+                statusEl.textContent = 'Завершено';
+                statusEl.className = 'badge bg-success';
+                break;
+            case 'stopped':
+                statusEl.textContent = 'Остановлено';
+                statusEl.className = 'badge bg-warning';
+                break;
+            default:
+                statusEl.textContent = 'Ожидание';
+                statusEl.className = 'badge bg-secondary';
+        }
+    }
+    
+    function logProcessAction(message) {
+        const log = document.getElementById('process-log');
+        const timestamp = new Date().toLocaleTimeString();
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${message}`;
+        
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+    
+    function updateColumnCounts() {
+        // Обновление счетчиков карточек в колонках
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const count = column.querySelectorAll('.lead-card').length;
+            const countElement = column.querySelector('.column-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        });
+    }
+    
+    function getStatusName(statusCode) {
+        const statusMap = {
+            'new': 'Новые',
+            'in_progress': 'В работе',
+            'negotiation': 'Переговоры',
+            'booked': 'Забронировано',
+            'canceled': 'Отменено'
+        };
+        
+        return statusMap[statusCode] || statusCode;
+    }
 </script>
+
+<!-- Модальное окно автоматической обработки обращений -->
+<div class="modal fade" id="autoProcessModal" tabindex="-1" aria-labelledby="autoProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="autoProcessModalLabel">Автоматическая обработка обращений</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="auto-process-status mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Статус обработки:</h6>
+                        <span id="process-status" class="badge bg-secondary">Ожидание</span>
+                    </div>
+                    <div class="progress">
+                        <div id="process-progress" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                
+                <div class="auto-process-log mb-4">
+                    <h6>Лог обработки:</h6>
+                    <div id="process-log" class="border rounded p-3 bg-light" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+                        <div class="log-entry text-muted">Ожидание начала обработки...</div>
+                    </div>
+                </div>
+                
+                <div class="auto-process-settings">
+                    <h6>Настройки обработки:</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="process-new" checked>
+                                <label class="form-check-label" for="process-new">Обработать новые обращения</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="process-in-progress">
+                                <label class="form-check-label" for="process-in-progress">Обработать обращения в работе</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="auto-assign">
+                                <label class="form-check-label" for="auto-assign">Автоматически назначать менеджеров</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show-animation" checked>
+                                <label class="form-check-label" for="show-animation">Показывать анимацию перемещения</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-danger d-none" id="stop-process-btn">Остановить</button>
+                <button type="button" class="btn btn-success" id="start-process-btn">Начать обработку</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
