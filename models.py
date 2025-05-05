@@ -299,3 +299,258 @@ class AgentService:
         update_data['updated_at'] = datetime.now().isoformat()
         result = supabase.table("agents").update(update_data).eq("id", agent_id).execute()
         return result.data[0] if result.data else None
+        
+
+class AIAgentService:
+    """Service class for handling AI agents in Supabase database"""
+    
+    @staticmethod
+    def save_config(config_data):
+        """
+        Save AI configuration to the database
+        
+        Args:
+            config_data (dict): The configuration data including:
+                - model: The OpenAI model to use
+                - temperature: The temperature setting
+                - active: Whether the AI system is active
+                
+        Returns:
+            dict: The saved configuration data
+        """
+        config_data['updated_at'] = datetime.now().isoformat()
+        
+        # Check if config exists
+        result = supabase.table("ai_config").select("*").limit(1).execute()
+        
+        if result.data and len(result.data) > 0:
+            # Update existing config
+            config_id = result.data[0]['id']
+            result = supabase.table("ai_config").update(config_data).eq("id", config_id).execute()
+        else:
+            # Create new config
+            config_data['created_at'] = datetime.now().isoformat()
+            result = supabase.table("ai_config").insert(config_data).execute()
+        
+        return result.data[0] if result.data else None
+    
+    @staticmethod
+    def get_config():
+        """
+        Get the current AI configuration
+        
+        Returns:
+            dict: The configuration data or default values if not found
+        """
+        result = supabase.table("ai_config").select("*").limit(1).execute()
+        
+        # Return the first config or default values
+        if result.data and len(result.data) > 0:
+            return result.data[0]
+        else:
+            return {
+                'model': 'gpt-4o',
+                'temperature': 0.2,
+                'active': True
+            }
+    
+    @staticmethod
+    def create_ai_agent(agent_data):
+        """
+        Create a new AI agent in the database
+        
+        Args:
+            agent_data (dict): The agent data including:
+                - id: Unique identifier for the agent
+                - name: Display name of the agent
+                - type: Type of agent (classification, search, recommendation, etc.)
+                - description: Description of what the agent does
+                - prompt: The system prompt for the agent
+                - active: Whether the agent is active
+                
+        Returns:
+            dict: The created agent data
+        """
+        # Add creation timestamp and initialize usage stats
+        agent_data['created_at'] = datetime.now().isoformat()
+        agent_data['usage'] = json.dumps({
+            'total_calls': 0,
+            'successful_calls': 0,
+            'failed_calls': 0,
+            'last_used': None
+        })
+        
+        # Insert into Supabase
+        result = supabase.table("ai_agents").insert(agent_data).execute()
+        
+        # Return the created agent
+        return result.data[0] if result.data else None
+    
+    @staticmethod
+    def get_ai_agents():
+        """
+        Get all AI agents
+        
+        Returns:
+            list: List of AI agents
+        """
+        result = supabase.table("ai_agents").select("*").execute()
+        
+        # Parse usage JSON for each agent
+        agents = result.data if result.data else []
+        for agent in agents:
+            if 'usage' in agent and agent['usage']:
+                try:
+                    agent['usage'] = json.loads(agent['usage'])
+                except json.JSONDecodeError:
+                    agent['usage'] = {
+                        'total_calls': 0,
+                        'successful_calls': 0,
+                        'failed_calls': 0,
+                        'last_used': None
+                    }
+        
+        return agents
+    
+    @staticmethod
+    def get_ai_agent(agent_id):
+        """
+        Get a specific AI agent by ID
+        
+        Args:
+            agent_id (str): The agent ID
+            
+        Returns:
+            dict: The agent data or None if not found
+        """
+        result = supabase.table("ai_agents").select("*").eq("id", agent_id).execute()
+        
+        if result.data and len(result.data) > 0:
+            agent = result.data[0]
+            # Parse usage JSON
+            if 'usage' in agent and agent['usage']:
+                try:
+                    agent['usage'] = json.loads(agent['usage'])
+                except json.JSONDecodeError:
+                    agent['usage'] = {
+                        'total_calls': 0,
+                        'successful_calls': 0,
+                        'failed_calls': 0,
+                        'last_used': None
+                    }
+            return agent
+        else:
+            return None
+    
+    @staticmethod
+    def update_ai_agent(agent_id, update_data):
+        """
+        Update an AI agent
+        
+        Args:
+            agent_id (str): The agent ID
+            update_data (dict): The data to update
+            
+        Returns:
+            dict: The updated agent data
+        """
+        update_data['updated_at'] = datetime.now().isoformat()
+        
+        # Convert usage to JSON string if present
+        if 'usage' in update_data and isinstance(update_data['usage'], dict):
+            update_data['usage'] = json.dumps(update_data['usage'])
+        
+        result = supabase.table("ai_agents").update(update_data).eq("id", agent_id).execute()
+        
+        # Parse usage JSON in the result
+        if result.data and len(result.data) > 0:
+            agent = result.data[0]
+            if 'usage' in agent and agent['usage']:
+                try:
+                    agent['usage'] = json.loads(agent['usage'])
+                except json.JSONDecodeError:
+                    agent['usage'] = {
+                        'total_calls': 0,
+                        'successful_calls': 0,
+                        'failed_calls': 0,
+                        'last_used': None
+                    }
+            return agent
+        else:
+            return None
+    
+    @staticmethod
+    def track_agent_usage(agent_id, successful=True):
+        """
+        Track usage statistics for an AI agent
+        
+        Args:
+            agent_id (str): The agent ID
+            successful (bool): Whether the call was successful
+            
+        Returns:
+            dict: The updated agent data or None if not found
+        """
+        # Get current agent data
+        agent = AIAgentService.get_ai_agent(agent_id)
+        if not agent:
+            return None
+        
+        # Update usage statistics
+        usage = agent.get('usage', {
+            'total_calls': 0,
+            'successful_calls': 0,
+            'failed_calls': 0,
+            'last_used': None
+        })
+        
+        usage['total_calls'] = usage.get('total_calls', 0) + 1
+        if successful:
+            usage['successful_calls'] = usage.get('successful_calls', 0) + 1
+        else:
+            usage['failed_calls'] = usage.get('failed_calls', 0) + 1
+        
+        usage['last_used'] = datetime.now().isoformat()
+        
+        # Update agent with new usage data
+        return AIAgentService.update_ai_agent(agent_id, {'usage': usage})
+    
+    @staticmethod
+    def get_agent_usage_stats():
+        """
+        Get usage statistics for all AI agents
+        
+        Returns:
+            dict: Aggregated usage statistics
+        """
+        agents = AIAgentService.get_ai_agents()
+        
+        stats = {
+            'total_processed': 0,
+            'total_successful': 0,
+            'total_failed': 0,
+            'agents': {}
+        }
+        
+        for agent in agents:
+            usage = agent.get('usage', {})
+            stats['total_processed'] += usage.get('total_calls', 0)
+            stats['total_successful'] += usage.get('successful_calls', 0)
+            stats['total_failed'] += usage.get('failed_calls', 0)
+            
+            # Calculate success rate
+            total = max(1, usage.get('total_calls', 1))  # Avoid division by zero
+            success_rate = round((usage.get('successful_calls', 0) / total) * 100, 1)
+            
+            stats['agents'][agent['id']] = {
+                'name': agent.get('name', agent['id']),
+                'type': agent.get('type', 'unknown'),
+                'active': agent.get('active', False),
+                'total_calls': usage.get('total_calls', 0),
+                'successful_calls': usage.get('successful_calls', 0),
+                'failed_calls': usage.get('failed_calls', 0),
+                'success_rate': success_rate,
+                'last_used': usage.get('last_used')
+            }
+        
+        return stats

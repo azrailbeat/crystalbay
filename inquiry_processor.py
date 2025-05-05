@@ -28,13 +28,6 @@ class InquiryProcessor:
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.client = openai.OpenAI(api_key=self.openai_api_key)
         
-        # Default AI configuration
-        self.config = {
-            'model': 'gpt-4o',  # Default to gpt-4o
-            'temperature': 0.2,  # Default temperature
-            'active': True  # Default system state
-        }
-        
         # Status transitions map (current_status -> possible next statuses)
         self.status_transitions = {
             'new': ['in_progress', 'cancelled'],
@@ -45,48 +38,65 @@ class InquiryProcessor:
             'cancelled': []  # Terminal state
         }
         
-        # Agent definitions
-        self.agents = {
-            'inquiry_analyzer': {
+        # Load config and agents from database
+        self._load_config_and_agents()
+        
+    def _load_config_and_agents(self):
+        """Load AI config and agents from the database"""
+        from models import AIAgentService
+        
+        # Load configuration
+        self.config = AIAgentService.get_config()
+        
+        # Load agents
+        agents_list = AIAgentService.get_ai_agents()
+        self.agents = {}
+        
+        # If no agents in the database, initialize with defaults
+        if not agents_list:
+            self._initialize_default_agents()
+        else:
+            # Convert list to dictionary with agent_id as key
+            for agent in agents_list:
+                self.agents[agent['id']] = agent
+                
+    def _initialize_default_agents(self):
+        """Initialize default agents in the database"""
+        from models import AIAgentService
+        
+        # Default agent definitions
+        default_agents = [
+            {
+                'id': 'inquiry_analyzer',
                 'name': 'Анализатор запросов',
                 'type': 'classification',
                 'description': 'Основной агент для анализа и классификации входящих запросов',
                 'active': True,
-                'prompt': self._get_inquiry_analysis_prompt(),
-                'usage': {
-                    'total_calls': 0,
-                    'successful_calls': 0,
-                    'failed_calls': 0,
-                    'last_used': None
-                }
+                'prompt': self._get_inquiry_analysis_prompt()
             },
-            'booking_checker': {
+            {
+                'id': 'booking_checker',
                 'name': 'Проверка бронирований',
                 'type': 'search',
                 'description': 'Агент для поиска и проверки информации о бронированиях',
                 'active': True,
-                'prompt': self._get_booking_checker_prompt(),
-                'usage': {
-                    'total_calls': 0,
-                    'successful_calls': 0,
-                    'failed_calls': 0,
-                    'last_used': None
-                }
+                'prompt': self._get_booking_checker_prompt()
             },
-            'tour_recommender': {
+            {
+                'id': 'tour_recommender',
                 'name': 'Рекомендатель туров',
                 'type': 'recommendation',
                 'description': 'Агент для подбора и рекомендации туров на основе предпочтений клиента',
                 'active': False,
-                'prompt': self._get_tour_recommender_prompt(),
-                'usage': {
-                    'total_calls': 0,
-                    'successful_calls': 0,
-                    'failed_calls': 0,
-                    'last_used': None
-                }
+                'prompt': self._get_tour_recommender_prompt()
             }
-        }
+        ]
+        
+        # Create agents in the database
+        for agent_data in default_agents:
+            created_agent = AIAgentService.create_ai_agent(agent_data)
+            if created_agent:
+                self.agents[created_agent['id']] = created_agent
     
     def process_new_inquiry(self, inquiry_data):
         """Process a new inquiry with AI analysis
@@ -523,6 +533,39 @@ class InquiryProcessor:
         
     def _track_agent_usage(self, agent_id, successful=True):
         """Track usage statistics for an agent
+        
+        Args:
+            agent_id (str): The agent ID
+            successful (bool, optional): Whether the call was successful
+            
+        Returns:
+            None
+        """
+        try:
+            # Check if agent exists in local cache
+            if agent_id not in self.agents:
+                return
+                
+            # Use database service to track usage
+            from models import AIAgentService
+            
+            # Track usage in the database
+            updated_agent = AIAgentService.track_agent_usage(agent_id, successful)
+            
+            # Update local cache if successful
+            if updated_agent:
+                self.agents[agent_id] = updated_agent
+            else:
+                # Fallback to in-memory tracking if database operation fails
+                self._track_agent_usage_local(agent_id, successful)
+                
+        except Exception as e:
+            logger.error(f"Error tracking agent usage: {e}")
+            # Fallback to in-memory tracking if exception occurs
+            self._track_agent_usage_local(agent_id, successful)
+    
+    def _track_agent_usage_local(self, agent_id, successful=True):
+        """Fallback method to track usage statistics in memory
         
         Args:
             agent_id (str): The agent ID
