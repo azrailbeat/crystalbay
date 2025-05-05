@@ -326,3 +326,166 @@ function openLeadModal(leadId) {
         showToast('Ошибка загрузки данных обращения', 'danger');
     });
 }
+
+/**
+ * Fetch lead data from API
+ */
+async function fetchLeadData(leadId) {
+    try {
+        const response = await fetch(`/api/leads/${leadId}`);
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching lead data:', error);
+        throw error;
+    }
+}
+
+/**
+ * Populate lead modal with data
+ */
+function populateLeadModal(data) {
+    const modal = document.getElementById('viewLeadModal');
+    if (!modal || !data || !data.lead) {
+        console.error('Modal element not found or invalid data');
+        return;
+    }
+    
+    const lead = data.lead;
+    
+    // Set modal title
+    const titleEl = modal.querySelector('.modal-title');
+    if (titleEl) {
+        titleEl.textContent = `Обращение #${lead.id}: ${lead.name || 'Без имени'}`;
+    }
+    
+    // Set lead details
+    const nameEl = modal.querySelector('#lead-name');
+    if (nameEl) nameEl.textContent = lead.name || 'Не указано';
+    
+    const emailEl = modal.querySelector('#lead-email');
+    if (emailEl) emailEl.textContent = lead.email || 'Не указано';
+    
+    const phoneEl = modal.querySelector('#lead-phone');
+    if (phoneEl) phoneEl.textContent = lead.phone || 'Не указано';
+    
+    const sourceEl = modal.querySelector('#lead-source');
+    if (sourceEl) sourceEl.textContent = lead.source || 'Не указано';
+    
+    const dateEl = modal.querySelector('#lead-date');
+    if (dateEl) dateEl.textContent = lead.created_at ? new Date(lead.created_at).toLocaleString() : 'Не указано';
+    
+    const statusSelect = modal.querySelector('#lead-status-select');
+    if (statusSelect) statusSelect.value = lead.status || 'new';
+    
+    const detailsEl = modal.querySelector('#lead-details');
+    if (detailsEl) detailsEl.textContent = lead.details || lead.message || 'Нет дополнительной информации';
+    
+    const tagsEl = modal.querySelector('#lead-tags');
+    if (tagsEl) {
+        tagsEl.innerHTML = '';
+        if (lead.tags && lead.tags.length > 0) {
+            lead.tags.forEach(tag => {
+                const tagSpan = document.createElement('span');
+                tagSpan.className = 'lead-tag me-2';
+                tagSpan.textContent = tag;
+                tagsEl.appendChild(tagSpan);
+            });
+        } else {
+            tagsEl.textContent = 'Нет тегов';
+        }
+    }
+    
+    // Populate interactions
+    const interactionsEl = modal.querySelector('#lead-interactions');
+    if (interactionsEl) {
+        interactionsEl.innerHTML = '';
+        if (data.interactions && data.interactions.length > 0) {
+            data.interactions.forEach(interaction => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment-item';
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'comment-header';
+                
+                const authorSpan = document.createElement('span');
+                authorSpan.className = 'comment-author';
+                authorSpan.textContent = interaction.user_name || 'Система';
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'comment-date';
+                dateSpan.textContent = interaction.created_at ? new Date(interaction.created_at).toLocaleString() : 'Неизвестно';
+                
+                headerDiv.appendChild(authorSpan);
+                headerDiv.appendChild(dateSpan);
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'comment-content';
+                contentDiv.textContent = interaction.content || 'Пустое сообщение';
+                
+                commentDiv.appendChild(headerDiv);
+                commentDiv.appendChild(contentDiv);
+                
+                interactionsEl.appendChild(commentDiv);
+            });
+        } else {
+            interactionsEl.innerHTML = '<div class="text-center py-3">Нет записей о взаимодействиях</div>';
+        }
+    }
+}
+
+/**
+ * Helper function to show toast notifications
+ */
+function showToast(message, type = 'info') {
+    // Check if we already have a toast container
+    let toastContainer = document.querySelector('.toast-container');
+    
+    // Create container if it doesn't exist
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type}`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.setAttribute('id', toastId);
+    
+    // Create toast content
+    const toastContent = document.createElement('div');
+    toastContent.className = 'd-flex';
+    
+    const toastBody = document.createElement('div');
+    toastBody.className = 'toast-body';
+    toastBody.textContent = message;
+    
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'btn-close btn-close-white me-2 m-auto';
+    closeButton.setAttribute('data-bs-dismiss', 'toast');
+    closeButton.setAttribute('aria-label', 'Close');
+    
+    toastContent.appendChild(toastBody);
+    toastContent.appendChild(closeButton);
+    toastEl.appendChild(toastContent);
+    
+    // Add toast to container
+    toastContainer.appendChild(toastEl);
+    
+    // Initialize and show toast
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+    
+    // Remove toast element after hiding
+    toastEl.addEventListener('hidden.bs.toast', function () {
+        toastEl.remove();
+    });
+}
