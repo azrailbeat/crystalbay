@@ -65,6 +65,8 @@ function handleDragStart(e) {
     // Skip if dragging from buttons or actions
     if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
         console.log('Ignoring drag from button or action');
+        e.preventDefault();
+        e.stopPropagation();
         return false;
     }
     
@@ -79,9 +81,10 @@ function handleDragStart(e) {
     
     // Set data for transfer
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+    const leadId = this.getAttribute('data-lead-id');
+    e.dataTransfer.setData('text/plain', leadId || 'undefined');
     
-    console.log(`Started dragging card ${this.getAttribute('data-lead-id')}`);
+    console.log(`Started dragging card ${leadId}`);
     return true;
 }
 

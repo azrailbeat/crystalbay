@@ -1,0 +1,919 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Обращения клиентов{% endblock %}
+
+{% block page_title %}Обращения клиентов{% endblock %}
+
+{% block head %}
+<style>
+    .leads-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-filters {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .kanban-board {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 70vh;
+    }
+    
+    .kanban-column {
+        min-width: 300px;
+        width: 300px;
+        background-color: var(--light-accent);
+        border-radius: var(--border-radius);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .kanban-column-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--light-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .column-title {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .column-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--light-border);
+        color: var(--secondary-color);
+        border-radius: 12px;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .lead-list {
+        padding: 1rem;
+        flex-grow: 1;
+        overflow-y: auto;
+        min-height: 100px;
+        transition: background-color 0.2s ease, border 0.2s ease;
+    }
+    
+    /* Стили для Drag and Drop */
+    .lead-list.drop-target {
+        background-color: rgba(13, 110, 253, 0.1);
+        border: 2px dashed rgba(13, 110, 253, 0.5);
+        border-radius: 0.375rem;
+    }
+    
+    .lead-card {
+        background-color: var(--card-background);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: box-shadow 0.2s ease, transform 0.1s ease, opacity 0.3s ease;
+    }
+    
+    /* Drag and Drop styles */
+    .lead-card[draggable="true"] {
+        cursor: grab !important;
+    }
+    
+    .lead-card[draggable="true"]:active {
+        cursor: grabbing !important;
+    }
+    
+    .lead-card.dragging {
+        opacity: 0.5;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transform: scale(1.02);
+    }
+    
+    .lead-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .lead-source {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .source-icon {
+        color: var(--primary-color);
+    }
+    
+    .lead-name {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lead-details {
+        font-size: 0.9rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.75rem;
+    }
+    
+    .lead-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .lead-tag {
+        background-color: var(--light-accent);
+        border-radius: 20px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-color);
+    }
+    
+    .lead-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .lead-date {
+        color: var(--secondary-color);
+    }
+    
+    .lead-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .lead-actions button {
+        background: none;
+        border: none;
+        color: var(--secondary-color);
+        padding: 0.25rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .lead-actions button:hover {
+        color: var(--primary-color);
+    }
+    
+    .new-lead-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.75rem;
+        background-color: transparent;
+        border: 2px dashed var(--light-border);
+        border-radius: var(--border-radius);
+        color: var(--secondary-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .new-lead-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .lead-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    /* Lead modal */
+    .lead-modal .modal-header {
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .lead-modal .modal-footer {
+        border-top: 1px solid var(--light-border);
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .lead-info-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-info-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--secondary-color);
+    }
+    
+    .lead-info-value {
+        font-size: 1rem;
+    }
+    
+    .lead-status-select {
+        width: auto;
+    }
+    
+    .comment-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .comment-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comment-author {
+        font-weight: 500;
+    }
+    
+    .comment-date {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .comment-content {
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Leads Header -->
+    <div class="leads-header">
+        <div class="lead-filters">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Фильтр
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все обращения</a></li>
+                    <li><a class="dropdown-item" href="#">Мои обращения</a></li>
+                    <li><a class="dropdown-item" href="#">Неназначенные</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#">Новые за сегодня</a></li>
+                    <li><a class="dropdown-item" href="#">Новые за неделю</a></li>
+                </ul>
+            </div>
+            
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Источник
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все источники</a></li>
+                    <li><a class="dropdown-item" href="#">Telegram</a></li>
+                    <li><a class="dropdown-item" href="#">Веб-сайт</a></li>
+                    <li><a class="dropdown-item" href="#">Телефон</a></li>
+                    <li><a class="dropdown-item" href="#">Email</a></li>
+                </ul>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" class="form-control form-control-sm" placeholder="Поиск...">
+                <button class="btn btn-sm btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            
+            <button id="auto-process-btn" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#autoProcessModal">
+                <i class="bi bi-robot"></i> Автообработка
+            </button>
+        </div>
+        
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+            <i class="bi bi-plus"></i> Новое обращение
+        </button>
+    </div>
+    
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <!-- New Leads Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-plus-circle text-primary"></i> Новые
+                    <span class="column-count">8</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Анна Смирнова</div>
+                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Пляжный отдых</span>
+                        <span class="lead-tag">Семья</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="2">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Иван Петров</div>
+                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Экскурсии</span>
+                        <span class="lead-tag">Европа</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Екатерина Васильева</div>
+                    <div class="lead-details">Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Горнолыжный</span>
+                        <span class="lead-tag">Зима</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">5 часов назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="new-lead-btn" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить новое обращение
+                </button>
+            </div>
+        </div>
+        
+        <!-- In Progress Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-clock-history text-warning"></i> В работе
+                    <span class="column-count">5</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Михаил Кузнецов</div>
+                    <div class="lead-details">Запрос о турах в Японию на период цветения сакуры, апрель 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Япония</span>
+                        <span class="lead-tag">Культурный туризм</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">1 день назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Ольга Николаева</div>
+                    <div class="lead-details">Интересуется групповым туром в Грецию для 6 человек, июнь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Греция</span>
+                        <span class="lead-tag">Группа</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Negotiation Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-chat-dots text-info"></i> Переговоры
+                    <span class="column-count">3</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Алексей Соколов</div>
+                    <div class="lead-details">Запрос детального предложения по Мальдивам, рассматривает несколько вариантов отелей</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Мальдивы</span>
+                        <span class="lead-tag">Премиум</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Booked Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-check-circle text-success"></i> Забронировано
+                    <span class="column-count">4</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Дмитрий Иванов</div>
+                    <div class="lead-details">Забронирован тур в Черногорию, 7 ночей, вылет 15.06.2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Черногория</span>
+                        <span class="lead-tag">Пляжный</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">4 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cancelled Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-x-circle text-danger"></i> Отменено
+                    <span class="column-count">2</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Светлана Морозова</div>
+                    <div class="lead-details">Отменила бронирование тура в Египет из-за изменения планов</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Отмена</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">5 дней назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-repeat"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Lead Modal -->
+    <div class="modal fade lead-modal" id="viewLeadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Карточка обращения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Имя клиента</div>
+                                <div id="lead-name" class="lead-info-value">Анна Смирнова</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Email</div>
+                                <div id="lead-email" class="lead-info-value">anna.smirnova@example.com</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Телефон</div>
+                                <div id="lead-phone" class="lead-info-value">+7 (xxx) xxx-xx-xx</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Источник</div>
+                                <div id="lead-source" class="lead-info-value">Telegram</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Дата обращения</div>
+                                <div id="lead-date" class="lead-info-value">01.01.2023 12:34</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Статус</div>
+                                <select id="lead-status-select" class="form-select lead-status-select">
+                                    <option value="new">Новый</option>
+                                    <option value="in_progress">В работе</option>
+                                    <option value="negotiation">Переговоры</option>
+                                    <option value="booked">Забронировано</option>
+                                    <option value="canceled">Отменено</option>
+                                </select>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Теги</div>
+                                <div id="lead-tags">
+                                    <span class="lead-tag">Пляжный отдых</span>
+                                    <span class="lead-tag">Семья</span>
+                                </div>
+                            </div>
+                            
+                            <!-- AI Analysis Button -->
+                            <button class="btn btn-outline-primary mt-3 w-100">
+                                <i class="bi bi-robot me-2"></i> Анализировать с помощью AI
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Детали обращения</div>
+                                <div id="lead-details" class="lead-info-value">
+                                    Запрос на тур в Турцию, семейный отдых, июль-август 2025. Семья из 4 человек (2 взрослых, 2 детей). Интересует отель 5* с аквапарком, all inclusive. Бюджет до 300 000 руб. Предпочтительные курорты: Анталия, Кемер, Белек.
+                                </div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">История взаимодействий</div>
+                                <div id="lead-interactions" class="comment-list">
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <span class="comment-author">Менеджер Ольга</span>
+                                            <span class="comment-date">01.01.2023 12:45</span>
+                                        </div>
+                                        <div class="comment-content">
+                                            Связался с клиентом по Telegram. Обсудили предпочтения по отелям. Отправил варианты: Selge Beach Resort & Spa 5*, Alva Donna World Palace 5*, Nirvana Mediterranean Excellence 5*.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <span class="comment-author">Система</span>
+                                            <span class="comment-date">01.01.2023 13:10</span>
+                                        </div>
+                                        <div class="comment-content">
+                                            Клиенту отправлено автоматическое письмо с информацией по предложенным вариантам.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <textarea class="form-control" rows="3" placeholder="Добавить комментарий..."></textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary me-2">
+                                                <i class="bi bi-paperclip"></i> Прикрепить
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-calendar-event"></i> Запланировать
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-primary">Отправить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary">Сохранить изменения</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Lead Modal -->
+    <div class="modal fade" id="newLeadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать новое обращение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="leadName" class="form-label">Имя клиента</label>
+                            <input type="text" class="form-control" id="leadName">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="leadEmail">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadPhone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="leadPhone">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadSource" class="form-label">Источник</label>
+                            <select class="form-select" id="leadSource">
+                                <option value="website">Веб-сайт</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="phone">Телефон</option>
+                                <option value="email">Email</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadDetails" class="form-label">Детали обращения</label>
+                            <textarea class="form-control" id="leadDetails" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadTags" class="form-label">Теги</label>
+                            <input type="text" class="form-control" id="leadTags" placeholder="Введите теги через запятую">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Auto Processing Modal -->
+    <div class="modal fade" id="autoProcessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Автоматическая обработка обращений</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Настройки обработки</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Обрабатывать обращения</label>
+                                <select id="process-scope" class="form-select">
+                                    <option value="new">Только новые</option>
+                                    <option value="all">Все активные</option>
+                                    <option value="selected">Выбранные</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Действия</label>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="analyze-check" checked>
+                                    <label class="form-check-label" for="analyze-check">Анализировать содержимое</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="categorize-check" checked>
+                                    <label class="form-check-label" for="categorize-check">Категоризировать</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="response-check" checked>
+                                    <label class="form-check-label" for="response-check">Подготовить ответ</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="status-check" checked>
+                                    <label class="form-check-label" for="status-check">Изменять статус</label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Визуализация</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="show-animation" checked>
+                                    <label class="form-check-label" for="show-animation">Показывать анимацию перемещения</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-7">
+                            <h6 class="mb-3">Журнал обработки</h6>
+                            
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div id="process-progress" class="progress-bar" style="width: 0%"></div>
+                            </div>
+                            
+                            <div id="process-status" class="text-center text-muted mb-3">Ожидание начала обработки</div>
+                            
+                            <div id="process-log" class="border rounded p-2" style="height: 200px; overflow-y: auto; font-size: 0.85rem;">
+                                <div class="text-center text-muted py-5">Журнал будет отображаться после начала обработки</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-danger d-none" id="stop-process-btn">Остановить</button>
+                    <button type="button" class="btn btn-success" id="start-process-btn">Начать обработку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/drag-and-drop.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Добавляем стиль курсора для карточек lead
+        document.querySelectorAll('.lead-card').forEach(card => {
+            // Делаем карточки выглядящими кликабельными
+            card.style.cursor = 'pointer';
+        });
+        
+        // Настройка кнопок автоматической обработки
+        const startProcessBtn = document.getElementById('start-process-btn');
+        const stopProcessBtn = document.getElementById('stop-process-btn');
+        
+        if (startProcessBtn) {
+            startProcessBtn.addEventListener('click', function() {
+                // Показываем кнопку остановки
+                if (stopProcessBtn) stopProcessBtn.classList.remove('d-none');
+                this.classList.add('d-none');
+                
+                // Обновляем UI
+                updateProcessingUI('Начало обработки...', 5);
+                logProcessAction('Запуск автоматической обработки обращений');
+                logProcessAction('Сбор данных о необработанных обращениях...');
+                
+                // Имитация процесса обработки
+                setTimeout(() => {
+                    logProcessAction('Найдено 4 обращения для обработки');
+                    updateProcessingUI('Обработка 1 из 4...', 25);
+                    
+                    // Продолжение имитации...
+                    setTimeout(() => {
+                        logProcessAction('Анализ обращения #1003 с помощью AI');
+                        updateProcessingUI('Обработка 2 из 4...', 50);
+                        
+                        setTimeout(() => {
+                            logProcessAction('Категоризация и присвоение тегов: "Пляжный отдых", "Семья", "Турция"');
+                            updateProcessingUI('Обработка 3 из 4...', 75);
+                            
+                            setTimeout(() => {
+                                logProcessAction('Изменение статуса обращения на "В работе"');
+                                logProcessAction('Подготовка шаблона ответа для менеджера');
+                                updateProcessingUI('Завершение...', 100);
+                                
+                                setTimeout(() => {
+                                    // Завершение процесса
+                                    logProcessAction('Автоматическая обработка завершена. Обработано 4 обращения.');
+                                    updateProcessingUI('Обработка завершена', 100);
+                                    
+                                    // Сбрасываем кнопки
+                                    if (stopProcessBtn) stopProcessBtn.classList.add('d-none');
+                                    if (startProcessBtn) startProcessBtn.classList.remove('d-none');
+                                }, 1000);
+                            }, 1000);
+                        }, 1500);
+                    }, 1500);
+                }, 1500);
+            });
+        }
+        
+        if (stopProcessBtn) {
+            stopProcessBtn.addEventListener('click', function() {
+                // Останавливаем процесс
+                logProcessAction('Процесс остановлен пользователем');
+                updateProcessingUI('Процесс остановлен', 0);
+                
+                // Сбрасываем кнопки
+                this.classList.add('d-none');
+                if (startProcessBtn) startProcessBtn.classList.remove('d-none');
+            });
+        }
+        
+        // Показываем уведомление о загрузке страницы
+        setTimeout(() => {
+            showToast('Загружено 22 обращения', 'info');
+        }, 500);
+    });
+
+    // Функция обновления UI процесса
+    function updateProcessingUI(status, progress) {
+        const statusEl = document.getElementById('process-status');
+        const progressBar = document.getElementById('process-progress');
+        
+        // Обновляем прогресс
+        progressBar.style.width = `${progress}%`;
+        progressBar.setAttribute('aria-valuenow', progress);
+        
+        // Обновляем статус
+        if (statusEl) statusEl.textContent = status;
+    }
+    
+    // Функция логирования действий процесса
+    function logProcessAction(message) {
+        const log = document.getElementById('process-log');
+        const timestamp = new Date().toLocaleTimeString();
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<small class="text-muted">${timestamp}</small> ${message}`;
+        
+        if (log) {
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight; // Прокручиваем вниз
+        }
+    }
+</script>
+{% endblock %}

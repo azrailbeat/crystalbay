@@ -783,87 +783,22 @@
 <script src="/static/js/drag-and-drop.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Add cursor style and click handlers to all lead cards
+        // Добавляем стиль курсора для карточек lead
         document.querySelectorAll('.lead-card').forEach(card => {
-            // Make card look clickable
+            // Делаем карточки выглядящими кликабельными
             card.style.cursor = 'pointer';
-            
-            // Remove existing click handlers (if any) and add new ones
-            const newCard = card.cloneNode(true);
-            card.parentNode.replaceChild(newCard, card);
-            
-            // Add new click handler
-            newCard.addEventListener('click', function(e) {
-                // Don't trigger if clicked on buttons or actions
-                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                    return;
-                }
-                
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
-                
-                // Set lead ID in modal for reference
-                const leadId = this.getAttribute('data-lead-id');
-                document.getElementById('viewLeadModal').setAttribute('data-lead-id', leadId);
-                
-                modal.show();
-                console.log('Opened modal for lead ID:', leadId);
-            });
         });
         
-        // Initialize process buttons for AI analysis and other actions
+        // Инициализируем автоматическую обработку
         if (typeof initProcessButtons === 'function') {
             initProcessButtons();
         }
         
-        // Show toast notification on page load
-        showToast('Загружено 22 обращения', 'info');
+        // Показываем уведомление о загрузке страницы
+        setTimeout(() => {
+            showToast('Загружено 22 обращения', 'info');
+        }, 500);
     });
-    
-    // Generic toast notification function
-    function showToast(message, type = 'info') {
-        // Check if toast container exists, create if not
-        let toastContainer = document.querySelector('.toast-container');
-        if (!toastContainer) {
-            toastContainer = document.createElement('div');
-            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            document.body.appendChild(toastContainer);
-        }
-        
-        // Create toast element
-        const toastEl = document.createElement('div');
-        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
-        toastEl.setAttribute('role', 'alert');
-        toastEl.setAttribute('aria-live', 'assertive');
-        toastEl.setAttribute('aria-atomic', 'true');
-        
-        // Create toast content
-        const toastBody = document.createElement('div');
-        toastBody.className = 'd-flex';
-        
-        const toastContent = document.createElement('div');
-        toastContent.className = 'toast-body';
-        toastContent.textContent = message;
-        
-        const closeButton = document.createElement('button');
-        closeButton.type = 'button';
-        closeButton.className = 'btn-close btn-close-white me-2 m-auto';
-        closeButton.setAttribute('data-bs-dismiss', 'toast');
-        closeButton.setAttribute('aria-label', 'Close');
-        
-        // Assemble toast
-        toastBody.appendChild(toastContent);
-        toastBody.appendChild(closeButton);
-        toastEl.appendChild(toastBody);
-        toastContainer.appendChild(toastEl);
-        
-        // Initialize and show toast
-        const toast = new bootstrap.Toast(toastEl, {
-            autohide: true,
-            delay: 5000
-        });
-        toast.show();
-    }
     
     // Инициализация Drag and Drop для карточек
     function initDragAndDrop() {
