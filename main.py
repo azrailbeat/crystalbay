@@ -107,7 +107,7 @@ def tours():
 @app.route('/leads')
 def leads():
     """Render the leads page"""
-    return render_template('leads.html', active_page='leads')
+    return render_template('new_leads.html', active_page='leads')
 
 @app.route('/leads/new')
 def leads_new():
