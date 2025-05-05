@@ -433,7 +433,7 @@ class InquiryProcessor:
         """
     
     def update_agent_config(self, config_data):
-        """Update the agent configuration
+        """Update the agent configuration in the database
         
         Args:
             config_data (dict): New configuration data
@@ -441,22 +441,43 @@ class InquiryProcessor:
         Returns:
             dict: Updated configuration
         """
-        if 'model' in config_data:
-            self.config['model'] = config_data['model']
+        try:
+            # Validate and convert values
+            if 'temperature' in config_data:
+                try:
+                    config_data['temperature'] = float(config_data['temperature'])
+                except (ValueError, TypeError):
+                    # Remove invalid temperature
+                    del config_data['temperature']
+                    
+            if 'active' in config_data:
+                config_data['active'] = bool(config_data['active'])
             
-        if 'temperature' in config_data:
-            try:
-                self.config['temperature'] = float(config_data['temperature'])
-            except (ValueError, TypeError):
-                pass  # Keep existing value if invalid
+            # Use database service to update config
+            from models import AIAgentService
+            
+            # Save to database
+            updated_config = AIAgentService.save_config(config_data)
+            
+            # Update local cache
+            if updated_config:
+                self.config = updated_config
+            else:
+                # Apply updates locally if database operation fails
+                for key, value in config_data.items():
+                    self.config[key] = value
                 
-        if 'active' in config_data:
-            self.config['active'] = bool(config_data['active'])
-            
-        return self.config
+            return self.config
+        except Exception as e:
+            logger.error(f"Error updating agent configuration: {e}")
+            # Apply updates locally if exception occurs
+            for key, value in config_data.items():
+                self.config[key] = value
+                    
+            return self.config
     
     def update_agent(self, agent_id, agent_data):
-        """Update an agent's configuration
+        """Update an agent's configuration in the database
         
         Args:
             agent_id (str): The agent ID to update
@@ -465,19 +486,48 @@ class InquiryProcessor:
         Returns:
             dict: Updated agent data or None if not found
         """
-        if agent_id not in self.agents:
-            return None
+        try:
+            # Use database service to update agent
+            from models import AIAgentService
             
-        # Update allowed fields
-        allowed_fields = ['name', 'description', 'active', 'prompt']
-        for field in allowed_fields:
-            if field in agent_data:
-                self.agents[agent_id][field] = agent_data[field]
+            # Only include allowed fields
+            update_data = {}
+            allowed_fields = ['name', 'description', 'active', 'prompt', 'type', 'output_format']
+            for field in allowed_fields:
+                if field in agent_data:
+                    update_data[field] = agent_data[field]
+            
+            # Update agent in database
+            updated_agent = AIAgentService.update_ai_agent(agent_id, update_data)
+            
+            # Update local cache if successful
+            if updated_agent:
+                self.agents[agent_id] = updated_agent
+                return updated_agent
+            else:
+                # If agent not found in database but exists in local cache
+                if agent_id in self.agents:
+                    # Apply updates locally
+                    for field in allowed_fields:
+                        if field in agent_data:
+                            self.agents[agent_id][field] = agent_data[field]
+                    return self.agents[agent_id]
+                return None
                 
-        return self.agents[agent_id]
+        except Exception as e:
+            logger.error(f"Error updating agent {agent_id}: {e}")
+            # Fallback to local update
+            if agent_id in self.agents:
+                # Apply updates locally
+                allowed_fields = ['name', 'description', 'active', 'prompt']
+                for field in allowed_fields:
+                    if field in agent_data:
+                        self.agents[agent_id][field] = agent_data[field]
+                return self.agents[agent_id]
+            return None
     
     def add_agent(self, agent_data):
-        """Add a new agent
+        """Add a new agent to the database
         
         Args:
             agent_data (dict): Agent data including id, name, type, description, prompt
@@ -485,35 +535,96 @@ class InquiryProcessor:
         Returns:
             dict: Created agent data or None if invalid
         """
-        required_fields = ['id', 'name', 'type', 'description', 'prompt']
-        if not all(field in agent_data for field in required_fields):
-            return None
+        try:
+            # Validate required fields
+            required_fields = ['id', 'name', 'type', 'description', 'prompt']
+            if not all(field in agent_data for field in required_fields):
+                logger.error(f"Missing required fields for new agent. Required: {required_fields}")
+                return None
+                
+            agent_id = agent_data['id']
             
-        agent_id = agent_data['id']
-        if agent_id in self.agents:
-            return None  # Agent ID already exists
+            # Use database service to create agent
+            from models import AIAgentService
             
-        # Create new agent
-        self.agents[agent_id] = {
-            'name': agent_data['name'],
-            'type': agent_data['type'],
-            'description': agent_data['description'],
-            'active': agent_data.get('active', True),
-            'prompt': agent_data['prompt']
-        }
-        
-        return self.agents[agent_id]
+            # Check if agent already exists in database
+            existing_agent = AIAgentService.get_ai_agent(agent_id)
+            if existing_agent:
+                logger.warning(f"Agent ID {agent_id} already exists in database")
+                return None
+            
+            # Set default values
+            if 'active' not in agent_data:
+                agent_data['active'] = True
+                
+            # Create agent in database
+            created_agent = AIAgentService.create_ai_agent(agent_data)
+            
+            # Update local cache if successful
+            if created_agent:
+                self.agents[agent_id] = created_agent
+                return created_agent
+            else:
+                logger.error(f"Failed to create agent {agent_id} in database")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error adding new agent: {e}")
+            # Fallback to local creation
+            try:
+                # Check again required fields and agent existence
+                required_fields_fallback = ['id', 'name', 'type', 'description', 'prompt']
+                if not all(field in agent_data for field in required_fields_fallback):
+                    return None
+                    
+                agent_id = agent_data['id']
+                if agent_id in self.agents:
+                    return None  # Agent ID already exists
+                    
+                # Create new agent locally
+                self.agents[agent_id] = {
+                    'id': agent_id,
+                    'name': agent_data['name'],
+                    'type': agent_data['type'],
+                    'description': agent_data['description'],
+                    'active': agent_data.get('active', True),
+                    'prompt': agent_data['prompt'],
+                    'usage': {
+                        'total_calls': 0,
+                        'successful_calls': 0,
+                        'failed_calls': 0,
+                        'last_used': None
+                    }
+                }
+                
+                return self.agents[agent_id]
+            except Exception as inner_e:
+                logger.error(f"Error in fallback agent creation: {inner_e}")
+                return None
     
     def get_agents(self):
-        """Get all configured agents
+        """Get all configured agents from the database
         
         Returns:
             dict: Agent configurations
         """
-        return self.agents
+        try:
+            # Refresh from database
+            from models import AIAgentService
+            agents_list = AIAgentService.get_ai_agents()
+            
+            # Update local cache
+            if agents_list:
+                self.agents = {agent['id']: agent for agent in agents_list}
+                
+            return self.agents
+        except Exception as e:
+            logger.error(f"Error getting agents from database: {e}")
+            # Return local cache as fallback
+            return self.agents
     
     def get_agent(self, agent_id):
-        """Get a specific agent's configuration
+        """Get a specific agent's configuration from the database
         
         Args:
             agent_id (str): The agent ID
@@ -521,7 +632,26 @@ class InquiryProcessor:
         Returns:
             dict: Agent configuration or None if not found
         """
-        return self.agents.get(agent_id)
+        try:
+            # Get fresh data from database
+            from models import AIAgentService
+            agent = AIAgentService.get_ai_agent(agent_id)
+            
+            # Update local cache if found
+            if agent:
+                self.agents[agent_id] = agent
+                return agent
+            
+            # If not found in database but exists in local cache,
+            # return from cache
+            if agent_id in self.agents:
+                return self.agents[agent_id]
+                
+            return None
+        except Exception as e:
+            logger.error(f"Error getting agent {agent_id} from database: {e}")
+            # Fallback to local cache
+            return self.agents.get(agent_id)
     
     def get_config(self):
         """Get the current AI configuration
@@ -603,6 +733,21 @@ class InquiryProcessor:
         Returns:
             dict: Agent usage statistics
         """
+        try:
+            # Use database service to get usage statistics
+            from models import AIAgentService
+            return AIAgentService.get_agent_usage_stats()
+        except Exception as e:
+            logger.error(f"Error getting agent usage stats from database: {e}")
+            # Fallback to local calculation if database fails
+            return self._get_agent_usage_stats_local()
+    
+    def _get_agent_usage_stats_local(self):
+        """Calculate usage statistics from local cache as fallback
+        
+        Returns:
+            dict: Agent usage statistics
+        """
         stats = {
             'total_processed': 0,
             'total_successful': 0,
@@ -616,6 +761,10 @@ class InquiryProcessor:
             stats['total_successful'] += usage.get('successful_calls', 0)
             stats['total_failed'] += usage.get('failed_calls', 0)
             
+            # Calculate success rate, avoiding division by zero
+            total_calls = max(1, usage.get('total_calls', 1))  # Ensure minimum of 1 to avoid division by zero
+            success_rate = round((usage.get('successful_calls', 0) / total_calls) * 100, 1)
+            
             stats['agents'][agent_id] = {
                 'name': agent.get('name', agent_id),
                 'type': agent.get('type', 'unknown'),
@@ -623,7 +772,7 @@ class InquiryProcessor:
                 'total_calls': usage.get('total_calls', 0),
                 'successful_calls': usage.get('successful_calls', 0),
                 'failed_calls': usage.get('failed_calls', 0),
-                'success_rate': round(usage.get('successful_calls', 0) / max(1, usage.get('total_calls', 1)) * 100, 1),
+                'success_rate': success_rate,
                 'last_used': usage.get('last_used')
             }
             
