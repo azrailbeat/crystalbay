@@ -876,6 +876,16 @@
     
     // Инициализация Drag and Drop для карточек
     function initDragAndDrop() {
+        console.log('Initializing drag and drop...');
+        
+        // Удаляем старые слушатели, если есть 
+        document.querySelectorAll('.lead-card').forEach(card => {
+            const newCard = card.cloneNode(true);
+            if (card.parentNode) {
+                card.parentNode.replaceChild(newCard, card);
+            }
+        });
+        
         // Добавляем атрибуты draggable всем карточкам
         document.querySelectorAll('.lead-card').forEach(card => {
             card.setAttribute('draggable', 'true');
@@ -883,6 +893,25 @@
             // Добавляем обработчики событий drag&drop
             card.addEventListener('dragstart', handleDragStart);
             card.addEventListener('dragend', handleDragEnd);
+            
+            // Удаляем data-bs-toggle и data-bs-target для предотвращения открытия модального окна
+            card.removeAttribute('data-bs-toggle');
+            card.removeAttribute('data-bs-target');
+            
+            // Добавляем обработчик клика для открытия модального окна
+            card.addEventListener('click', function(e) {
+                // Не открывать модальное окно, если клик по кнопкам или действиям
+                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                
+                // Открываем модальное окно
+                const leadId = this.getAttribute('data-lead-id');
+                if (leadId) {
+                    openLeadModal(leadId);
+                    console.log('Opened modal for lead ID:', leadId);
+                }
+            });
         });
         
         // Добавляем обработчики drop на колонки
@@ -892,19 +921,40 @@
             column.addEventListener('dragleave', handleDragLeave);
             column.addEventListener('drop', handleDrop);
         });
+        
+        console.log('Drag and drop initialized');
     }
     
     // Обработчики событий Drag and Drop
     let draggedCard = null;
     
     function handleDragStart(e) {
-        draggedCard = this;
-        this.classList.add('dragging');
-        setTimeout(() => this.style.opacity = '0.4', 0);
+        console.log('Drag start event:', e.type, e.target.tagName);
         
-        // Сохраняем информацию о карточке для передачи
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+        // Останавливаем обработку, если клик по actions или кнопкам
+        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            console.log('Ignoring drag from button or action');
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        
+        try {
+            // Запоминаем перетаскиваемую карточку
+            draggedCard = this;
+            console.log('Dragging card with ID:', this.getAttribute('data-lead-id'));
+            
+            // Добавляем класс для визуального эффекта
+            this.classList.add('dragging');
+            
+            // Сохраняем информацию о карточке для передачи
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+            
+            console.log('Drag start successful');
+        } catch (error) {
+            console.error('Error in handleDragStart:', error);
+        }
     }
     
     function handleDragEnd(e) {
@@ -942,21 +992,40 @@
         
         // Получаем данные об ID карточки
         const leadId = e.dataTransfer.getData('text/plain');
+        if (!leadId || !draggedCard) {
+            console.error('Missing leadId or draggedCard');
+            return false;
+        }
         
         // Проверяем, что перетаскиваем на другую колонку
         const sourceColumn = draggedCard.closest('.kanban-column');
         const targetColumn = this.closest('.kanban-column');
         
-        if (sourceColumn !== targetColumn && draggedCard) {
+        // Проверки на наличие колонок
+        if (!sourceColumn || !targetColumn) {
+            console.error('Missing sourceColumn or targetColumn');
+            return false;
+        }
+        
+        // Перемещаем карточку только если колонки разные
+        if (sourceColumn !== targetColumn) {
+            console.log('Moving card between columns...');
+            
             // Получаем статусы колонок
-            const sourceIndex = Array.from(document.querySelectorAll('.kanban-column')).indexOf(sourceColumn);
-            const targetIndex = Array.from(document.querySelectorAll('.kanban-column')).indexOf(targetColumn);
+            const columns = Array.from(document.querySelectorAll('.kanban-column'));
+            const sourceIndex = columns.indexOf(sourceColumn);
+            const targetIndex = columns.indexOf(targetColumn);
+            
+            console.log(`Moving from column ${sourceIndex} to ${targetIndex}`);
+            
+            // Определяем новый статус
             const newStatus = getStatusByColumnIndex(targetIndex);
+            console.log(`New status: ${newStatus}`);
             
             // Добавляем карточку в новую колонку
             const targetList = this;
             
-            // Если есть кнопка 'Добавить', вставляем перед ней
+            // Если есть кнопка "Добавить", вставляем перед ней
             const addButton = targetList.querySelector('.new-lead-btn');
             if (addButton) {
                 targetList.insertBefore(draggedCard, addButton);
@@ -967,8 +1036,16 @@
             // Обновляем счетчики в колонках
             updateColumnCounts();
             
+            // Логируем успешное перемещение
+            console.log(`Card ${leadId} moved successfully`); 
+            
             // Отправляем запрос на сервер для обновления статуса
             updateLeadStatus(leadId, newStatus);
+            
+            // Показываем уведомление
+            showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
+        } else {
+            console.log('Same column, not moving');
         }
         
         return false;
