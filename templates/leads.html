@@ -876,53 +876,222 @@
     
     // Инициализация Drag and Drop для карточек
     function initDragAndDrop() {
-        console.log('Initializing drag and drop...');
+        console.log('Initializing drag and drop with simplified approach...');
         
-        // Удаляем старые слушатели, если есть 
+        // Полностью новый подход без клонирования и переключения существующих карточек
+        try {
+            // Сначала удаляем все слушатели с элементов
+            removeDragAndDropListeners();
+            
+            // Добавляем новые слушатели на карточки
+            const cards = document.querySelectorAll('.lead-card');
+            console.log(`Found ${cards.length} cards to make draggable`);
+            
+            cards.forEach((card, index) => {
+                // Добавляем ID, если его нет
+                if (!card.hasAttribute('data-lead-id')) {
+                    const cardId = 1000 + index;
+                    card.setAttribute('data-lead-id', cardId);
+                    console.log(`Added missing ID ${cardId} to card`);
+                }
+                
+                // Устанавливаем draggable
+                card.setAttribute('draggable', 'true');
+                
+                // Добавляем обработчики перетаскивания
+                card.addEventListener('dragstart', cardDragStart);
+                card.addEventListener('dragend', cardDragEnd);
+                
+                // Заменяем modal trigger на click handler
+                card.removeAttribute('data-bs-toggle');
+                card.removeAttribute('data-bs-target');
+                
+                // Клик по карточке для просмотра
+                card.addEventListener('click', handleCardClick);
+                
+                console.log(`Card ${card.getAttribute('data-lead-id')} is now draggable`);
+            });
+            
+            // Настраиваем колонки для приема перетаскиваемых карточек
+            const columns = document.querySelectorAll('.lead-list');
+            console.log(`Found ${columns.length} columns for drop targets`);
+            
+            columns.forEach((column, index) => {
+                column.addEventListener('dragover', columnDragOver);
+                column.addEventListener('dragenter', columnDragEnter);
+                column.addEventListener('dragleave', columnDragLeave);
+                column.addEventListener('drop', columnDrop);
+                console.log(`Column ${index} is now a drop target`);
+            });
+            
+            console.log('Drag and drop initialization completed successfully');
+        } catch (error) {
+            console.error('Error initializing drag and drop:', error);
+        }
+    }
+    
+    // Удаление всех слушателей Drag and Drop
+    function removeDragAndDropListeners() {
+        // Отключаем старые слушатели с карточек, если есть
         document.querySelectorAll('.lead-card').forEach(card => {
+            card.removeAttribute('draggable');
             const newCard = card.cloneNode(true);
             if (card.parentNode) {
                 card.parentNode.replaceChild(newCard, card);
             }
         });
         
-        // Добавляем атрибуты draggable всем карточкам
-        document.querySelectorAll('.lead-card').forEach(card => {
-            card.setAttribute('draggable', 'true');
+        // Отключаем старые слушатели с колонок, если есть
+        document.querySelectorAll('.lead-list').forEach(column => {
+            const newColumn = column.cloneNode(false);
             
-            // Добавляем обработчики событий drag&drop
-            card.addEventListener('dragstart', handleDragStart);
-            card.addEventListener('dragend', handleDragEnd);
+            // Перемещаем все дочерние элементы
+            while (column.firstChild) {
+                newColumn.appendChild(column.firstChild);
+            }
             
-            // Удаляем data-bs-toggle и data-bs-target для предотвращения открытия модального окна
-            card.removeAttribute('data-bs-toggle');
-            card.removeAttribute('data-bs-target');
+            if (column.parentNode) {
+                column.parentNode.replaceChild(newColumn, column);
+            }
+        });
+        
+        console.log('All previous drag and drop listeners removed');
+    }
+    
+    // Переменная для хранения перетаскиваемой карточки
+    let currentDraggedCard = null;
+    
+    // Новые функции обработки событий
+    function handleCardClick(e) {
+        // Не открывать при клике на кнопки или действия
+        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            return;
+        }
+        
+        const leadId = this.getAttribute('data-lead-id');
+        console.log('Card clicked, opening modal for lead ID:', leadId);
+        openLeadModal(leadId);
+    }
+    
+    function cardDragStart(e) {
+        // Предотвращаем события, если это клик по кнопкам или действиям
+        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            e.preventDefault();
+            return false;
+        }
+        
+        console.log('Starting drag for card:', this.getAttribute('data-lead-id'));
+        currentDraggedCard = this;
+        
+        // Добавляем класс для стилизации
+        this.classList.add('dragging');
+        
+        // Сохраняем ID карточки
+        e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+        e.dataTransfer.effectAllowed = 'move';
+        
+        // Задержка для визуализации начала перетаскивания
+        setTimeout(() => {
+            this.style.opacity = '0.4';
+        }, 0);
+        
+        return true;
+    }
+    
+    function cardDragEnd(e) {
+        console.log('Drag ended');
+        
+        // Восстанавливаем нормальный вид карточки
+        this.classList.remove('dragging');
+        this.style.opacity = '1';
+        
+        // Убираем подсветку со всех колонок
+        document.querySelectorAll('.lead-list').forEach(col => {
+            col.classList.remove('drop-target');
+        });
+    }
+    
+    function columnDragOver(e) {
+        // Это нужно для разрешения drop
+        e.preventDefault();
+        return false;
+    }
+    
+    function columnDragEnter(e) {
+        // Подсвечиваем целевую колонку
+        console.log('Entered column');
+        this.classList.add('drop-target');
+    }
+    
+    function columnDragLeave(e) {
+        // Убираем подсветку при выходе из колонки
+        this.classList.remove('drop-target');
+    }
+    
+    function columnDrop(e) {
+        // Предотвращаем стандартное поведение
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Убираем подсветку
+        this.classList.remove('drop-target');
+        
+        // Получаем ID перетаскиваемой карточки
+        const leadId = e.dataTransfer.getData('text/plain');
+        console.log('Drop detected for lead ID:', leadId);
+        
+        if (!currentDraggedCard) {
+            console.error('No card being dragged');
+            return false;
+        }
+        
+        try {
+            // Определяем исходную и целевую колонки
+            const sourceColumn = currentDraggedCard.closest('.kanban-column');
+            const targetColumn = this.closest('.kanban-column');
             
-            // Добавляем обработчик клика для открытия модального окна
-            card.addEventListener('click', function(e) {
-                // Не открывать модальное окно, если клик по кнопкам или действиям
-                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                    return;
+            if (!sourceColumn || !targetColumn) {
+                console.error('Could not determine source or target column');
+                return false;
+            }
+            
+            // Перемещаем только между разными колонками
+            if (sourceColumn !== targetColumn) {
+                console.log('Moving card between different columns');
+                
+                // Получаем индексы колонок для определения статуса
+                const columns = Array.from(document.querySelectorAll('.kanban-column'));
+                const sourceIndex = columns.indexOf(sourceColumn);
+                const targetIndex = columns.indexOf(targetColumn);
+                
+                // Определяем новый статус
+                const newStatus = getStatusByColumnIndex(targetIndex);
+                console.log(`Moving from status ${sourceIndex} to ${targetIndex}: ${newStatus}`);
+                
+                // Перемещаем карточку в DOM
+                const addButton = this.querySelector('.new-lead-btn');
+                if (addButton) {
+                    this.insertBefore(currentDraggedCard, addButton);
+                } else {
+                    this.appendChild(currentDraggedCard);
                 }
                 
-                // Открываем модальное окно
-                const leadId = this.getAttribute('data-lead-id');
-                if (leadId) {
-                    openLeadModal(leadId);
-                    console.log('Opened modal for lead ID:', leadId);
-                }
-            });
-        });
+                // Обновляем счетчики в колонках
+                updateColumnCounts();
+                
+                // Отправляем запрос на обновление статуса
+                updateLeadStatus(leadId, newStatus);
+                
+                // Уведомление пользователя
+                showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
+            } else {
+                console.log('Same column drop, not moving');
+            }
+        } catch (error) {
+            console.error('Error in column drop:', error);
+        }
         
-        // Добавляем обработчики drop на колонки
-        document.querySelectorAll('.lead-list').forEach(column => {
-            column.addEventListener('dragover', handleDragOver);
-            column.addEventListener('dragenter', handleDragEnter);
-            column.addEventListener('dragleave', handleDragLeave);
-            column.addEventListener('drop', handleDrop);
-        });
-        
-        console.log('Drag and drop initialized');
+        return false;
     }
     
     // Обработчики событий Drag and Drop
