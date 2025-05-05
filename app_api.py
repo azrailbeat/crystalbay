@@ -450,11 +450,50 @@ def register_api_routes(app):
             processor = get_inquiry_processor()
             stats = processor.get_agent_usage_stats()
             
-            return jsonify({
-                'success': True,
-                'stats': stats,
-                'timestamp': datetime.now().isoformat()
-            })
+            # Check if the enhanced stats are available
+            if 'cache_status' in stats:
+                # Already has the enhanced stats format
+                return jsonify({
+                    'success': True,
+                    'stats': stats,
+                    'timestamp': datetime.now().isoformat()
+                })
+            else:
+                # Add enhanced stats format manually
+                enhanced_stats = {
+                    'agents': stats.get('agents', {}),
+                    'total_processed': stats.get('total_processed', 0),
+                    'total_successful': stats.get('total_successful', 0),
+                    'total_failed': stats.get('total_failed', 0),
+                    'cache_status': 'database',
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                # Calculate agent counts
+                agents = stats.get('agents', {})
+                active_agents = sum(1 for a in agents.values() if a.get('active', False))
+                inactive_agents = sum(1 for a in agents.values() if not a.get('active', False))
+                
+                enhanced_stats['agent_counts'] = {
+                    'total': len(agents),
+                    'active': active_agents,
+                    'inactive': inactive_agents,
+                    'with_usage': sum(1 for a in agents.values() if a.get('total_calls', 0) > 0)
+                }
+                
+                # Calculate overall success rate
+                if enhanced_stats['total_processed'] > 0:
+                    enhanced_stats['overall_success_rate'] = round(
+                        (enhanced_stats['total_successful'] / enhanced_stats['total_processed']) * 100, 1
+                    )
+                else:
+                    enhanced_stats['overall_success_rate'] = 0.0
+                
+                return jsonify({
+                    'success': True,
+                    'stats': enhanced_stats,
+                    'timestamp': datetime.now().isoformat()
+                })
         except Exception as e:
             logger.error(f"Error getting agent stats: {e}")
             return jsonify({
