@@ -62,6 +62,15 @@
         padding: 1rem;
         flex-grow: 1;
         overflow-y: auto;
+        min-height: 100px;
+        transition: background-color 0.2s ease, border 0.2s ease;
+    }
+    
+    /* Стили для Drag and Drop */
+    .lead-list.drop-target {
+        background-color: rgba(13, 110, 253, 0.1);
+        border: 2px dashed rgba(13, 110, 253, 0.5);
+        border-radius: 0.375rem;
     }
     
     .lead-card {
@@ -70,6 +79,21 @@
         box-shadow: var(--card-shadow);
         padding: 1rem;
         margin-bottom: 1rem;
+        transition: box-shadow 0.2s ease, transform 0.1s ease, opacity 0.3s ease;
+    }
+    
+    .lead-card[draggable="true"] {
+        cursor: grab !important;
+    }
+    
+    .lead-card[draggable="true"]:active {
+        cursor: grabbing !important;
+    }
+    
+    .lead-card.dragging {
+        opacity: 0.5;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transform: scale(1.02);
     }
     
     .lead-card:last-child {
@@ -757,6 +781,8 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация Drag and Drop для карточек
+        initDragAndDrop();
         // Add data-lead-id attributes to all cards without them
         const leadCards = document.querySelectorAll('.lead-card:not([data-lead-id])');
         console.log('Adding IDs to', leadCards.length, 'cards without data-lead-id');
@@ -848,7 +874,151 @@
         toast.show();
     }
     
-    // Here we can add custom functions later
+    // Инициализация Drag and Drop для карточек
+    function initDragAndDrop() {
+        // Добавляем атрибуты draggable всем карточкам
+        document.querySelectorAll('.lead-card').forEach(card => {
+            card.setAttribute('draggable', 'true');
+            
+            // Добавляем обработчики событий drag&drop
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+        
+        // Добавляем обработчики drop на колонки
+        document.querySelectorAll('.lead-list').forEach(column => {
+            column.addEventListener('dragover', handleDragOver);
+            column.addEventListener('dragenter', handleDragEnter);
+            column.addEventListener('dragleave', handleDragLeave);
+            column.addEventListener('drop', handleDrop);
+        });
+    }
+    
+    // Обработчики событий Drag and Drop
+    let draggedCard = null;
+    
+    function handleDragStart(e) {
+        draggedCard = this;
+        this.classList.add('dragging');
+        setTimeout(() => this.style.opacity = '0.4', 0);
+        
+        // Сохраняем информацию о карточке для передачи
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+    }
+    
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        this.style.opacity = '1';
+        
+        // Сбрасываем подсветку всех колонок
+        document.querySelectorAll('.lead-list').forEach(col => {
+            col.classList.remove('drop-target');
+        });
+    }
+    
+    function handleDragOver(e) {
+        e.preventDefault(); // Необходимо для разрешения drop
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+    
+    function handleDragEnter(e) {
+        // Добавляем подсветку при входе в колонку
+        this.classList.add('drop-target');
+    }
+    
+    function handleDragLeave(e) {
+        // Убираем подсветку при выходе из колонки
+        this.classList.remove('drop-target');
+    }
+    
+    function handleDrop(e) {
+        e.stopPropagation(); // Останавливаем всплытие события
+        e.preventDefault();
+        
+        // Убираем подсветку
+        this.classList.remove('drop-target');
+        
+        // Получаем данные об ID карточки
+        const leadId = e.dataTransfer.getData('text/plain');
+        
+        // Проверяем, что перетаскиваем на другую колонку
+        const sourceColumn = draggedCard.closest('.kanban-column');
+        const targetColumn = this.closest('.kanban-column');
+        
+        if (sourceColumn !== targetColumn && draggedCard) {
+            // Получаем статусы колонок
+            const sourceIndex = Array.from(document.querySelectorAll('.kanban-column')).indexOf(sourceColumn);
+            const targetIndex = Array.from(document.querySelectorAll('.kanban-column')).indexOf(targetColumn);
+            const newStatus = getStatusByColumnIndex(targetIndex);
+            
+            // Добавляем карточку в новую колонку
+            const targetList = this;
+            
+            // Если есть кнопка 'Добавить', вставляем перед ней
+            const addButton = targetList.querySelector('.new-lead-btn');
+            if (addButton) {
+                targetList.insertBefore(draggedCard, addButton);
+            } else {
+                targetList.appendChild(draggedCard);
+            }
+            
+            // Обновляем счетчики в колонках
+            updateColumnCounts();
+            
+            // Отправляем запрос на сервер для обновления статуса
+            updateLeadStatus(leadId, newStatus);
+        }
+        
+        return false;
+    }
+    
+    function getStatusByColumnIndex(index) {
+        // Маппинг индексов колонок к статусам
+        const statusMap = [
+            'new',            // 0 - Новые
+            'in_progress',    // 1 - В работе
+            'negotiation',    // 2 - Переговоры
+            'booked',         // 3 - Забронировано
+            'canceled'        // 4 - Отменено
+        ];
+        
+        return statusMap[index] || 'new';
+    }
+    
+    // Обновление статуса обращения на сервере
+    async function updateLeadStatus(leadId, newStatus) {
+        try {
+            // Показываем уведомление о начале обновления
+            showToast(`Обновление статуса обращения #${leadId}...`, 'info');
+            
+            // Отправляем запрос на обновление статуса
+            const response = await fetch(`/api/leads/${leadId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Статус обращения #${leadId} изменен на "${getStatusName(newStatus)}"`, 'success');
+            } else {
+                showToast(`Ошибка при обновлении статуса: ${data.error || 'Неизвестная ошибка'}`, 'danger');
+                // Возвращаем карточку назад в случае ошибки (в реальном приложении)
+            }
+        } catch (error) {
+            console.error('Error updating lead status:', error);
+            showToast(`Ошибка при обновлении статуса: ${error.message}`, 'danger');
+        }
+    }
     
     // Open the lead details modal for a specific lead
     function openLeadModal(leadId) {
@@ -1552,27 +1722,57 @@
         return document.querySelector(`.kanban-column:nth-child(${index})`);
     }
     
-    function determineNextStatus(currentStatus, content) {
-        // В реальном приложении здесь был бы вызов API для анализа контента обращения
-        // и определения следующего статуса на основе AI-анализа
-        
-        // Пример простой логики для демонстрации:
-        switch(currentStatus) {
-            case 'new':
-                return 'in_progress';
-            case 'in_progress':
-                // Проверяем содержимое карточки на ключевые слова
-                if (content.toLowerCase().includes('люкс') || content.toLowerCase().includes('vip')) {
-                    return 'negotiation';
-                } else if (content.toLowerCase().includes('бронирование') || content.toLowerCase().includes('забронировать')) {
+    async function determineNextStatus(currentStatus, content) {
+        // Используем агентов AI для анализа обращения
+        try {
+            logProcessAction(`Анализ обращения с помощью AI-агента...`);
+            
+            // Вызываем API для анализа обращения с помощью AI
+            const response = await fetch('/api/leads/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    content: content,
+                    current_status: currentStatus 
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка API: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.next_status) {
+                logProcessAction(`AI-агент рекомендует статус: ${getStatusName(data.next_status)}`);
+                return data.next_status;
+            } else {
+                throw new Error('Некорректный ответ от API');
+            }
+        } catch (error) {
+            // В случае ошибки используем запасную логику
+            logProcessAction(`Ошибка при обращении к AI-агенту: ${error.message}. Используем стандартные правила.`);
+            
+            // Стандартная логика
+            switch(currentStatus) {
+                case 'new':
+                    return 'in_progress';
+                case 'in_progress':
+                    // Проверяем содержимое карточки на ключевые слова
+                    if (content.toLowerCase().includes('люкс') || content.toLowerCase().includes('vip')) {
+                        return 'negotiation';
+                    } else if (content.toLowerCase().includes('бронирование') || content.toLowerCase().includes('забронировать')) {
+                        return 'booked';
+                    } else {
+                        return 'negotiation';
+                    }
+                case 'negotiation':
                     return 'booked';
-                } else {
-                    return 'negotiation';
-                }
-            case 'negotiation':
-                return 'booked';
-            default:
-                return currentStatus;
+                default:
+                    return currentStatus;
+            }
         }
     }
     

@@ -219,6 +219,104 @@ def register_api_routes(app):
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }), 500
+            
+    @app.route('/api/leads/<lead_id>/status', methods=['PUT'])
+    def update_lead_status_api(lead_id):
+        """Update the status of a lead"""
+        try:
+            from models import LeadService
+            
+            data = request.json
+            if not data or 'status' not in data:
+                return jsonify({'error': 'Status is required'}), 400
+            
+            # Get the current lead data
+            lead = LeadService.get_lead(lead_id)
+            if not lead:
+                return jsonify({'error': 'Lead not found'}), 404
+            
+            # Update the status
+            old_status = lead.get('status')
+            new_status = data['status']
+            
+            # Add an interaction to record the status change
+            interaction_data = {
+                'type': 'status_change',
+                'notes': f"Статус изменен с '{old_status}' на '{new_status}'"
+            }
+            
+            # Add the interaction
+            LeadService.add_lead_interaction(lead_id, interaction_data)
+            
+            # Update the lead status
+            updated_lead = LeadService.update_lead(lead_id, {'status': new_status})
+            
+            return jsonify({
+                'success': True,
+                'lead': updated_lead
+            })
+        except Exception as e:
+            logger.error(f"Error updating lead status for {lead_id}: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+            
+    @app.route('/api/leads/analyze', methods=['POST'])
+    def analyze_lead_content_api():
+        """Analyze lead content and determine next status"""
+        try:
+            from inquiry_processor import get_inquiry_processor
+            
+            data = request.json
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+                
+            content = data.get('content')
+            current_status = data.get('current_status')
+            
+            if not content or not current_status:
+                return jsonify({'error': 'Content and current_status are required'}), 400
+            
+            # Process with AI
+            processor = get_inquiry_processor()
+            analysis = processor._analyze_with_ai(content)
+            
+            # Determine next status based on analysis
+            next_status = current_status  # default to no change
+            
+            # Extract urgency and category from analysis
+            urgency = analysis.get('urgency', 0)
+            category = analysis.get('category', '').lower()
+            
+            # Determine next status based on AI analysis
+            if current_status == 'new':
+                next_status = 'in_progress'
+            elif current_status == 'in_progress':
+                if 'бронирование' in category or 'booking' in category:
+                    next_status = 'booked'
+                elif urgency >= 4 or 'vip' in category or 'люкс' in category:
+                    next_status = 'negotiation'
+                else:
+                    next_status = 'negotiation'
+            elif current_status == 'negotiation':
+                if 'бронирование' in category or 'booking' in category:
+                    next_status = 'booked'
+            
+            return jsonify({
+                'success': True,
+                'analysis': analysis,
+                'next_status': next_status
+            })
+        except Exception as e:
+            logger.error(f"Error analyzing lead content: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "next_status": current_status,  # Return original status on error
+                "timestamp": datetime.now().isoformat()
+            }), 500
     
     
     @app.route('/api/leads/process-all', methods=['POST'])
