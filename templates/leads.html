@@ -780,19 +780,9 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/drag-and-drop.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Инициализация Drag and Drop для карточек
-        initDragAndDrop();
-        // Add data-lead-id attributes to all cards without them
-        const leadCards = document.querySelectorAll('.lead-card:not([data-lead-id])');
-        console.log('Adding IDs to', leadCards.length, 'cards without data-lead-id');
-        leadCards.forEach((card, index) => {
-            // Уникальный ID для карточки, начиная с 100 для тех, у которых нет ID
-            card.setAttribute('data-lead-id', 100 + index);
-            console.log('Added ID', 100 + index, 'to card');
-        });
-        
         // Add cursor style and click handlers to all lead cards
         document.querySelectorAll('.lead-card').forEach(card => {
             // Make card look clickable
@@ -2156,6 +2146,3 @@
 
 {% endblock %}
 
-{% block scripts %}
-<script src="/static/js/drag-and-drop.js"></script>
-{% endblock %}
