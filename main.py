@@ -126,8 +126,8 @@ def messages():
 
 @app.route('/agents')
 def agents():
-    """Render the agents page"""
-    return render_template('agents.html', active_page='agents')
+    """Render the managers page"""
+    return render_template('managers.html', active_page='agents')
 
 @app.route('/analytics')
 def analytics():
