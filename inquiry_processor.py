@@ -446,33 +446,58 @@ class InquiryProcessor:
             if 'temperature' in config_data:
                 try:
                     config_data['temperature'] = float(config_data['temperature'])
+                    # Ensure temperature is within valid range (0.0 to 1.0)
+                    if config_data['temperature'] < 0.0 or config_data['temperature'] > 1.0:
+                        logger.warning(f"Temperature out of range (0.0-1.0): {config_data['temperature']}")
+                        config_data['temperature'] = max(0.0, min(1.0, config_data['temperature']))
                 except (ValueError, TypeError):
                     # Remove invalid temperature
+                    logger.warning(f"Invalid temperature value: {config_data['temperature']}")
                     del config_data['temperature']
                     
             if 'active' in config_data:
                 config_data['active'] = bool(config_data['active'])
+                
+            if 'model' in config_data:
+                # Validate model is one of the supported models
+                valid_models = ['gpt-4o', 'gpt-3.5-turbo']
+                if config_data['model'] not in valid_models:
+                    logger.warning(f"Invalid model: {config_data['model']}. Defaulting to gpt-4o.")
+                    config_data['model'] = 'gpt-4o'
             
             # Use database service to update config
             from models import AIAgentService
             
             # Save to database
+            logger.info(f"Saving AI configuration to database")
             updated_config = AIAgentService.save_config(config_data)
             
             # Update local cache
             if updated_config:
+                logger.info("Successfully updated AI configuration in database")
                 self.config = updated_config
+                
+                # Update OpenAI client if API key changed
+                if 'api_key' in updated_config and updated_config['api_key']:
+                    self.openai_api_key = updated_config['api_key']
+                    import openai
+                    self.client = openai.OpenAI(api_key=self.openai_api_key)
+                    logger.info("Updated OpenAI client with new API key")
             else:
                 # Apply updates locally if database operation fails
+                logger.info("Applying configuration updates to local cache as fallback")
                 for key, value in config_data.items():
-                    self.config[key] = value
+                    if value is not None and value != '':
+                        self.config[key] = value
                 
             return self.config
         except Exception as e:
             logger.error(f"Error updating agent configuration: {e}")
             # Apply updates locally if exception occurs
+            logger.info("Applying configuration updates to local cache due to error")
             for key, value in config_data.items():
-                self.config[key] = value
+                if value is not None and value != '':
+                    self.config[key] = value
                     
             return self.config
     
