@@ -3,15 +3,48 @@ Database models for the Crystal Bay Travel application.
 These models define the structure of the data in Supabase.
 """
 import os
+import sys
 import json
+import logging
 from datetime import datetime
-from supabase import create_client, Client
 from typing import List, Dict, Any, Optional
 
-# Initialize Supabase client
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Initialize Supabase client with error handling
+supabase = None
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(supabase_url, supabase_key)
+
+# In-memory fallback data stores when database is unavailable
+_memory_ai_config = {
+    'model': 'gpt-4o',
+    'temperature': 0.2,
+    'active': True
+}
+_memory_ai_agents = {}
+
+try:
+    if not supabase_url or not supabase_key:
+        logger.warning("SUPABASE_URL or SUPABASE_KEY not set. Using memory storage fallback.")
+    else:
+        from supabase import create_client, Client
+        supabase: Client = create_client(supabase_url, supabase_key)
+        logger.info("Supabase client initialized successfully")
+except ImportError:
+    logger.error("Could not import supabase module. Please install it with 'pip install supabase'")
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client: {e}")
+    logger.warning("Using in-memory storage as fallback")
+
+def is_supabase_available():
+    """Check if Supabase is available for database operations"""
+    return supabase is not None
 
 class BookingService:
     """Service class for handling bookings in Supabase database"""
@@ -320,19 +353,36 @@ class AIAgentService:
         """
         config_data['updated_at'] = datetime.now().isoformat()
         
-        # Check if config exists
-        result = supabase.table("ai_config").select("*").limit(1).execute()
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                # Check if config exists
+                result = supabase.table("ai_config").select("*").limit(1).execute()
+                
+                if result.data and len(result.data) > 0:
+                    # Update existing config
+                    config_id = result.data[0]['id']
+                    result = supabase.table("ai_config").update(config_data).eq("id", config_id).execute()
+                else:
+                    # Create new config
+                    config_data['created_at'] = datetime.now().isoformat()
+                    result = supabase.table("ai_config").insert(config_data).execute()
+                
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"Failed to save AI config to database: {e}")
+                # Fall back to memory storage
         
-        if result.data and len(result.data) > 0:
-            # Update existing config
-            config_id = result.data[0]['id']
-            result = supabase.table("ai_config").update(config_data).eq("id", config_id).execute()
-        else:
-            # Create new config
-            config_data['created_at'] = datetime.now().isoformat()
-            result = supabase.table("ai_config").insert(config_data).execute()
+        # Use memory fallback if Supabase is unavailable or there was an error
+        logger.info("Using memory storage for AI config")
+        global _memory_ai_config
         
-        return result.data[0] if result.data else None
+        # Update in-memory config
+        for key, value in config_data.items():
+            if key not in ['updated_at', 'created_at']:
+                _memory_ai_config[key] = value
+        
+        return _memory_ai_config.copy()
     
     @staticmethod
     def get_config():
@@ -342,17 +392,21 @@ class AIAgentService:
         Returns:
             dict: The configuration data or default values if not found
         """
-        result = supabase.table("ai_config").select("*").limit(1).execute()
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                result = supabase.table("ai_config").select("*").limit(1).execute()
+                
+                # Return the first config if found
+                if result.data and len(result.data) > 0:
+                    return result.data[0]
+            except Exception as e:
+                logger.error(f"Failed to get AI config from database: {e}")
         
-        # Return the first config or default values
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        else:
-            return {
-                'model': 'gpt-4o',
-                'temperature': 0.2,
-                'active': True
-            }
+        # Return in-memory config or default values if Supabase is unavailable
+        # or there was no config in the database
+        logger.info("Using memory storage for AI config")
+        return _memory_ai_config.copy()
     
     @staticmethod
     def create_ai_agent(agent_data):
@@ -371,20 +425,49 @@ class AIAgentService:
         Returns:
             dict: The created agent data
         """
+        # Validate required fields
+        required_fields = ['id', 'name', 'type', 'prompt']
+        for field in required_fields:
+            if field not in agent_data:
+                logger.error(f"Missing required field '{field}' for AI agent")
+                return None
+                
         # Add creation timestamp and initialize usage stats
         agent_data['created_at'] = datetime.now().isoformat()
-        agent_data['usage'] = json.dumps({
+        usage_stats = {
             'total_calls': 0,
             'successful_calls': 0,
             'failed_calls': 0,
             'last_used': None
-        })
+        }
+        agent_data['usage'] = json.dumps(usage_stats)
         
-        # Insert into Supabase
-        result = supabase.table("ai_agents").insert(agent_data).execute()
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                # Insert into Supabase
+                result = supabase.table("ai_agents").insert(agent_data).execute()
+                
+                # Return the created agent
+                if result.data and len(result.data) > 0:
+                    created_agent = result.data[0]
+                    # Parse usage JSON
+                    if 'usage' in created_agent and created_agent['usage']:
+                        try:
+                            created_agent['usage'] = json.loads(created_agent['usage'])
+                        except json.JSONDecodeError:
+                            created_agent['usage'] = usage_stats
+                    return created_agent
+            except Exception as e:
+                logger.error(f"Failed to create AI agent in database: {e}")
+                # Fall back to memory storage
         
-        # Return the created agent
-        return result.data[0] if result.data else None
+        # Store in memory if Supabase is unavailable
+        logger.info(f"Creating agent {agent_data['id']} in memory storage")
+        # Convert JSON string back to dict for in-memory storage
+        agent_data['usage'] = usage_stats
+        _memory_ai_agents[agent_data['id']] = agent_data
+        return agent_data.copy()
     
     @staticmethod
     def get_ai_agents():
@@ -394,23 +477,33 @@ class AIAgentService:
         Returns:
             list: List of AI agents
         """
-        result = supabase.table("ai_agents").select("*").execute()
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                result = supabase.table("ai_agents").select("*").execute()
+                
+                # Parse usage JSON for each agent
+                agents = result.data if result.data else []
+                for agent in agents:
+                    if 'usage' in agent and agent['usage']:
+                        try:
+                            agent['usage'] = json.loads(agent['usage'])
+                        except json.JSONDecodeError:
+                            agent['usage'] = {
+                                'total_calls': 0,
+                                'successful_calls': 0,
+                                'failed_calls': 0,
+                                'last_used': None
+                            }
+                
+                return agents
+            except Exception as e:
+                logger.error(f"Failed to get AI agents from database: {e}")
+                # Fall back to memory storage
         
-        # Parse usage JSON for each agent
-        agents = result.data if result.data else []
-        for agent in agents:
-            if 'usage' in agent and agent['usage']:
-                try:
-                    agent['usage'] = json.loads(agent['usage'])
-                except json.JSONDecodeError:
-                    agent['usage'] = {
-                        'total_calls': 0,
-                        'successful_calls': 0,
-                        'failed_calls': 0,
-                        'last_used': None
-                    }
-        
-        return agents
+        # Return in-memory agents if Supabase is unavailable
+        logger.info("Using memory storage for AI agents")
+        return [agent for agent in _memory_ai_agents.values()]
     
     @staticmethod
     def get_ai_agent(agent_id):
@@ -423,24 +516,32 @@ class AIAgentService:
         Returns:
             dict: The agent data or None if not found
         """
-        result = supabase.table("ai_agents").select("*").eq("id", agent_id).execute()
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                result = supabase.table("ai_agents").select("*").eq("id", agent_id).execute()
+                
+                if result.data and len(result.data) > 0:
+                    agent = result.data[0]
+                    # Parse usage JSON
+                    if 'usage' in agent and agent['usage']:
+                        try:
+                            agent['usage'] = json.loads(agent['usage'])
+                        except json.JSONDecodeError:
+                            agent['usage'] = {
+                                'total_calls': 0,
+                                'successful_calls': 0,
+                                'failed_calls': 0,
+                                'last_used': None
+                            }
+                    return agent
+            except Exception as e:
+                logger.error(f"Failed to get AI agent from database: {e}")
+                # Fall back to memory storage
         
-        if result.data and len(result.data) > 0:
-            agent = result.data[0]
-            # Parse usage JSON
-            if 'usage' in agent and agent['usage']:
-                try:
-                    agent['usage'] = json.loads(agent['usage'])
-                except json.JSONDecodeError:
-                    agent['usage'] = {
-                        'total_calls': 0,
-                        'successful_calls': 0,
-                        'failed_calls': 0,
-                        'last_used': None
-                    }
-            return agent
-        else:
-            return None
+        # Check in-memory agents if Supabase is unavailable
+        logger.info(f"Looking for agent {agent_id} in memory storage")
+        return _memory_ai_agents.get(agent_id)
     
     @staticmethod
     def update_ai_agent(agent_id, update_data):
@@ -456,28 +557,60 @@ class AIAgentService:
         """
         update_data['updated_at'] = datetime.now().isoformat()
         
-        # Convert usage to JSON string if present
-        if 'usage' in update_data and isinstance(update_data['usage'], dict):
-            update_data['usage'] = json.dumps(update_data['usage'])
+        # Check if Supabase is available
+        if is_supabase_available():
+            try:
+                # First check if the agent exists
+                agent = AIAgentService.get_ai_agent(agent_id)
+                if not agent and is_supabase_available():
+                    return None
+                    
+                # Convert usage to JSON string if present
+                usage_dict = None
+                if 'usage' in update_data and isinstance(update_data['usage'], dict):
+                    usage_dict = update_data['usage'].copy()  # Save a copy for memory storage
+                    update_data['usage'] = json.dumps(update_data['usage'])
+                
+                result = supabase.table("ai_agents").update(update_data).eq("id", agent_id).execute()
+                
+                # Parse usage JSON in the result
+                if result.data and len(result.data) > 0:
+                    agent = result.data[0]
+                    if 'usage' in agent and agent['usage']:
+                        try:
+                            agent['usage'] = json.loads(agent['usage'])
+                        except json.JSONDecodeError:
+                            agent['usage'] = {
+                                'total_calls': 0,
+                                'successful_calls': 0,
+                                'failed_calls': 0,
+                                'last_used': None
+                            }
+                    return agent
+            except Exception as e:
+                logger.error(f"Failed to update AI agent in database: {e}")
+                # Fall back to memory storage
         
-        result = supabase.table("ai_agents").update(update_data).eq("id", agent_id).execute()
-        
-        # Parse usage JSON in the result
-        if result.data and len(result.data) > 0:
-            agent = result.data[0]
-            if 'usage' in agent and agent['usage']:
-                try:
-                    agent['usage'] = json.loads(agent['usage'])
-                except json.JSONDecodeError:
-                    agent['usage'] = {
-                        'total_calls': 0,
-                        'successful_calls': 0,
-                        'failed_calls': 0,
-                        'last_used': None
-                    }
+        # Update in-memory agent if Supabase is unavailable
+        logger.info(f"Updating agent {agent_id} in memory storage")
+        if agent_id in _memory_ai_agents:
+            agent = _memory_ai_agents[agent_id]
+            for key, value in update_data.items():
+                if key != 'usage':  # Handle usage separately
+                    agent[key] = value
+            
+            # Handle usage specifically to maintain the dictionary structure
+            if 'usage' in update_data:
+                if isinstance(update_data['usage'], str):
+                    try:
+                        agent['usage'] = json.loads(update_data['usage'])
+                    except json.JSONDecodeError:
+                        pass  # Keep existing usage if can't parse
+                else:
+                    agent['usage'] = update_data['usage']
+            
             return agent
-        else:
-            return None
+        return None
     
     @staticmethod
     def track_agent_usage(agent_id, successful=True):
