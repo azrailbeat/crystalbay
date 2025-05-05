@@ -782,35 +782,87 @@ class InquiryProcessor:
         Returns:
             dict: Agent usage statistics
         """
-        stats = {
-            'total_processed': 0,
-            'total_successful': 0,
-            'total_failed': 0,
-            'agents': {}
-        }
-        
-        for agent_id, agent in self.agents.items():
-            usage = agent.get('usage', {})
-            stats['total_processed'] += usage.get('total_calls', 0)
-            stats['total_successful'] += usage.get('successful_calls', 0)
-            stats['total_failed'] += usage.get('failed_calls', 0)
-            
-            # Calculate success rate, avoiding division by zero
-            total_calls = max(1, usage.get('total_calls', 1))  # Ensure minimum of 1 to avoid division by zero
-            success_rate = round((usage.get('successful_calls', 0) / total_calls) * 100, 1)
-            
-            stats['agents'][agent_id] = {
-                'name': agent.get('name', agent_id),
-                'type': agent.get('type', 'unknown'),
-                'active': agent.get('active', False),
-                'total_calls': usage.get('total_calls', 0),
-                'successful_calls': usage.get('successful_calls', 0),
-                'failed_calls': usage.get('failed_calls', 0),
-                'success_rate': success_rate,
-                'last_used': usage.get('last_used')
+        try:
+            logger.info("Calculating agent statistics from local cache")
+            stats = {
+                'total_processed': 0,
+                'total_successful': 0,
+                'total_failed': 0,
+                'agents': {},
+                'cache_status': 'local_fallback',
+                'timestamp': datetime.now().isoformat()
             }
             
-        return stats
+            if not self.agents:
+                logger.warning("No agents found in local cache for statistics calculation")
+                return stats
+                
+            active_agents = 0
+            inactive_agents = 0
+            agents_with_calls = 0
+            
+            for agent_id, agent in self.agents.items():
+                usage = agent.get('usage', {})
+                stats['total_processed'] += usage.get('total_calls', 0)
+                stats['total_successful'] += usage.get('successful_calls', 0)
+                stats['total_failed'] += usage.get('failed_calls', 0)
+                
+                # Track agent status counts
+                if agent.get('active', False):
+                    active_agents += 1
+                else:
+                    inactive_agents += 1
+                    
+                if usage.get('total_calls', 0) > 0:
+                    agents_with_calls += 1
+                
+                # Calculate success rate, avoiding division by zero
+                total_calls = max(1, usage.get('total_calls', 0)) if usage.get('total_calls', 0) > 0 else 0
+                
+                if total_calls > 0:
+                    success_rate = (usage.get('successful_calls', 0) / total_calls) * 100
+                else:
+                    success_rate = 0.0
+                
+                # Add agent stats
+                stats['agents'][agent_id] = {
+                    'name': agent.get('name', agent_id),
+                    'type': agent.get('type', 'unknown'),
+                    'active': agent.get('active', False),
+                    'total_calls': usage.get('total_calls', 0),
+                    'successful_calls': usage.get('successful_calls', 0),
+                    'failed_calls': usage.get('failed_calls', 0),
+                    'success_rate': round(success_rate, 1),
+                    'last_used': usage.get('last_used')
+                }
+            
+            # Add summary stats
+            stats['agent_counts'] = {
+                'total': len(self.agents),
+                'active': active_agents,
+                'inactive': inactive_agents,
+                'with_usage': agents_with_calls
+            }
+            
+            # Calculate overall success rate
+            if stats['total_processed'] > 0:
+                stats['overall_success_rate'] = round((stats['total_successful'] / stats['total_processed']) * 100, 1)
+            else:
+                stats['overall_success_rate'] = 0.0
+                
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error calculating local agent statistics: {e}")
+            # Return minimal stats in case of error
+            return {
+                'total_processed': 0,
+                'total_successful': 0,
+                'total_failed': 0,
+                'agents': {},
+                'error': str(e),
+                'cache_status': 'error'
+            }
 
 
 def get_inquiry_processor():
