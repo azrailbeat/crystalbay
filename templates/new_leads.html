@@ -851,10 +851,29 @@
 <script src="/static/js/leads-processing.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Добавляем стиль курсора для карточек lead
+        // Добавляем стиль курсора и обработчик клика для карточек lead
         document.querySelectorAll('.lead-card').forEach(card => {
             // Делаем карточки выглядящими кликабельными
             card.style.cursor = 'pointer';
+            
+            // Добавляем обработчик клика на всю карточку
+            card.addEventListener('click', function(e) {
+                // Пропускаем клики по кнопкам и другим элементам управления
+                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                
+                // Получаем ID карточки
+                const leadId = this.getAttribute('data-lead-id');
+                console.log('Lead clicked, ID:', leadId);
+                
+                // Открываем модальное окно и передаем ID в атрибут
+                const modal = document.getElementById('viewLeadModal');
+                if (modal) {
+                    modal.setAttribute('data-lead-id', leadId);
+                    $('#viewLeadModal').modal('show');
+                }
+            });
         });
         
         // При открытии модального окна просмотра обращения
@@ -929,6 +948,44 @@
             $(this).attr('data-lead-id', leadId);
             
             console.log('Card clicked, opening modal for lead ID:', leadId);
+            
+            // Предварительно чистим старые данные
+            $('#lead-name').text('');
+            $('#lead-email').text('');
+            $('#lead-phone').text('');
+            $('#lead-source').text('');
+            $('#lead-date').text('');
+            $('#lead-details').text('');
+            
+            // Получаем данные клиента из DOM для быстрого отображения
+            if (leadId && leadId !== '1') {
+                // Ищем непосредственно карточку с указанным ID
+                const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                if (leadCard) {
+                    // Заполняем быстрые данные из DOM
+                    const titleEl = document.querySelector('#viewLeadModal .modal-title');
+                    
+                    // Заголовок модального окна
+                    if (titleEl) {
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (leadNum) {
+                            titleEl.textContent = leadNum.textContent;
+                        }
+                    }
+                    
+                    // Имя клиента
+                    const nameEl = leadCard.querySelector('.lead-name');
+                    if (nameEl) {
+                        $('#lead-name').text(nameEl.textContent.trim());
+                    }
+                    
+                    // Детали запроса
+                    const detailsEl = leadCard.querySelector('.lead-details');
+                    if (detailsEl) {
+                        $('#lead-details').text(detailsEl.textContent.trim());
+                    }
+                }
+            }
             
             // Если карточка еще не найдена, находим её по ID
             if (!leadCard) {
