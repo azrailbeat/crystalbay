@@ -636,14 +636,39 @@ function showSuccessIndicator(card) {
 /**
  * Update the count displays in all columns
  */
+/**
+ * Update the count of cards in each column and handle empty state visualization
+ */
 function updateColumnCounts() {
     try {
         document.querySelectorAll(CONFIG.selectors.kanbanColumn).forEach((column, index) => {
+            const leadList = column.querySelector(CONFIG.selectors.leadList);
             const cardsCount = column.querySelectorAll(CONFIG.selectors.leadCard).length;
             const countEl = column.querySelector(CONFIG.selectors.columnCount);
             
+            // Update the count display
             if (countEl) {
                 countEl.textContent = cardsCount;
+            }
+            
+            // Add empty state indicator if there are no cards in the column
+            if (cardsCount === 0 && leadList) {
+                // Check if empty state message already exists
+                let emptyStateMsg = leadList.querySelector('.empty-column-message');
+                
+                // Only add message if it doesn't already exist and there's no "new lead" button
+                if (!emptyStateMsg && !leadList.querySelector(CONFIG.selectors.newLeadBtn)) {
+                    emptyStateMsg = document.createElement('div');
+                    emptyStateMsg.className = 'empty-column-message text-muted text-center p-3';
+                    emptyStateMsg.innerHTML = '<em>Нет запросов</em>';
+                    leadList.appendChild(emptyStateMsg);
+                }
+            } else {
+                // Remove empty state message if there are cards
+                const emptyStateMsg = leadList && leadList.querySelector('.empty-column-message');
+                if (emptyStateMsg) {
+                    emptyStateMsg.remove();
+                }
             }
             
             console.log(`Column ${index} now has ${cardsCount} cards`);

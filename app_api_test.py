@@ -24,7 +24,7 @@ def register_test_routes(app):
         app: The Flask application instance
     """
     
-    @app.route('/api/create-test-lead', methods=['POST'])
+    @app.route('/api/test/leads/create', methods=['POST'])
     def create_test_lead_api():
         """Create a test lead for debugging purposes"""
         try:
@@ -76,7 +76,7 @@ def register_test_routes(app):
                 'error': str(e)
             }), 500
             
-    @app.route('/api/reset-leads', methods=['POST'])
+    @app.route('/api/test/leads/reset', methods=['POST'])
     def reset_leads_api():
         """Reset all leads (for debugging only)"""
         try:
@@ -148,7 +148,7 @@ def register_test_routes(app):
             
     # API endpoints to handle in-memory leads when database is unavailable
     
-    @app.route('/api/test-leads', methods=['GET'])
+    @app.route('/api/test/leads', methods=['GET'])
     def get_test_leads_api():
         """Get all test leads"""
         try:
