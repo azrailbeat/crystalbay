@@ -377,17 +377,17 @@ function updateCardWithAIResults(lead, leadCard) {
             if (cardDetails) {
                 const text = cardDetails.textContent;
                 if (text.includes('Турци')) {
-                    importantInfo = 'Важно: нужен отель с аквапарком';
+                    importantInfo = 'нужен отель с аквапарком, рядом с песчаным пляжем, детской анимацией на русском языке';
                 } else if (text.includes('Европ')) {
-                    importantInfo = 'Важно: интересует экскурсионная программа';
+                    importantInfo = 'интересует экскурсионная программа с русскоговорящим гидом и просторными номерами';
                 } else if (text.includes('горнолыж')) {
-                    importantInfo = 'Важно: необходимо уточнить уровень катания';
+                    importantInfo = 'необходимо уточнить уровень катания и размер лыжного оборудования, нужен ски-пасс';
                 } else if (text.includes('Япони')) {
-                    importantInfo = 'Важно: интересует период цветения сакуры';
+                    importantInfo = 'нужна помощь с визой и бронированием билетов на скоростные поезда';
                 } else if (text.includes('Греци')) {
-                    importantInfo = 'Важно: групповая поездка, нужны смежные номера';
+                    importantInfo = 'групповая поездка, нужны смежные номера с питанием все включено';
                 } else if (text.includes('Мальдив')) {
-                    importantInfo = 'Важно: премиум-сегмент, интересуют только 5* отели';
+                    importantInfo = 'премиум-сегмент, интересуют только 5* отели с собственными виллами на воде';
                 } else {
                     importantInfo = 'Важно: необходимо уточнить детали поездки';
                 }
@@ -406,14 +406,14 @@ function updateCardWithAIResults(lead, leadCard) {
                 <i class="bi bi-robot me-1 text-primary"></i> <span class="text-muted">${summaryText}</span>
             </div>
             ${hasImportantInfo ? `
-            <div class="ai-important-info my-2" style="background-color: rgba(255, 230, 230, 0.7); border-left: 4px solid #dc3545; border-radius: 4px; padding: 10px;">
+            <div class="ai-important-info my-2" style="background-color: #FFEEEE; border-left: 4px solid #dc3545; border-radius: 4px; padding: 10px;">
                 <div class="d-flex align-items-center mb-2">
-                    <div class="me-2 p-1 bg-danger rounded-circle text-white" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-info"></i>
+                    <div class="me-2 text-danger" style="display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-exclamation-circle"></i>
                     </div>
                     <span class="fw-bold text-danger">Важная информация</span>
                 </div>
-                <div>
+                <div style="color: #333;">
                     ${importantInfo.replace('Важно:', '')}
                 </div>
             </div>` : ''}
