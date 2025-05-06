@@ -60,11 +60,18 @@ class TestInquiryProcessor(unittest.TestCase):
         self.lead_service_patches = [
             patch('models.LeadService.create_lead', self.mock_create_lead),
             patch('models.LeadService.update_lead', self.mock_update_lead),
-            patch('models.LeadService.update_lead_status', self.mock_update_lead_status),
+            patch('models.LeadService.update_lead_status_fallback', self.mock_update_lead_status),
             patch('models.LeadService.add_lead_interaction', self.mock_add_lead_interaction),
             patch('models.LeadService.get_lead', self.mock_get_lead),
             patch('models.LeadService.get_leads', self.mock_get_leads),
-            patch('models.LeadService.get_lead_interactions', self.mock_get_lead_interactions)
+            patch('models.LeadService.get_lead_interactions', self.mock_get_lead_interactions),
+            # Также патчим fallback-методы
+            patch('models.LeadService.create_lead_fallback', self.mock_create_lead),
+            patch('models.LeadService.update_lead_fallback', self.mock_update_lead),
+            patch('models.LeadService.add_lead_interaction_fallback', self.mock_add_lead_interaction),
+            patch('models.LeadService.get_lead_fallback', self.mock_get_lead),
+            patch('models.LeadService.get_leads_fallback', self.mock_get_leads),
+            patch('models.LeadService.get_lead_interactions_fallback', self.mock_get_lead_interactions)
         ]
         
         # Запускаем все патчи

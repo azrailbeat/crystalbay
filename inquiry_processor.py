@@ -423,7 +423,7 @@ class InquiryProcessor:
                 suggestion = analysis.get('suggestion', '')
                 
                 # Update lead status
-                LeadService.update_lead_status(lead_id, status)
+                LeadService.update_lead({'status': status}, lead_id)
                 
                 # Add AI analysis as an interaction
                 interaction_data = {
