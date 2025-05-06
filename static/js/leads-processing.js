@@ -225,10 +225,29 @@ async function processLeadWithAnimation(detail) {
         
         logProcessAction(`Обработка обращения #${leadId}...`);
         
+        // Output extra debug info to console
+        console.log(`Processing lead ID: ${leadId}, looking for .lead-card[data-lead-id="${leadId}"]`);
+        console.log('All lead cards:', document.querySelectorAll('.lead-card').length);
+        document.querySelectorAll('.lead-card').forEach(card => {
+            console.log(` - Card ID: ${card.getAttribute('data-lead-id')}, Status: ${card.closest('.kanban-column')?.querySelector('.column-name')?.textContent}`);
+        });
+        
         // Find the lead card
         const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
         if (!leadCard) {
             logProcessAction(`Карточка для обращения #${leadId} не найдена в интерфейсе`);
+            
+            // Try finding any lead card in the source column as a fallback
+            const sourceColumnIndex = getColumnIndexByStatus(oldStatus);
+            const sourceColumn = document.querySelector(`.kanban-column:nth-child(${sourceColumnIndex + 1})`);
+            const firstCardInSourceColumn = sourceColumn?.querySelector('.lead-card');
+            
+            if (firstCardInSourceColumn) {
+                logProcessAction(`Используем первую карточку в колонке '${getStatusName(oldStatus)}' для демонстрации`);
+                animateCardMovement(firstCardInSourceColumn, oldStatus, newStatus, resolve);
+                return;
+            }
+            
             setTimeout(resolve, 500); // Short delay for log readability
             return;
         }
@@ -236,74 +255,107 @@ async function processLeadWithAnimation(detail) {
         // If status changed, move the card
         if (oldStatus !== newStatus) {
             logProcessAction(`Изменение статуса #${leadId}: ${getStatusName(oldStatus)} -> ${getStatusName(newStatus)}`);
+            animateCardMovement(leadCard, oldStatus, newStatus, resolve);
+        } else {
+            // Just update card data
+            logProcessAction(`Обновление данных обращения #${leadId} без изменения статуса`);
             
-            // Get source and target columns
-            const sourceColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(oldStatus) + 1}) .lead-list`);
-            const targetColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(newStatus) + 1}) .lead-list`);
+            // Add visual indicator that processing happened
+            leadCard.style.boxShadow = '0 0 10px rgba(0, 123, 255, 0.7)';
+            setTimeout(() => {
+                leadCard.style.boxShadow = '';
+                setTimeout(resolve, 200);
+            }, 800);
+        }
+    });
+}
+
+/**
+ * Animate movement of a card between columns
+ */
+function animateCardMovement(leadCard, oldStatus, newStatus, resolveCallback) {
+    // Get source and target columns
+    const sourceColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(oldStatus) + 1}) .lead-list`);
+    const targetColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(newStatus) + 1}) .lead-list`);
+    
+    if (sourceColumn && targetColumn && sourceColumn !== targetColumn) {
+        // Highlight the card
+        leadCard.style.boxShadow = '0 0 10px rgba(0, 123, 255, 0.7)';
+        
+        // Create a visual clone for animation
+        const rect = leadCard.getBoundingClientRect();
+        const clone = leadCard.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.width = rect.width + 'px';
+        clone.style.top = rect.top + 'px';
+        clone.style.left = rect.left + 'px';
+        clone.style.zIndex = '9999';
+        clone.style.opacity = '0.9';
+        clone.style.pointerEvents = 'none';
+        clone.style.transition = 'none'; // Reset any transitions
+        document.body.appendChild(clone);
+        
+        // Get target position
+        const targetRect = targetColumn.getBoundingClientRect();
+        const targetTop = targetRect.top + 20; // Padding
+        const targetLeft = targetRect.left + 20; // Padding
+        
+        // Hide original during animation
+        leadCard.style.opacity = '0';
+        
+        // Force a reflow to ensure the clone is properly positioned before starting animation
+        void clone.offsetWidth;
+        
+        // Perform animation
+        setTimeout(() => {
+            clone.style.transition = 'all 0.8s ease-in-out';
+            clone.style.top = targetTop + 'px';
+            clone.style.left = targetLeft + 'px';
+            clone.style.transform = 'scale(1.05)'; // Slightly enlarge for emphasis
+            clone.style.boxShadow = '0 0 20px rgba(0, 123, 255, 0.7)';
             
-            if (sourceColumn && targetColumn && sourceColumn !== targetColumn) {
-                // Highlight the card
-                leadCard.style.boxShadow = '0 0 10px rgba(0, 123, 255, 0.7)';
+            setTimeout(() => {
+                // Add a brief flash effect before removing clone
+                clone.style.boxShadow = '0 0 30px rgba(0, 200, 0, 0.9)';
+                clone.style.transform = 'scale(1)';
                 
-                // Create a visual clone for animation
-                const rect = leadCard.getBoundingClientRect();
-                const clone = leadCard.cloneNode(true);
-                clone.style.position = 'fixed';
-                clone.style.width = rect.width + 'px';
-                clone.style.top = rect.top + 'px';
-                clone.style.left = rect.left + 'px';
-                clone.style.zIndex = '9999';
-                clone.style.opacity = '0.9';
-                clone.style.pointerEvents = 'none';
-                document.body.appendChild(clone);
-                
-                // Get target position
-                const targetRect = targetColumn.getBoundingClientRect();
-                const targetTop = targetRect.top + 20; // Padding
-                const targetLeft = targetRect.left + 20; // Padding
-                
-                // Hide original during animation
-                leadCard.style.opacity = '0';
-                
-                // Perform animation
                 setTimeout(() => {
-                    clone.style.transition = 'all 0.8s ease-in-out';
-                    clone.style.top = targetTop + 'px';
-                    clone.style.left = targetLeft + 'px';
+                    // Remove clone and show original in new position
+                    document.body.removeChild(clone);
+                    
+                    // Move actual card
+                    const addButton = targetColumn.querySelector('.new-lead-btn');
+                    if (addButton) {
+                        targetColumn.insertBefore(leadCard, addButton);
+                    } else {
+                        targetColumn.appendChild(leadCard);
+                    }
+                    
+                    // Reset and show the original
+                    leadCard.style.opacity = '1';
+                    leadCard.style.boxShadow = '0 0 10px rgba(0, 200, 0, 0.7)';
+                    
+                    // Add tags visually if available
+                    const leadId = leadCard.getAttribute('data-lead-id');
+                    const detailTag = document.querySelector(`.lead-tags[data-lead-id="${leadId}"]`);
                     
                     setTimeout(() => {
-                        // Remove clone and show original in new position
-                        document.body.removeChild(clone);
-                        
-                        // Move actual card
-                        const addButton = targetColumn.querySelector('.new-lead-btn');
-                        if (addButton) {
-                            targetColumn.insertBefore(leadCard, addButton);
-                        } else {
-                            targetColumn.appendChild(leadCard);
-                        }
-                        
-                        // Reset and show the original
-                        leadCard.style.opacity = '1';
                         leadCard.style.boxShadow = '';
                         
                         // Update column counts
                         updateColumnCounts();
                         
                         // Complete
-                        setTimeout(resolve, 200);
-                    }, 800); // Match transition duration
-                }, 100);
-            } else {
-                logProcessAction(`Невозможно переместить карточку #${leadId}: колонки не найдены`);
-                setTimeout(resolve, 500);
-            }
-        } else {
-            // Just update card data
-            logProcessAction(`Обновление данных обращения #${leadId} без изменения статуса`);
-            setTimeout(resolve, 800);
-        }
-    });
+                        setTimeout(resolveCallback, 200);
+                    }, 800);
+                }, 200);
+            }, 800); // Match transition duration
+        }, 100);
+    } else {
+        console.log(`Cannot move card: source=${sourceColumn}, target=${targetColumn}`);
+        logProcessAction(`Невозможно переместить карточку: колонки не найдены`);
+        setTimeout(resolveCallback, 500);
+    }
 }
 
 /**

@@ -492,7 +492,6 @@ function showToast(message, type = 'info') {
         toastEl.remove();
     });
 }
-}
 
 /**
  * Auto-process leads functionality

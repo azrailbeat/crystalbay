@@ -341,28 +341,28 @@ def register_api_routes(app):
                 # Simulate a short delay for processing
                 time.sleep(1)
                 
-                # Create response data
+                # Create response data matching the lead IDs in the HTML
                 results = {
                     'total': 3,
                     'updated': 3,
                     'failed': 0,
                     'details': [
                         {
-                            'lead_id': '1001',
+                            'lead_id': '1',  # Changed to match HTML id
                             'old_status': 'new',
                             'new_status': 'in_progress',
                             'tags': ['Пляжный отдых', 'Семья', 'Турция'],
                             'changed': True
                         },
                         {
-                            'lead_id': '1002',
+                            'lead_id': '2',  # Changed to match HTML id
                             'old_status': 'new',
                             'new_status': 'negotiation',
                             'tags': ['Экскурсии', 'Европа'],
                             'changed': True
                         },
                         {
-                            'lead_id': '1003',
+                            'lead_id': '3',  # Changed to match HTML id
                             'old_status': 'new',
                             'new_status': 'booked',
                             'tags': ['Горнолыжный', 'Зима'],
