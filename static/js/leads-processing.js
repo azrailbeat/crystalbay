@@ -5,10 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing lead processing functionality');
     initAutoProcessButtons();
     
-    // Автоматически запускаем обработку новых обращений при загрузке страницы
+    // Автоматически запускаем обработку всех новых обращений при загрузке страницы
     // Добавляем небольшую задержку, чтобы пользователь успел увидеть начальное состояние до изменений
     setTimeout(() => {
         // Запускаем обработку с основными опциями
+        console.log('Запуск автоматической обработки новых обращений...');
         startAutoProcess();
     }, 2000);
 });
@@ -67,16 +68,32 @@ function startAutoProcess() {
         autoProcessIndicator.style.transform = 'translateY(0)';
     }
     
-    // Get process scope
+    // Get process scope - всегда используем 'all' для автоматической обработки
     const scopeSelect = document.getElementById('process-scope');
-    const scope = scopeSelect ? scopeSelect.value : 'new';
+    // При загрузке страницы всегда обрабатываем все новые обращения
+    const scope = 'new';
     
-    // Get options
-    const analyzeChecked = document.getElementById('analyze-check')?.checked || false;
-    const categorizeChecked = document.getElementById('categorize-check')?.checked || false;
-    const responseChecked = document.getElementById('response-check')?.checked || false;
-    const statusChecked = document.getElementById('status-check')?.checked || false;
-    const showAnimation = document.getElementById('show-animation')?.checked || false;
+    // Get options - для автоматической обработки всегда включаем все опции
+    // Проверяем есть ли checkbox'ы на странице, если нет - используем дефолтные значения
+    const analyzeCheckbox = document.getElementById('analyze-check');
+    const categorizeCheckbox = document.getElementById('categorize-check');
+    const responseCheckbox = document.getElementById('response-check');
+    const statusCheckbox = document.getElementById('status-check');
+    const showAnimationCheckbox = document.getElementById('show-animation');
+    
+    // Устанавливаем все опции по умолчанию в true
+    const analyzeChecked = analyzeCheckbox ? analyzeCheckbox.checked : true;
+    const categorizeChecked = categorizeCheckbox ? categorizeCheckbox.checked : true;
+    const responseChecked = responseCheckbox ? responseCheckbox.checked : true;
+    const statusChecked = statusCheckbox ? statusCheckbox.checked : true;
+    const showAnimation = showAnimationCheckbox ? showAnimationCheckbox.checked : true;
+    
+    // Проставляем галочки в интерфейсе, если чекбоксы существуют
+    if (analyzeCheckbox) analyzeCheckbox.checked = true;
+    if (categorizeCheckbox) categorizeCheckbox.checked = true;
+    if (responseCheckbox) responseCheckbox.checked = true;
+    if (statusCheckbox) statusCheckbox.checked = true;
+    if (showAnimationCheckbox) showAnimationCheckbox.checked = true;
     
     // Log selected options
     logProcessAction(`Параметры обработки: ${scope === 'new' ? 'только новые' : scope === 'all' ? 'все активные' : 'выбранные'}`);
@@ -385,16 +402,18 @@ function updateCardWithAIResults(lead, leadCard) {
         const hasImportantInfo = importantInfo && importantInfo.trim() !== '';
         
         aiSummaryContainer.innerHTML = `
-            <div class="ai-summary small">
+            <div class="ai-summary small mb-2">
                 <i class="bi bi-robot me-1 text-primary"></i> <span class="text-muted">${summaryText}</span>
             </div>
             ${hasImportantInfo ? `
-            <div class="ai-important-info mt-2 p-2" style="background-color: rgba(220, 53, 69, 0.1); border-left: 3px solid rgb(220, 53, 69); border-radius: 4px;">
-                <div class="d-flex align-items-center mb-1">
-                    <i class="bi bi-exclamation-circle text-danger me-2"></i>
+            <div class="ai-important-info my-2" style="background-color: rgba(255, 230, 230, 0.7); border-left: 4px solid #dc3545; border-radius: 4px; padding: 10px;">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-2 p-1 bg-danger rounded-circle text-white" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-info"></i>
+                    </div>
                     <span class="fw-bold text-danger">Важная информация</span>
                 </div>
-                <div class="ps-4">
+                <div>
                     ${importantInfo.replace('Важно:', '')}
                 </div>
             </div>` : ''}
