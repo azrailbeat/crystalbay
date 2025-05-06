@@ -28,6 +28,7 @@ _memory_ai_config = {
     'active': True
 }
 _memory_ai_agents = {}
+_memory_lead_interactions = []
 
 # Sample leads data for demo when database is unavailable
 _memory_leads = [
@@ -250,6 +251,33 @@ class LeadService:
     """Service class for handling leads in Supabase database"""
     
     @staticmethod
+    def create_lead_fallback(lead_data):
+        """
+        Create a new lead using in-memory storage when database is unavailable
+        
+        Args:
+            lead_data (dict): The lead data
+                
+        Returns:
+            dict: The created lead data with an ID
+        """
+        global _memory_leads
+        
+        # Add creation timestamp
+        lead_data['created_at'] = datetime.now().isoformat()
+        if 'status' not in lead_data:
+            lead_data['status'] = 'new'
+            
+        # Generate a unique ID (mimicking database behavior)
+        lead_data['id'] = str(len(_memory_leads) + 1)
+        
+        # Add to memory store
+        _memory_leads.append(lead_data)
+        
+        logger.info(f"Used fallback storage to create lead: {lead_data['id']}")
+        return lead_data
+    
+    @staticmethod
     def create_lead(lead_data):
         """
         Create a new lead in the Supabase database
@@ -268,6 +296,10 @@ class LeadService:
         Returns:
             dict: The created lead data with an ID
         """
+        # Проверка доступности Supabase, если недоступен - используем резервное хранилище
+        if not is_supabase_available():
+            return LeadService.create_lead_fallback(lead_data)
+            
         # Add creation timestamp
         lead_data['created_at'] = datetime.now().isoformat()
         if 'status' not in lead_data:
@@ -278,6 +310,32 @@ class LeadService:
         
         # Return the created lead
         return result.data[0] if result.data else None
+    
+    @staticmethod
+    def get_leads_fallback(limit=100, status=None, agent_id=None):
+        """
+        Get all leads from memory storage when database is unavailable
+        
+        Args:
+            limit (int): Maximum number of leads to return
+            status (str, optional): Filter by lead status
+            agent_id (str, optional): Filter by assigned agent
+            
+        Returns:
+            list: List of leads
+        """
+        global _memory_leads
+        filtered_leads = _memory_leads.copy()
+        
+        # Apply filters
+        if status:
+            filtered_leads = [lead for lead in filtered_leads if lead.get('status') == status]
+        
+        if agent_id:
+            filtered_leads = [lead for lead in filtered_leads if lead.get('agent_id') == agent_id]
+            
+        # Apply limit
+        return filtered_leads[:limit]
     
     @staticmethod
     def get_leads(limit=100, status=None, agent_id=None):
@@ -292,6 +350,10 @@ class LeadService:
         Returns:
             list: List of leads
         """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.get_leads_fallback(limit, status, agent_id)
+            
         query = supabase.table("leads").select("*").limit(limit)
         
         if status:
@@ -304,6 +366,26 @@ class LeadService:
         return result.data if result.data else []
     
     @staticmethod
+    def get_lead_fallback(lead_id):
+        """
+        Get a specific lead by ID from memory storage
+        
+        Args:
+            lead_id (str): The lead ID
+            
+        Returns:
+            dict: The lead data or None if not found
+        """
+        global _memory_leads
+        
+        # Find lead by ID
+        for lead in _memory_leads:
+            if lead.get('id') == lead_id:
+                return lead
+                
+        return None
+    
+    @staticmethod
     def get_lead(lead_id):
         """
         Get a specific lead by ID
@@ -314,8 +396,52 @@ class LeadService:
         Returns:
             dict: The lead data or None if not found
         """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.get_lead_fallback(lead_id)
+            
         result = supabase.table("leads").select("*").eq("id", lead_id).execute()
         return result.data[0] if result.data else None
+    
+    @staticmethod
+    def update_lead_fallback(lead_id, update_data):
+        """
+        Update a lead in memory storage
+        
+        Args:
+            lead_id (str): The lead ID
+            update_data (dict): The data to update
+            
+        Returns:
+            dict: The updated lead data or None if not found
+        """
+        global _memory_leads
+        
+        # Find the lead to update
+        for i, lead in enumerate(_memory_leads):
+            if lead.get('id') == lead_id:
+                # Add updated timestamp
+                update_data['updated_at'] = datetime.now().isoformat()
+                
+                # Update the lead data
+                _memory_leads[i].update(update_data)
+                return _memory_leads[i]
+                
+        return None
+    
+    @staticmethod
+    def update_lead_status_fallback(lead_id, status):
+        """
+        Update the status of a lead in memory storage
+        
+        Args:
+            lead_id (str): The lead ID
+            status (str): The new status (new, contacted, qualified, converted, lost)
+            
+        Returns:
+            dict: The updated lead data or None if not found
+        """
+        return LeadService.update_lead_fallback(lead_id, {'status': status})
     
     @staticmethod
     def update_lead(lead_id, update_data):
@@ -329,10 +455,41 @@ class LeadService:
         Returns:
             dict: The updated lead data
         """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.update_lead_fallback(lead_id, update_data)
+            
         update_data['updated_at'] = datetime.now().isoformat()
         result = supabase.table("leads").update(update_data).eq("id", lead_id).execute()
         return result.data[0] if result.data else None
         
+    @staticmethod
+    def add_lead_interaction_fallback(lead_id, interaction_data):
+        """
+        Add an interaction to a lead in memory storage
+        
+        Args:
+            lead_id (str): The lead ID
+            interaction_data (dict): The interaction data
+                
+        Returns:
+            dict: The created interaction data
+        """
+        global _memory_lead_interactions
+        
+        # Add lead ID and creation timestamp
+        interaction_data['lead_id'] = lead_id
+        interaction_data['created_at'] = datetime.now().isoformat()
+        
+        # Generate a unique ID
+        interaction_data['id'] = str(len(_memory_lead_interactions) + 1)
+        
+        # Add to memory store
+        _memory_lead_interactions.append(interaction_data)
+        
+        logger.info(f"Used fallback storage to add interaction to lead {lead_id}")
+        return interaction_data
+    
     @staticmethod
     def add_lead_interaction(lead_id, interaction_data):
         """
@@ -348,11 +505,37 @@ class LeadService:
         Returns:
             dict: The created interaction data
         """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.add_lead_interaction_fallback(lead_id, interaction_data)
+            
         interaction_data['lead_id'] = lead_id
         interaction_data['created_at'] = datetime.now().isoformat()
         
         result = supabase.table("lead_interactions").insert(interaction_data).execute()
         return result.data[0] if result.data else None
+    
+    @staticmethod
+    def get_lead_interactions_fallback(lead_id):
+        """
+        Get all interactions for a lead from memory storage
+        
+        Args:
+            lead_id (str): The lead ID
+            
+        Returns:
+            list: List of interactions
+        """
+        global _memory_lead_interactions
+        
+        # Filter interactions by lead ID
+        interactions = [interaction for interaction in _memory_lead_interactions 
+                      if interaction.get('lead_id') == lead_id]
+                      
+        # Sort by created_at, descending
+        interactions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return interactions
     
     @staticmethod
     def get_lead_interactions(lead_id):
@@ -365,6 +548,10 @@ class LeadService:
         Returns:
             list: List of interactions
         """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.get_lead_interactions_fallback(lead_id)
+            
         result = supabase.table("lead_interactions").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
         return result.data if result.data else []
 
