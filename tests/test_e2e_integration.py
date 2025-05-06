@@ -61,6 +61,11 @@ class TestEndToEndIntegration(unittest.TestCase):
         self.client = self.app.test_client()
         
         # Настраиваем патчи для внешних компонентов
+        # Патч для проверки доступности Supabase - всегда должен возвращать False в тестах
+        self.supabase_patcher = patch('models.is_supabase_available')
+        self.mock_supabase_check = self.supabase_patcher.start()
+        self.mock_supabase_check.return_value = False
+        
         # Патч для openai
         self.openai_patcher = patch('inquiry_processor.openai')
         self.mock_openai = self.openai_patcher.start()
@@ -103,6 +108,7 @@ class TestEndToEndIntegration(unittest.TestCase):
         _memory_ai_agents.update(self.original_agents)
         
         # Останавливаем патчи
+        self.supabase_patcher.stop()
         self.openai_patcher.stop()
         self.api_patcher.stop()
     
