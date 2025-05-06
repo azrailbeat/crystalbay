@@ -41,6 +41,68 @@ class InquiryProcessor:
         # Load config and agents from database
         self._load_config_and_agents()
         
+    def process_inquiry(self, inquiry_data):
+        """Process a new inquiry using AI
+        
+        Args:
+            inquiry_data (dict): The inquiry data to process
+            
+        Returns:
+            dict: Processed lead data with status and suggestion
+        """
+        try:
+            from models import LeadService
+            
+            # Create a new lead
+            lead_data = {
+                'name': inquiry_data.get('name', ''),
+                'email': inquiry_data.get('email', ''),
+                'phone': inquiry_data.get('phone', ''),
+                'message': inquiry_data.get('message', ''),
+                'source': inquiry_data.get('source', 'website'),
+                'status': 'new',
+                'created_at': datetime.now().isoformat()
+            }
+            
+            lead = LeadService.create_lead(lead_data)
+            if not lead:
+                logger.error("Failed to create lead")
+                return {"error": "Failed to create lead"}
+            
+            # Analyze the lead with AI
+            analysis_result = self.analyze_lead(lead)
+            
+            # Get result data
+            lead_id = lead.get('id')
+            status = analysis_result.get('status', 'new')
+            suggestion = analysis_result.get('suggestion', '')
+            
+            # Update lead status
+            if status != lead.get('status'):
+                LeadService.update_lead_status(lead_id, status)
+                
+            # Add AI analysis as an interaction
+            interaction_data = {
+                'type': 'ai_analysis',
+                'content': suggestion,
+                'metadata': {
+                    'confidence': analysis_result.get('confidence', 0),
+                    'auto_processed': True
+                }
+            }
+            LeadService.add_lead_interaction(lead_id, interaction_data)
+            
+            # Return the processed lead
+            return {
+                'lead_id': lead_id,
+                'status': status,
+                'suggestion': suggestion
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing inquiry: {e}")
+            return {"error": str(e)}
+        
     def _load_config_and_agents(self):
         """Load AI config and agents from the database"""
         from models import AIAgentService
@@ -259,6 +321,267 @@ class InquiryProcessor:
                 'error': str(e)
             }
     
+    def analyze_lead(self, lead):
+        """Analyze a lead with AI to determine status and suggestion
+        
+        Args:
+            lead (dict): The lead data to analyze
+            
+        Returns:
+            dict: Analysis results with status, suggestion, and confidence
+        """
+        try:
+            # Get lead message or combine all lead data for analysis
+            message = lead.get('message', '')
+            if not message:
+                # Fallback to a combination of all text data
+                message = f"Name: {lead.get('name', '')}\n"
+                message += f"Email: {lead.get('email', '')}\n"
+                message += f"Phone: {lead.get('phone', '')}\n"
+                message += f"Source: {lead.get('source', '')}\n"
+                message += f"Notes: {lead.get('notes', '')}"
+            
+            # Process with OpenAI
+            agent_id = self.config.get('default_agent_id', 'inquiry_analyzer')
+            prompt = self._get_lead_analysis_prompt(lead, message)
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",  # Use the latest model
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": message}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract the response content
+            ai_response = response.choices[0].message.content
+            
+            # Parse JSON response
+            try:
+                result = json.loads(ai_response)
+                
+                # Apply business rules to validate and sanitize the response
+                valid_statuses = list(self.status_transitions.keys())
+                if 'status' not in result or result['status'] not in valid_statuses:
+                    result['status'] = 'in_progress'  # Default fallback status
+                
+                if 'confidence' not in result:
+                    result['confidence'] = 0.7  # Default confidence
+                
+                if 'suggestion' not in result:
+                    result['suggestion'] = "AI анализ выполнен"
+                    
+                return result
+                
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse AI response: {ai_response}")
+                return {
+                    'status': 'in_progress',
+                    'suggestion': "AI не смог проанализировать запрос корректно. Требуется ручная обработка.",
+                    'confidence': 0.0
+                }
+                
+        except Exception as e:
+            logger.error(f"Error analyzing lead: {e}")
+            return {
+                'status': 'new',
+                'suggestion': "Ошибка обработки AI. Требуется ручная обработка.",
+                'confidence': 0.0
+            }
+            
+    def process_leads_batch(self, limit=10, agent_id=None):
+        """Process a batch of leads with AI
+        
+        Args:
+            limit (int, optional): Maximum number of leads to process
+            agent_id (str, optional): The agent ID to use for processing
+            
+        Returns:
+            list: List of processed lead results
+        """
+        from models import LeadService
+        
+        if not agent_id:
+            agent_id = self.config.get('default_agent_id', 'inquiry_analyzer')
+        
+        # Get leads with 'new' status
+        leads = LeadService.get_leads(status='new', limit=limit)
+        if not leads:
+            return []
+            
+        results = []
+        
+        for lead in leads:
+            try:
+                # Analyze the lead
+                analysis = self.analyze_lead(lead)
+                
+                # Get result data
+                lead_id = lead.get('id')
+                status = analysis.get('status', 'in_progress')  # Default to in_progress
+                suggestion = analysis.get('suggestion', '')
+                
+                # Update lead status
+                LeadService.update_lead_status(lead_id, status)
+                
+                # Add AI analysis as an interaction
+                interaction_data = {
+                    'type': 'ai_batch_analysis',
+                    'content': suggestion,
+                    'metadata': {
+                        'confidence': analysis.get('confidence', 0),
+                        'auto_processed': True
+                    }
+                }
+                LeadService.add_lead_interaction(lead_id, interaction_data)
+                
+                # Add to results
+                results.append({
+                    'lead_id': lead_id,
+                    'status': status,
+                    'suggestion': suggestion,
+                    'confidence': analysis.get('confidence', 0)
+                })
+                
+            except Exception as e:
+                logger.error(f"Error processing lead in batch: {e}")
+                # Skip failed leads in results
+        
+        return results
+            
+    def generate_response(self, lead_id, context=None):
+        """Generate a response for a lead based on its content and history
+        
+        Args:
+            lead_id (str): The lead ID to generate a response for
+            context (dict, optional): Additional context for the response
+            
+        Returns:
+            dict: Generated response data
+        """
+        try:
+            from models import LeadService
+            
+            # Get lead data
+            lead = LeadService.get_lead(lead_id)
+            if not lead:
+                return {
+                    'success': False,
+                    'error': 'Lead not found'
+                }
+                
+            # Get lead interactions
+            interactions = LeadService.get_lead_interactions(lead_id)
+            
+            # Extract context for the response
+            message_history = []
+            for interaction in interactions:
+                message_history.append({
+                    'type': interaction.get('type', 'unknown'),
+                    'content': interaction.get('content', ''),
+                    'timestamp': interaction.get('created_at', '')
+                })
+                
+            # Create a prompt for response generation
+            system_prompt = self._get_response_generation_prompt(lead, message_history, context)
+            
+            # Generate response with OpenAI
+            response = self.client.chat.completions.create(
+                model="gpt-4o",  # Use the latest model
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Требуется сгенерировать ответ для клиента {lead.get('name', 'Клиент')}"}
+                ]
+            )
+            
+            generated_text = response.choices[0].message.content
+            
+            # Create a new interaction with the generated response
+            interaction_data = {
+                'type': 'ai_generated_response',
+                'content': generated_text,
+                'metadata': {
+                    'auto_generated': True,
+                    'context': context or {}
+                }
+            }
+            
+            LeadService.add_lead_interaction(lead_id, interaction_data)
+            
+            return {
+                'success': True,
+                'lead_id': lead_id,
+                'response': generated_text
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating response: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+            
+    def _get_lead_analysis_prompt(self, lead, message):
+        """Generate a prompt for lead analysis
+        
+        Args:
+            lead (dict): The lead data
+            message (str): The message to analyze
+            
+        Returns:
+            str: The analysis prompt
+        """
+        return """
+        You are an expert travel agency lead analyzer. Your task is to analyze customer inquiries 
+        and determine the appropriate status and next steps. 
+        
+        Analyze the customer message and respond with JSON containing:
+        1. "status": The appropriate status for this lead. Must be one of: 
+           ["new", "in_progress", "pending", "confirmed", "closed", "cancelled"]
+        2. "suggestion": A specific suggestion for the travel agent on how to handle this lead
+        3. "confidence": A number between 0 and 1 indicating your confidence in this analysis
+        
+        Use "in_progress" for leads that need active work.
+        Use "pending" when waiting for a client response.
+        Use "confirmed" when a booking is likely to be made.
+        Use "closed" only for completed bookings.
+        Use "cancelled" for inquiries that won't proceed.
+        
+        Respond only with the JSON object.
+        """
+    
+    def _get_response_generation_prompt(self, lead, message_history, context):
+        """Generate a prompt for response generation
+        
+        Args:
+            lead (dict): The lead data
+            message_history (list): History of interactions
+            context (dict): Additional context
+            
+        Returns:
+            str: The response generation prompt
+        """
+        return f"""
+        You are a professional travel agent assistant for Crystal Bay Travel.
+        
+        Client information:
+        - Name: {lead.get('name', 'Unknown')}
+        - Email: {lead.get('email', 'Unknown')}
+        - Phone: {lead.get('phone', 'Unknown')}
+        - Current status: {lead.get('status', 'new')}
+        - Initial inquiry: {lead.get('message', 'No initial message')}
+        
+        Your task is to generate a helpful, professional response based on the client's inquiry
+        and interaction history. Be specific, courteous and maintain a warm business tone.
+        
+        Focus on providing the information the client needs and moving the booking process forward.
+        
+        If the context indicates specific offers or packages, include relevant details about them.
+        
+        Write only the response text that would be sent to the client, without additional notes or comments.
+        """
+            
     def _analyze_with_ai(self, text, agent_id='inquiry_analyzer'):
         """Analyze text with OpenAI to categorize and extract insights
         

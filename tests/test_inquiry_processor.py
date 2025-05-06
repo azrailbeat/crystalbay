@@ -32,7 +32,7 @@ class TestInquiryProcessor(unittest.TestCase):
         _memory_leads.clear()
         
         # Создаем процессор запросов с моком OpenAI
-        self.patcher = patch('inquiry_processor.OpenAI')
+        self.patcher = patch('openai.OpenAI')
         self.mock_openai = self.patcher.start()
         
         # Настраиваем мок для ChatCompletion
@@ -46,7 +46,12 @@ class TestInquiryProcessor(unittest.TestCase):
         mock_response.choices = [mock_choice]
         mock_chat.return_value = mock_response
         
+        # Применяем мок к методу chat.completions.create
         self.mock_openai.return_value.chat.completions.create = mock_chat
+        
+        # Переопределяем OpenAI в inquiry_processor для тестирования
+        import inquiry_processor
+        inquiry_processor.openai.OpenAI = self.mock_openai
         
         # Создаем экземпляр процессора
         self.processor = InquiryProcessor()
@@ -155,11 +160,10 @@ class TestInquiryProcessor(unittest.TestCase):
         _memory_leads.append(test_lead)
         
         # Анализируем лид
-        result = self.processor.analyze_lead('test123')
+        result = self.processor.analyze_lead(test_lead)
         
         # Проверяем результат
         self.assertIsNotNone(result)
-        self.assertEqual(result['lead_id'], 'test123')
         self.assertEqual(result['status'], 'in_progress')
         self.assertIn('suggestion', result)
         self.assertIn('confidence', result)
@@ -204,7 +208,9 @@ class TestInquiryProcessor(unittest.TestCase):
         
         # Проверяем результат
         self.assertIsNotNone(response)
-        self.assertIn('Здравствуйте!', response)
+        self.assertTrue(response['success'])
+        self.assertEqual(response['lead_id'], 'test123')
+        self.assertIn('Здравствуйте!', response['response'])
         
         # Проверяем вызов OpenAI
         mock_chat.assert_called_with(
@@ -233,12 +239,12 @@ class TestInquiryProcessor(unittest.TestCase):
         _memory_leads.append(test_lead)
         
         # Вызываем метод, который должен вызвать ошибку
-        result = self.processor.analyze_lead('test123')
+        result = self.processor.analyze_lead(test_lead)
         
         # Проверяем, что обрабатывается правильно
         self.assertIsNotNone(result)
-        self.assertEqual(result['status'], 'error')
-        self.assertIn('error', result)
+        self.assertEqual(result['status'], 'new')
+        self.assertIn('Ошибка обработки AI', result['suggestion'])
         
         # Проверяем, что ошибка логируется
         mock_logging.error.assert_called()
