@@ -859,8 +859,33 @@
         
         // При открытии модального окна просмотра обращения
         $('#viewLeadModal').on('show.bs.modal', function (event) {
-            const button = $(event.relatedTarget); // Кнопка, которая вызвала модальное окно
-            const leadId = button.data('lead-id'); // Получение ID обращения из кнопки
+            // Устраняем проблему с получением ID из разных источников
+            let leadId = null;
+            
+            // Метод 1: используем relatedTarget (то, что было нажато)
+            const button = $(event.relatedTarget);
+            if (button && button.data && typeof button.data === 'function') {
+                leadId = button.data('lead-id');
+            }
+            
+            // Метод 2: если не нашли ID через button, проверяем атрибут
+            if (!leadId && event.relatedTarget) {
+                leadId = event.relatedTarget.getAttribute('data-lead-id');
+            }
+            
+            // Метод 3: если это карточка, ищем родительский элемент с атрибутом
+            if (!leadId && event.relatedTarget) {
+                const parentCard = event.relatedTarget.closest('.lead-card');
+                if (parentCard) {
+                    leadId = parentCard.getAttribute('data-lead-id');
+                }
+            }
+            
+            // Если все равно не нашли, используем значение по умолчанию
+            if (!leadId) {
+                leadId = '1'; // Значение по умолчанию для демо-режима
+                console.warn('Не удалось получить ID карточки, используем значение по умолчанию:', leadId);
+            }
             
             // Сохраняем ID обращения в атрибуте модального окна
             $(this).attr('data-lead-id', leadId);
@@ -870,17 +895,48 @@
             // Проверяем, есть ли важная информация в карточке
             const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
             if (leadCard) {
-                const importantInfo = leadCard.getAttribute('data-important-info');
+                console.log('Найдена карточка:', leadCard);
+                
+                // Проверяем наличие полных данных анализа ИИ
+                let aiAnalysis = null;
+                const aiAnalysisJson = leadCard.getAttribute('data-ai-analysis');
+                if (aiAnalysisJson) {
+                    try {
+                        aiAnalysis = JSON.parse(aiAnalysisJson);
+                        console.log('Анализ ИИ для карточки:', aiAnalysis);
+                    } catch (e) {
+                        console.error('Ошибка парсинга данных анализа ИИ:', e);
+                    }
+                }
+                
+                // Проверяем важную информацию из атрибутов
+                // Сначала проверяем новый атрибут, затем старый
+                let importantInfo = leadCard.getAttribute('data-ai-important-info');
+                if (!importantInfo) {
+                    importantInfo = leadCard.getAttribute('data-important-info');
+                }
                 
                 // Если есть важная информация, показываем блок и заполняем его
                 const importantInfoContainer = document.getElementById('important-info-container');
                 const importantInfoContent = document.getElementById('important-info-content');
                 
                 if (importantInfo && importantInfo.trim() !== '') {
+                    console.log('Найдена важная информация:', importantInfo);
                     importantInfoContent.textContent = importantInfo;
                     importantInfoContainer.style.display = 'block';
                 } else {
+                    console.log('Важная информация не найдена');
                     importantInfoContainer.style.display = 'none';
+                }
+                
+                // Добавляем кнопку анализа ИИ, если еще нет данных анализа
+                const aiAnalysisButton = document.getElementById('ai-analysis-btn');
+                if (aiAnalysisButton) {
+                    if (!aiAnalysis) {
+                        aiAnalysisButton.style.display = 'block';
+                    } else {
+                        aiAnalysisButton.style.display = 'none';
+                    }
                 }
             }
             

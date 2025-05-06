@@ -448,19 +448,20 @@ async function processLeadWithAnimation(detail) {
 function updateCardWithAIResults(lead, leadCard) {
     if (!leadCard) return;
     
-    // Always mark as processed by AI
-    // Find or create an AI badge for the card
-    let aiBadge = leadCard.querySelector('.ai-processed-badge');
-    if (!aiBadge) {
-        aiBadge = document.createElement('div');
-        aiBadge.className = 'ai-processed-badge position-absolute top-0 end-0 m-2';
-        aiBadge.innerHTML = '<span class="badge bg-dark text-white" style="padding: 6px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-stars me-1"></i> Обработано ИИ</span>';
-        aiBadge.style.zIndex = '2';
-        aiBadge.style.fontSize = '0.8rem';
-        aiBadge.style.opacity = '0.9';
-        leadCard.style.position = leadCard.style.position || 'relative';
-        leadCard.appendChild(aiBadge);
-    }
+    // Удаляем все существующие бейджи "Обработано ИИ", чтобы избежать дублирования
+    // Очищаем все существующие бейджи
+    const existingBadges = leadCard.querySelectorAll('.ai-processed-badge');
+    existingBadges.forEach(badge => badge.remove());
+    
+    // Создаем новый бейдж
+    const aiBadge = document.createElement('div');
+    aiBadge.className = 'ai-processed-badge position-absolute top-0 end-0 m-2';
+    aiBadge.innerHTML = '<span class="badge bg-dark text-white" style="padding: 6px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-stars me-1"></i> Обработано ИИ</span>';
+    aiBadge.style.zIndex = '2';
+    aiBadge.style.fontSize = '0.8rem';
+    aiBadge.style.opacity = '0.9';
+    leadCard.style.position = leadCard.style.position || 'relative';
+    leadCard.appendChild(aiBadge);
     
     // Find or create summary section if it doesn't exist
     let aiSummary = leadCard.querySelector('.ai-summary');
@@ -476,28 +477,19 @@ function updateCardWithAIResults(lead, leadCard) {
             summaryText = lead.ai_analysis.summary;
         }
         
-        // Добавляем информацию о важной информации, но не отображаем её прямо в карточке
+        // Добавляем важную информацию из анализа ИИ
         if (lead.ai_analysis && lead.ai_analysis.important_info) {
             importantInfo = lead.ai_analysis.important_info;
-        } else {
-            // Generate mock important info based on the card content for demo
-            const cardDetails = leadCard.querySelector('.lead-details');
-            if (cardDetails) {
-                const text = cardDetails.textContent;
-                if (text.includes('Турци')) {
-                    importantInfo = 'нужен отель с аквапарком, рядом с песчаным пляжем, детской анимацией на русском языке';
-                } else if (text.includes('Европ')) {
-                    importantInfo = 'интересует экскурсионная программа с русскоговорящим гидом и просторными номерами';
-                } else if (text.includes('горнолыж')) {
-                    importantInfo = 'необходимо уточнить уровень катания и размер лыжного оборудования, нужен ски-пасс';
-                } else if (text.includes('Япони')) {
-                    importantInfo = 'нужна помощь с визой и бронированием билетов на скоростные поезда';
-                } else if (text.includes('Греци')) {
-                    importantInfo = 'групповая поездка, нужны смежные номера с питанием все включено';
-                } else if (text.includes('Мальдив')) {
-                    importantInfo = 'премиум-сегмент, интересуют только 5* отели с собственными виллами на воде';
-                } else {
-                    importantInfo = 'необходимо уточнить детали поездки';
+            
+            // Сохраняем важную информацию в атрибутах DOM для доступа при открытии карточки
+            leadCard.setAttribute('data-ai-important-info', importantInfo);
+            
+            // Добавляем также полный объект анализа ИИ в JSON формате для сохранения всех данных
+            if (lead.ai_analysis) {
+                try {
+                    leadCard.setAttribute('data-ai-analysis', JSON.stringify(lead.ai_analysis));
+                } catch (e) {
+                    console.error('Не удалось сохранить данные анализа ИИ:', e);
                 }
             }
         }
