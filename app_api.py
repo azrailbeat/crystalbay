@@ -342,6 +342,7 @@ def register_api_routes(app):
                 time.sleep(1)
                 
                 # Create response data matching the lead IDs in the HTML
+                # Include AI analysis results and generated responses
                 results = {
                     'total': 3,
                     'updated': 3,
@@ -352,21 +353,45 @@ def register_api_routes(app):
                             'old_status': 'new',
                             'new_status': 'in_progress',
                             'tags': ['Пляжный отдых', 'Семья', 'Турция'],
-                            'changed': True
+                            'changed': True,
+                            'ai_processed': True,
+                            'ai_analysis': {
+                                'summary': 'Запрос на семейный отдых в Турции. Клиент интересуется пляжным отдыхом с детьми, анимацией и бассейнами.',
+                                'urgency': 3,
+                                'category': 'Семейный отдых'
+                            },
+                            'generated_response': 'Здравствуйте! Благодарим вас за интерес к семейному отдыху в Турции. Мы подготовили для вас несколько вариантов отелей с анимацией и подходящей инфраструктурой для детей. Наш менеджер свяжется с вами в ближайшее время для уточнения деталей.',
+                            'blockchain_status': 'Запись добавлена в блокчейн, ID: CB-78F5A2D9'
                         },
                         {
                             'lead_id': '2',  # Changed to match HTML id
                             'old_status': 'new',
                             'new_status': 'negotiation',
                             'tags': ['Экскурсии', 'Европа'],
-                            'changed': True
+                            'changed': True,
+                            'ai_processed': True,
+                            'ai_analysis': {
+                                'summary': 'Запрос на экскурсионную программу по Европе. Клиент высказывает интерес к культурным достопримечательностям Италии, Испании и Франции.',
+                                'urgency': 4,
+                                'category': 'Культурный туризм'
+                            },
+                            'generated_response': 'Добрый день! Рады предложить вам эксклюзивный маршрут по культурным столицам Европы. Мы подготовили программу с посещением ключевых достопримечательностей Италии, Испании и Франции. Наш эксперт по Европе свяжется с вами, чтобы обсудить детали.',
+                            'blockchain_status': 'Запись добавлена в блокчейн, ID: CB-39A1F7B2'
                         },
                         {
                             'lead_id': '3',  # Changed to match HTML id
                             'old_status': 'new',
                             'new_status': 'booked',
                             'tags': ['Горнолыжный', 'Зима'],
-                            'changed': True
+                            'changed': True,
+                            'ai_processed': True,
+                            'ai_analysis': {
+                                'summary': 'Запрос о горнолыжном отдыхе в Австрии или Швейцарии. Клиент планирует поездку на декабрь 2025 года.',
+                                'urgency': 5,
+                                'category': 'Горнолыжный отдых'
+                            },
+                            'generated_response': 'Здравствуйте! Мы рады предложить вам премиальные варианты горнолыжного отдыха в Австрии и Швейцарии на декабрь 2025 года. Именно сейчас самое удачное время для бронирования, так как мы можем предложить лучшие цены по раннему бронированию.',
+                            'blockchain_status': 'Запись добавлена в блокчейн, ID: CB-12E8C3F1'
                         }
                     ]
                 }

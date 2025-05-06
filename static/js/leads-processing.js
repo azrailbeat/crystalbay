@@ -161,7 +161,11 @@ async function processAllInquiries(scope, options) {
             for (const detail of details) {
                 logProcessAction(`Обработка обращения #${detail.lead_id}: ${detail.old_status} -> ${detail.new_status}`);
                 // Quietly move cards without animation
-                moveCardToNewStatus(detail.lead_id, detail.new_status);
+                const leadCard = document.querySelector(`.lead-card[data-lead-id="${detail.lead_id}"]`);
+                if (leadCard) {
+                    updateCardWithAIResults(detail, leadCard);  // Update with AI results
+                    moveCardToNewStatus(detail.lead_id, detail.new_status);
+                }
                 processed++;
                 const progress = 25 + (processed / total * 75);
                 updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
@@ -244,6 +248,9 @@ async function processLeadWithAnimation(detail) {
             
             if (firstCardInSourceColumn) {
                 logProcessAction(`Используем первую карточку в колонке '${getStatusName(oldStatus)}' для демонстрации`);
+                
+                // Apply AI information to this card as a demo
+                updateCardWithAIResults(detail, firstCardInSourceColumn);
                 animateCardMovement(firstCardInSourceColumn, oldStatus, newStatus, resolve);
                 return;
             }
@@ -251,6 +258,9 @@ async function processLeadWithAnimation(detail) {
             setTimeout(resolve, 500); // Short delay for log readability
             return;
         }
+        
+        // Apply AI information to the card before any movement
+        updateCardWithAIResults(detail, leadCard);
         
         // If status changed, move the card
         if (oldStatus !== newStatus) {
@@ -268,6 +278,66 @@ async function processLeadWithAnimation(detail) {
             }, 800);
         }
     });
+}
+
+/**
+ * Update a card with AI processing results
+ */
+function updateCardWithAIResults(lead, leadCard) {
+    if (!leadCard || !lead.ai_processed) return;
+    
+    // Find or create an AI badge for the card
+    let aiBadge = leadCard.querySelector('.ai-processed-badge');
+    if (!aiBadge) {
+        aiBadge = document.createElement('div');
+        aiBadge.className = 'ai-processed-badge badge bg-info text-white position-absolute top-0 end-0 m-1';
+        aiBadge.innerHTML = '<i class="bi bi-robot"></i> AI';
+        aiBadge.style.zIndex = '2';
+        aiBadge.style.fontSize = '0.7rem';
+        leadCard.style.position = leadCard.style.position || 'relative';
+        leadCard.appendChild(aiBadge);
+    }
+    
+    // Find or create summary section if it doesn't exist
+    let aiSummary = leadCard.querySelector('.ai-summary');
+    if (!aiSummary && lead.ai_analysis) {
+        const cardBody = leadCard.querySelector('.card-body') || leadCard;
+        
+        // Create a collapsible section for AI analysis
+        const aiSummaryContainer = document.createElement('div');
+        aiSummaryContainer.className = 'ai-summary-container mt-2 border-top pt-2';
+        aiSummaryContainer.innerHTML = `
+            <div class="ai-summary small text-muted">
+                <i class="bi bi-robot"></i> ${lead.ai_analysis.summary}
+            </div>
+        `;
+        
+        // Add tags section if not already present
+        if (lead.tags && lead.tags.length > 0) {
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'tags-container d-flex flex-wrap gap-1 mt-1';
+            
+            lead.tags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'badge bg-secondary';
+                tagElement.textContent = tag;
+                tagsContainer.appendChild(tagElement);
+            });
+            
+            aiSummaryContainer.appendChild(tagsContainer);
+        }
+        
+        // Add blockchain status indicator if available
+        if (lead.blockchain_status) {
+            const blockchainIndicator = document.createElement('div');
+            blockchainIndicator.className = 'blockchain-status small mt-1';
+            blockchainIndicator.innerHTML = `<i class="bi bi-link-45deg"></i> ${lead.blockchain_status.split(',')[1] || '✓'}`;
+            blockchainIndicator.style.color = '#9a9a9a';
+            aiSummaryContainer.appendChild(blockchainIndicator);
+        }
+        
+        cardBody.appendChild(aiSummaryContainer);
+    }
 }
 
 /**
@@ -335,15 +405,11 @@ function animateCardMovement(leadCard, oldStatus, newStatus, resolveCallback) {
                     leadCard.style.opacity = '1';
                     leadCard.style.boxShadow = '0 0 10px rgba(0, 200, 0, 0.7)';
                     
-                    // Add tags visually if available
-                    const leadId = leadCard.getAttribute('data-lead-id');
-                    const detailTag = document.querySelector(`.lead-tags[data-lead-id="${leadId}"]`);
+                    // Update column counts
+                    updateColumnCounts();
                     
                     setTimeout(() => {
                         leadCard.style.boxShadow = '';
-                        
-                        // Update column counts
-                        updateColumnCounts();
                         
                         // Complete
                         setTimeout(resolveCallback, 200);
