@@ -2,7 +2,9 @@
 
 {% block title %}Crystal Bay Travel - Обращения клиентов{% endblock %}
 
-{% block page_title %}Обращения клиентов{% endblock %}
+{% block page_title %}
+Обращения клиентов <span id="auto-process-indicator" class="badge bg-primary ms-2"><i class="bi bi-robot"></i> Автоматическая обработка включена</span>
+{% endblock %}
 
 {% block head %}
 <style>
@@ -814,6 +816,66 @@
         // Показываем уведомление о загрузке страницы
         setTimeout(() => {
             showToast('Загружено 22 обращения', 'info');
+            
+            // Запускаем автоматическую обработку всех новых обращений
+            setTimeout(() => {
+                console.log('Запуск автоматической обработки новых обращений...');
+                // Собираем все необходимые параметры
+                const processOptions = {
+                    analyze: true,     // Анализировать содержимое
+                    categorize: true,  // Категоризировать
+                    response: true,    // Подготовить ответ
+                    status: true,      // Изменять статус
+                    animation: true    // Показывать анимацию
+                };
+                
+                // Запускаем автоматическую обработку и отображаем уведомление
+                fetch('/api/leads/process-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scope: 'new',      // Обрабатываем только новые обращения
+                        options: processOptions
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Обрабатываем каждое обращение и обновляем интерфейс
+                    if (data.total > 0) {
+                        console.log(`Обработано обращений: ${data.total}`);
+                        
+                        // Обрабатываем каждое детальное обращение
+                        data.details.forEach(detail => {
+                            // Находим карточку
+                            const leadCard = document.querySelector(`.lead-card[data-lead-id="${detail.lead_id}"]`);
+                            if (leadCard) {
+                                // Обновляем карточку с данными анализа AI
+                                if (typeof updateCardWithAIResults === 'function') {
+                                    updateCardWithAIResults(detail, leadCard);
+                                }
+                                
+                                // Перемещаем карточку в соответствующую колонку
+                                if (typeof animateCardMovement === 'function' && processOptions.animation) {
+                                    // Если есть функция анимации, используем её
+                                    animateCardMovement(leadCard, detail.old_status, detail.new_status, () => {});
+                                } else if (typeof moveCardToNewStatus === 'function') {
+                                    // Иначе используем простое перемещение
+                                    moveCardToNewStatus(detail.lead_id, detail.new_status);
+                                }
+                            }
+                        });
+                        
+                        // Показываем уведомление о результатах
+                        showToast(`Автоматически обработано ${data.updated} обращений`, 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обработки обращений:', error);
+                    showToast('Ошибка автоматической обработки обращений', 'danger');
+                });
+            }, 1500); // Небольшая задержка для разделения уведомлений
         }, 500);
     });
 </script>
