@@ -741,7 +741,31 @@
     </div>
     
     <!-- Auto Processing Modal -->
+    <!-- Основное модальное окно настроек обработки -->
     <div class="modal fade" id="autoProcessModal" tabindex="-1" aria-hidden="true">
+        
+    <!-- Мини-окно обработки, которое появляется после сворачивания основного окна -->
+    <div id="miniProcessWindow" class="card position-fixed shadow-lg" style="display: none; right: 20px; bottom: 20px; width: 300px; z-index: 1050;">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center p-2">
+            <span class="small"><i class="bi bi-cpu"></i> Обработка обращений</span>
+            <div>
+                <button type="button" class="btn btn-sm btn-link text-white p-0 me-2" id="expand-process-btn" title="Развернуть">
+                    <i class="bi bi-arrows-angle-expand"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-link text-white p-0" id="mini-stop-process-btn" title="Остановить">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-2">
+            <div class="progress mb-2" style="height: 5px;">
+                <div id="mini-process-progress" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div id="mini-process-status" class="small mb-2 text-muted">Обработка обращений...</div>
+            <div id="mini-process-current" class="small fw-bold"></div>
+        </div>
+    </div>
+    
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -787,6 +811,10 @@
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="show-animation" checked>
                                     <label class="form-check-label" for="show-animation">Показывать анимацию перемещения</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="minimize-on-process" checked>
+                                    <label class="form-check-label" for="minimize-on-process">Автоматически сворачивать окно</label>
                                 </div>
                             </div>
                         </div>
