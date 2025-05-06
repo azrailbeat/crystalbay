@@ -488,6 +488,10 @@ function showToast(message, type = 'info') {
     toast.show();
     
     // Remove toast element after hiding
+    toastEl.addEventListener('hidden.bs.toast', function () {
+        toastEl.remove();
+    });
+}
 }
 
 /**
@@ -814,8 +818,4 @@ function getColumnIndexByStatus(status) {
     };
     
     return statusMap[status] || 0;
-}
-    toastEl.addEventListener('hidden.bs.toast', function () {
-        toastEl.remove();
-    });
 }

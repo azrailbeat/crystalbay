@@ -812,6 +812,7 @@
 
 {% block scripts %}
 <script src="/static/js/drag-and-drop.js"></script>
+<script src="/static/js/leads-processing.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Добавляем стиль курсора для карточек lead
@@ -820,100 +821,10 @@
             card.style.cursor = 'pointer';
         });
         
-        // Настройка кнопок автоматической обработки
-        const startProcessBtn = document.getElementById('start-process-btn');
-        const stopProcessBtn = document.getElementById('stop-process-btn');
-        
-        if (startProcessBtn) {
-            startProcessBtn.addEventListener('click', function() {
-                // Показываем кнопку остановки
-                if (stopProcessBtn) stopProcessBtn.classList.remove('d-none');
-                this.classList.add('d-none');
-                
-                // Обновляем UI
-                updateProcessingUI('Начало обработки...', 5);
-                logProcessAction('Запуск автоматической обработки обращений');
-                logProcessAction('Сбор данных о необработанных обращениях...');
-                
-                // Имитация процесса обработки
-                setTimeout(() => {
-                    logProcessAction('Найдено 4 обращения для обработки');
-                    updateProcessingUI('Обработка 1 из 4...', 25);
-                    
-                    // Продолжение имитации...
-                    setTimeout(() => {
-                        logProcessAction('Анализ обращения #1003 с помощью AI');
-                        updateProcessingUI('Обработка 2 из 4...', 50);
-                        
-                        setTimeout(() => {
-                            logProcessAction('Категоризация и присвоение тегов: "Пляжный отдых", "Семья", "Турция"');
-                            updateProcessingUI('Обработка 3 из 4...', 75);
-                            
-                            setTimeout(() => {
-                                logProcessAction('Изменение статуса обращения на "В работе"');
-                                logProcessAction('Подготовка шаблона ответа для менеджера');
-                                updateProcessingUI('Завершение...', 100);
-                                
-                                setTimeout(() => {
-                                    // Завершение процесса
-                                    logProcessAction('Автоматическая обработка завершена. Обработано 4 обращения.');
-                                    updateProcessingUI('Обработка завершена', 100);
-                                    
-                                    // Сбрасываем кнопки
-                                    if (stopProcessBtn) stopProcessBtn.classList.add('d-none');
-                                    if (startProcessBtn) startProcessBtn.classList.remove('d-none');
-                                }, 1000);
-                            }, 1000);
-                        }, 1500);
-                    }, 1500);
-                }, 1500);
-            });
-        }
-        
-        if (stopProcessBtn) {
-            stopProcessBtn.addEventListener('click', function() {
-                // Останавливаем процесс
-                logProcessAction('Процесс остановлен пользователем');
-                updateProcessingUI('Процесс остановлен', 0);
-                
-                // Сбрасываем кнопки
-                this.classList.add('d-none');
-                if (startProcessBtn) startProcessBtn.classList.remove('d-none');
-            });
-        }
-        
         // Показываем уведомление о загрузке страницы
         setTimeout(() => {
             showToast('Загружено 22 обращения', 'info');
         }, 500);
     });
-
-    // Функция обновления UI процесса
-    function updateProcessingUI(status, progress) {
-        const statusEl = document.getElementById('process-status');
-        const progressBar = document.getElementById('process-progress');
-        
-        // Обновляем прогресс
-        progressBar.style.width = `${progress}%`;
-        progressBar.setAttribute('aria-valuenow', progress);
-        
-        // Обновляем статус
-        if (statusEl) statusEl.textContent = status;
-    }
-    
-    // Функция логирования действий процесса
-    function logProcessAction(message) {
-        const log = document.getElementById('process-log');
-        const timestamp = new Date().toLocaleTimeString();
-        
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        entry.innerHTML = `<small class="text-muted">${timestamp}</small> ${message}`;
-        
-        if (log) {
-            log.appendChild(entry);
-            log.scrollTop = log.scrollHeight; // Прокручиваем вниз
-        }
-    }
 </script>
 {% endblock %}
