@@ -6,6 +6,17 @@
 Обращения клиентов <span id="auto-process-indicator" class="badge ms-2" style="display: none; background: linear-gradient(135deg, #4a6cf7, #7224d1); border-radius: 20px; padding: 8px 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); font-weight: 500; font-size: 0.8rem;"><i class="bi bi-stars me-1"></i> Автообработка включена</span>
 {% endblock %}
 
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <button id="create-test-lead" class="btn btn-sm btn-outline-secondary" type="button">
+        <i class="bi bi-plus-circle me-1"></i> Создать тестовую карточку
+    </button>
+    <button id="reset-leads" class="btn btn-sm btn-outline-danger" type="button">
+        <i class="bi bi-trash me-1"></i> Сбросить все карточки
+    </button>
+</div>
+{% endblock %}
+
 {% block head %}
 <style>
     /* Цветовая палитра Elagi Phuket - светлый дизайн */
@@ -1444,6 +1455,79 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно для просмотра деталей обращения -->
+<div class="modal fade" id="viewLeadModal" tabindex="-1" aria-labelledby="viewLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewLeadModalLabel">Просмотр обращения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="lead-info mb-4">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Источник</label>
+                                <div class="lead-source-info fw-medium">Загрузка...</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Email</label>
+                                <div class="lead-email fw-medium">Загрузка...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Статус</label>
+                                <div class="lead-status fw-medium">Загрузка...</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Телефон</label>
+                                <div class="lead-phone fw-medium">Загрузка...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Дата создания</label>
+                        <div class="lead-created fw-medium">Загрузка...</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Заметки</label>
+                        <div class="lead-notes rounded p-3 bg-light">Загрузка...</div>
+                    </div>
+                </div>
+                
+                <h6 class="border-top pt-3 mt-4 mb-3">История взаимодействий</h6>
+                <div class="comment-list">
+                    <div class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        Загрузка истории взаимодействий...
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <textarea id="newCommentText" class="form-control" rows="3" placeholder="Добавить комментарий..."></textarea>
+                        </div>
+                    </div>
+                    <div class="text-end mt-2">
+                        <button id="addCommentBtn" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i> Добавить
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary">Обновить</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -1451,6 +1535,141 @@
 <script src="/static/js/drag-and-drop.js"></script>
 <script src="/static/js/leads-processing.js"></script>
 <script>
+    // Функция для отображения toast-уведомлений
+    window.showToast = function(message, type = 'info') {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            // Создаем контейнер для toast-уведомлений, если его нет
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '5';
+            document.body.appendChild(container);
+        }
+        
+        // Создаем toast-элемент
+        const toastId = `toast-${Date.now()}`;
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.id = toastId;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        // Заполняем содержимое toast-уведомления
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Добавляем toast в контейнер
+        const container = document.getElementById('toast-container');
+        container.appendChild(toast);
+        
+        // Инициализируем и показываем toast
+        const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 5000
+        });
+        bsToast.show();
+        
+        // Удаляем toast из DOM после скрытия
+        toast.addEventListener('hidden.bs.toast', function() {
+            this.remove();
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Кнопка создания тестовой карточки
+        const createTestLeadBtn = document.getElementById('create-test-lead');
+        if (createTestLeadBtn) {
+            createTestLeadBtn.addEventListener('click', async function() {
+                try {
+                    // Отображаем индикатор загрузки на кнопке
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Создание...';
+                    this.disabled = true;
+                    
+                    // Отправляем запрос на создание тестовой карточки
+                    const response = await fetch('/api/create-test-lead', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Показываем успешное уведомление
+                        showToast('Тестовая карточка успешно создана', 'success');
+                        
+                        // Перезагружаем страницу для отображения новой карточки
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showToast(`Ошибка: ${result.error || 'Не удалось создать тестовую карточку'}`, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при создании тестовой карточки:', error);
+                    showToast('Произошла ошибка при создании тестовой карточки', 'danger');
+                } finally {
+                    // Восстанавливаем кнопку
+                    this.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Создать тестовую карточку';
+                    this.disabled = false;
+                }
+            });
+        }
+        
+        // Кнопка сброса всех карточек
+        const resetLeadsBtn = document.getElementById('reset-leads');
+        if (resetLeadsBtn) {
+            resetLeadsBtn.addEventListener('click', async function() {
+                if (!confirm('Вы уверены, что хотите удалить все карточки и создать одну тестовую? Это действие нельзя отменить.')) {
+                    return;
+                }
+                
+                try {
+                    // Отображаем индикатор загрузки на кнопке
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Сброс...';
+                    this.disabled = true;
+                    
+                    // Отправляем запрос на сброс карточек
+                    const response = await fetch('/api/reset-leads', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Показываем успешное уведомление
+                        showToast('Все карточки сброшены, создана одна тестовая', 'success');
+                        
+                        // Перезагружаем страницу для обновления списка карточек
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showToast(`Ошибка: ${result.error || 'Не удалось сбросить карточки'}`, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при сбросе карточек:', error);
+                    showToast('Произошла ошибка при сбросе карточек', 'danger');
+                } finally {
+                    // Восстанавливаем кнопку
+                    this.innerHTML = '<i class="bi bi-trash me-1"></i> Сбросить все карточки';
+                    this.disabled = false;
+                }
+            });
+        }
+        
     document.addEventListener('DOMContentLoaded', function() {
         // Добавляем стиль курсора и обработчик клика для карточек lead
         document.querySelectorAll('.lead-card').forEach(card => {
