@@ -1671,30 +1671,51 @@
         }
         
     document.addEventListener('DOMContentLoaded', function() {
-        // Добавляем стиль курсора и обработчик клика для карточек lead
-        document.querySelectorAll('.lead-card').forEach(card => {
-            // Делаем карточки выглядящими кликабельными
-            card.style.cursor = 'pointer';
-            
-            // Добавляем обработчик клика на всю карточку
-            card.addEventListener('click', function(e) {
+        // Функция инициализации карточек - может быть вызвана после загрузки DOM или обновления страницы
+        function initializeCards() {
+            console.log('Инициализация карточек...');
+            // Добавляем стиль курсора и обработчик клика для карточек lead
+            document.querySelectorAll('.lead-card').forEach(card => {
+                if (!card) return; // Пропускаем, если элемент не найден
+                
+                try {
+                    // Делаем карточки выглядящими кликабельными
+                    card.style.cursor = 'pointer';
+                    
+                    // Добавляем обработчик клика на всю карточку, только если его ещё нет
+                    if (!card.hasAttribute('data-click-initialized')) {
+                        card.setAttribute('data-click-initialized', 'true');
+                        
+                        card.addEventListener('click', function(e) {
                 // Пропускаем клики по кнопкам и другим элементам управления
                 if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
                     return;
                 }
                 
-                // Получаем ID карточки
-                const leadId = this.getAttribute('data-lead-id');
-                console.log('Lead clicked, ID:', leadId);
-                
-                // Открываем модальное окно и передаем ID в атрибут
-                const modal = document.getElementById('viewLeadModal');
-                if (modal) {
-                    modal.setAttribute('data-lead-id', leadId);
-                    $('#viewLeadModal').modal('show');
+                try {
+                    // Получаем ID карточки
+                    const leadId = this.getAttribute('data-lead-id');
+                    console.log('Lead clicked, ID:', leadId);
+                    
+                    // Открываем модальное окно и передаем ID в атрибут
+                    const modal = document.getElementById('viewLeadModal');
+                    if (modal) {
+                        modal.setAttribute('data-lead-id', leadId);
+                        $('#viewLeadModal').modal('show');
+                    }
+                } catch (error) {
+                    console.error('Error in card click handler:', error);
                 }
             });
-        });
+                }
+            } catch (error) {
+                console.error('Ошибка инициализации карточки:', error);
+            }
+            });
+        }
+        
+        // Вызываем инициализацию карточек при загрузке страницы
+        initializeCards();
         
         // При открытии модального окна просмотра обращения
         $('#viewLeadModal').on('show.bs.modal', function (event) {
