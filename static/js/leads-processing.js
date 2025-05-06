@@ -4,6 +4,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing lead processing functionality');
     initAutoProcessButtons();
+    
+    // Автоматически запускаем обработку новых обращений при загрузке страницы
+    // Добавляем небольшую задержку, чтобы пользователь успел увидеть начальное состояние до изменений
+    setTimeout(() => {
+        // Запускаем обработку с основными опциями
+        startAutoProcess();
+    }, 2000);
 });
 
 /**
@@ -42,6 +49,23 @@ function startAutoProcess() {
     updateProcessingUI('Начало обработки обращений...', 5);
     clearProcessLog();
     logProcessAction('Запуск автоматической обработки обращений');
+    
+    // Show auto-process indicator in header
+    const autoProcessIndicator = document.getElementById('auto-process-indicator');
+    if (autoProcessIndicator) {
+        autoProcessIndicator.style.display = 'inline-flex';
+        // Добавим анимацию появления
+        autoProcessIndicator.style.opacity = '0';
+        autoProcessIndicator.style.transform = 'translateY(-10px)';
+        autoProcessIndicator.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        
+        // Force reflow
+        void autoProcessIndicator.offsetWidth;
+        
+        // Apply animation
+        autoProcessIndicator.style.opacity = '1';
+        autoProcessIndicator.style.transform = 'translateY(0)';
+    }
     
     // Get process scope
     const scopeSelect = document.getElementById('process-scope');
@@ -90,6 +114,19 @@ function stopAutoProcess() {
     
     logProcessAction('Процесс остановлен пользователем');
     updateProcessingUI('Обработка остановлена', 0);
+    
+    // Hide auto-process indicator
+    const autoProcessIndicator = document.getElementById('auto-process-indicator');
+    if (autoProcessIndicator) {
+        // Добавим анимацию исчезновения
+        autoProcessIndicator.style.opacity = '0';
+        autoProcessIndicator.style.transform = 'translateY(-10px)';
+        
+        // Скрыть после завершения анимации
+        setTimeout(() => {
+            autoProcessIndicator.style.display = 'none';
+        }, 500);
+    }
     
     // We would need to cancel any pending operations here if possible
     // For now, we just update the UI
@@ -291,10 +328,11 @@ function updateCardWithAIResults(lead, leadCard) {
     let aiBadge = leadCard.querySelector('.ai-processed-badge');
     if (!aiBadge) {
         aiBadge = document.createElement('div');
-        aiBadge.className = 'ai-processed-badge badge bg-primary text-white position-absolute top-0 end-0 m-1';
-        aiBadge.innerHTML = '<i class="bi bi-robot"></i> Обработано ИИ';
+        aiBadge.className = 'ai-processed-badge position-absolute top-0 end-0 m-2';
+        aiBadge.innerHTML = '<span class="badge bg-dark text-white" style="padding: 6px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-stars me-1"></i> Обработано ИИ</span>';
         aiBadge.style.zIndex = '2';
-        aiBadge.style.fontSize = '0.75rem';
+        aiBadge.style.fontSize = '0.8rem';
+        aiBadge.style.opacity = '0.9';
         leadCard.style.position = leadCard.style.position || 'relative';
         leadCard.appendChild(aiBadge);
     }
@@ -342,13 +380,24 @@ function updateCardWithAIResults(lead, leadCard) {
         // Create a collapsible section for AI analysis
         const aiSummaryContainer = document.createElement('div');
         aiSummaryContainer.className = 'ai-summary-container mt-2 border-top pt-2';
+        
+        // Проверяем есть ли важная информация
+        const hasImportantInfo = importantInfo && importantInfo.trim() !== '';
+        
         aiSummaryContainer.innerHTML = `
             <div class="ai-summary small">
-                <i class="bi bi-robot"></i> <span class="text-muted">${summaryText}</span>
+                <i class="bi bi-robot me-1 text-primary"></i> <span class="text-muted">${summaryText}</span>
             </div>
-            <div class="ai-important-info mt-1 fw-bold text-danger">
-                ${importantInfo}
-            </div>
+            ${hasImportantInfo ? `
+            <div class="ai-important-info mt-2 p-2" style="background-color: rgba(220, 53, 69, 0.1); border-left: 3px solid rgb(220, 53, 69); border-radius: 4px;">
+                <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-exclamation-circle text-danger me-2"></i>
+                    <span class="fw-bold text-danger">Важная информация</span>
+                </div>
+                <div class="ps-4">
+                    ${importantInfo.replace('Важно:', '')}
+                </div>
+            </div>` : ''}
         `;
         
         // Add tags section if not already present
@@ -376,11 +425,16 @@ function updateCardWithAIResults(lead, leadCard) {
         
         if (tags.length > 0) {
             const tagsContainer = document.createElement('div');
-            tagsContainer.className = 'tags-container d-flex flex-wrap gap-1 mt-1';
+            tagsContainer.className = 'tags-container d-flex flex-wrap gap-2 mt-2';
             
             tags.forEach(tag => {
                 const tagElement = document.createElement('span');
-                tagElement.className = 'badge bg-secondary';
+                // Создаем тег со стильным видом
+                tagElement.className = 'badge rounded-pill px-3 py-2';
+                tagElement.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+                tagElement.style.color = '#0d6efd';
+                tagElement.style.border = '1px solid rgba(13, 110, 253, 0.3)';
+                tagElement.style.fontSize = '0.75rem';
                 tagElement.textContent = tag;
                 tagsContainer.appendChild(tagElement);
             });
@@ -502,6 +556,19 @@ function completeProcessing() {
     
     if (stopBtn) stopBtn.classList.add('d-none');
     if (startBtn) startBtn.classList.remove('d-none');
+    
+    // Hide auto-process indicator
+    const autoProcessIndicator = document.getElementById('auto-process-indicator');
+    if (autoProcessIndicator) {
+        // Добавим анимацию исчезновения
+        autoProcessIndicator.style.opacity = '0';
+        autoProcessIndicator.style.transform = 'translateY(-10px)';
+        
+        // Скрыть после завершения анимации
+        setTimeout(() => {
+            autoProcessIndicator.style.display = 'none';
+        }, 500);
+    }
 }
 
 /**
