@@ -463,9 +463,14 @@ function updateCardWithAIResults(lead, leadCard) {
     leadCard.style.position = leadCard.style.position || 'relative';
     leadCard.appendChild(aiBadge);
     
-    // Find or create summary section if it doesn't exist
-    let aiSummary = leadCard.querySelector('.ai-summary');
-    if (!aiSummary) {
+    // Удаляем существующие блоки с результатами анализа ИИ, чтобы избежать дублирования
+    const existingSummaryContainer = leadCard.querySelector('.ai-summary-container');
+    if (existingSummaryContainer) {
+        existingSummaryContainer.remove();
+    }
+
+    // Создаем новый блок результатов анализа ИИ
+    {
         const cardBody = leadCard.querySelector('.card-body') || leadCard;
         
         // Create summary content - use mock if not available
@@ -498,7 +503,11 @@ function updateCardWithAIResults(lead, leadCard) {
         if (importantInfo && importantInfo.trim() !== '') {
             leadCard.setAttribute('data-important-info', importantInfo);
             
-            // Добавляем индикатор наличия важной информации
+            // Удаляем существующие индикаторы важной информации, чтобы избежать дублирования
+            const existingIndicators = leadCard.querySelectorAll('.important-info-indicator');
+            existingIndicators.forEach(indicator => indicator.remove());
+            
+            // Добавляем новый индикатор наличия важной информации
             const infoIndicator = document.createElement('div');
             infoIndicator.className = 'important-info-indicator position-absolute top-0 start-0 m-2';
             infoIndicator.innerHTML = '<i class="bi bi-exclamation-circle text-danger"></i>';
