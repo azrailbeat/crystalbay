@@ -79,7 +79,7 @@ class InquiryProcessor:
             
             # Update lead status
             if status != lead.get('status'):
-                LeadService.update_lead_status(lead_id, status)
+                LeadService.update_lead(lead_id, {'status': status})
                 
             # Add AI analysis as an interaction
             interaction_data = {
