@@ -30,6 +30,15 @@ _memory_ai_config = {
 _memory_ai_agents = {}
 _memory_lead_interactions = []
 
+# Переменная для совместимости с тестами
+_memory_agents_config = {
+    'model': 'gpt-4o',
+    'temperature': 0.2,
+    'active': True,
+    'default_response': 'Спасибо за ваш запрос. Мы обработаем его в ближайшее время и свяжемся с вами.',
+    'auto_process': False
+}
+
 # Sample leads data for demo when database is unavailable
 _memory_leads = [
     {
