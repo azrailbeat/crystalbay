@@ -1,46 +1,59 @@
 {% extends "layout.html" %}
 
-{% block title %}Crystal Bay Travel - Обращения клиентов{% endblock %}
+{% block title %}Crystal Bay Travel - Воронка обращений{% endblock %}
 
-{% block page_title %}Обращения клиентов{% endblock %}
+{% block page_title %}Воронка обращений{% endblock %}
 
 {% block head %}
 <style>
+    /* Header and Navigation Styling */
     .leads-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        padding-bottom: 1rem;
     }
     
-    .lead-filters {
-        display: flex;
-        gap: 0.75rem;
+    .lead-stats {
+        font-size: 0.9rem;
+        color: #666;
     }
     
+    /* Kanban Board Layout */
     .kanban-board {
         display: flex;
-        gap: 1rem;
+        gap: 1.25rem;
         overflow-x: auto;
         padding-bottom: 1rem;
-        min-height: 70vh;
+        min-height: 75vh;
     }
     
     .kanban-column {
-        min-width: 300px;
-        width: 300px;
-        background-color: var(--light-accent);
-        border-radius: var(--border-radius);
+        min-width: 320px;
+        width: 320px;
+        background-color: #f8f9fa; /* Light gray background for columns */
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
+        transition: box-shadow 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    
+    .kanban-column:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
     
     .kanban-column-header {
         padding: 1rem;
-        border-bottom: 1px solid var(--light-border);
+        border-bottom: 1px solid rgba(0,0,0,0.08);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background-color: white;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
     }
     
     .column-title {
@@ -48,14 +61,16 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        font-size: 0.95rem;
     }
     
     .column-count {
-        background-color: white;
+        background-color: #f2f3f5;
         border-radius: 20px;
-        padding: 0.25rem 0.75rem;
+        padding: 0.15rem 0.6rem;
         font-size: 0.8rem;
-        color: var(--secondary-color);
+        color: #666;
+        font-weight: normal;
     }
     
     .lead-list {
@@ -66,20 +81,26 @@
         transition: background-color 0.2s ease, border 0.2s ease;
     }
     
-    /* Стили для Drag and Drop */
+    /* Drag and Drop styles */
     .lead-list.drop-target {
-        background-color: rgba(13, 110, 253, 0.1);
-        border: 2px dashed rgba(13, 110, 253, 0.5);
-        border-radius: 0.375rem;
+        background-color: rgba(13, 110, 253, 0.05);
+        border: 2px dashed rgba(13, 110, 253, 0.2);
+        border-radius: 8px;
     }
     
+    /* Lead Card Styling - Apple-inspired light theme */
     .lead-card {
         background-color: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         padding: 1rem;
         margin-bottom: 1rem;
         transition: box-shadow 0.2s ease, transform 0.1s ease, opacity 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .lead-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
     
     /* Drag and Drop styles */
@@ -92,8 +113,8 @@
     }
     
     .lead-card.dragging {
-        opacity: 0.5;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        opacity: 0.7;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         transform: scale(1.02);
     }
     
@@ -103,7 +124,7 @@
     
     .lead-source {
         font-size: 0.75rem;
-        color: var(--secondary-color);
+        color: #888;
         margin-bottom: 0.5rem;
         display: flex;
         align-items: center;
@@ -111,18 +132,21 @@
     }
     
     .source-icon {
-        color: var(--primary-color);
+        color: #007aff; /* iOS blue color */
     }
     
     .lead-name {
         font-weight: 600;
         margin-bottom: 0.5rem;
+        font-size: 1rem;
+        color: #333;
     }
     
     .lead-details {
-        font-size: 0.9rem;
-        color: var(--secondary-color);
+        font-size: 0.85rem;
+        color: #666;
         margin-bottom: 0.75rem;
+        line-height: 1.4;
     }
     
     .lead-tags {
@@ -133,22 +157,23 @@
     }
     
     .lead-tag {
-        background-color: var(--light-accent);
+        background-color: #f2f3f5;
         border-radius: 20px;
         padding: 0.2rem 0.75rem;
         font-size: 0.75rem;
-        color: var(--text-color);
+        color: #555;
     }
     
     .lead-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
     }
     
     .lead-date {
-        color: var(--secondary-color);
+        color: #888;
     }
     
     .lead-actions {
@@ -159,14 +184,14 @@
     .lead-actions button {
         background: none;
         border: none;
-        color: var(--secondary-color);
+        color: #007aff; /* iOS blue */
         padding: 0.25rem;
         cursor: pointer;
         transition: color 0.2s ease;
     }
     
     .lead-actions button:hover {
-        color: var(--primary-color);
+        color: #0056b3; /* Darker blue */
     }
     
     .new-lead-btn {
@@ -176,39 +201,40 @@
         width: 100%;
         padding: 0.75rem;
         background-color: transparent;
-        border: 2px dashed var(--light-border);
-        border-radius: var(--border-radius);
-        color: var(--secondary-color);
+        border: 2px dashed rgba(0,0,0,0.1);
+        border-radius: 10px;
+        color: #888;
         cursor: pointer;
         transition: all 0.2s ease;
         font-size: 0.9rem;
+        margin-top: 0.5rem;
     }
     
     .new-lead-btn:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
+        border-color: #007aff;
+        color: #007aff;
     }
     
     .lead-avatar {
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background-color: var(--light-accent);
+        background-color: #f2f3f5;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--secondary-color);
-        font-size: 0.9rem;
+        color: #666;
+        font-size: 0.85rem;
         font-weight: 500;
     }
     
     /* Lead modal */
     .lead-modal .modal-header {
-        border-bottom: 1px solid var(--light-border);
+        border-bottom: 1px solid rgba(0,0,0,0.1);
     }
     
     .lead-modal .modal-footer {
-        border-top: 1px solid var(--light-border);
+        border-top: 1px solid rgba(0,0,0,0.1);
     }
     
     .modal-title {
@@ -223,7 +249,7 @@
         font-size: 0.85rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
-        color: var(--secondary-color);
+        color: #666;
     }
     
     .lead-info-value {
@@ -242,7 +268,7 @@
     
     .comment-item {
         padding: 0.75rem 0;
-        border-bottom: 1px solid var(--light-border);
+        border-bottom: 1px solid rgba(0,0,0,0.1);
     }
     
     .comment-item:last-child {
@@ -262,11 +288,61 @@
     
     .comment-date {
         font-size: 0.85rem;
-        color: var(--secondary-color);
+        color: #888;
     }
     
     .comment-content {
         font-size: 0.95rem;
+    }
+    
+    /* AI Badge for processed cards */
+    .ai-badge {
+        background-color: #f2f3f5;
+        border-radius: 4px;
+        padding: 0.1rem 0.4rem;
+        font-size: 0.7rem;
+        color: #666;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        margin-left: 0.5rem;
+    }
+    
+    .ai-badge .bi-robot {
+        font-size: 0.8rem;
+        color: #007aff;
+    }
+    
+    /* Auto-processing loading indicator */
+    .auto-processing {
+        position: relative;
+    }
+    
+    .processing-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255,255,255,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 10px;
+    }
+    
+    .processing-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f2f3f5;
+        border-top-color: #007aff;
+        border-radius: 50%;
+        animation: spinner 0.8s linear infinite;
+    }
+    
+    @keyframes spinner {
+        to {transform: rotate(360deg);}
     }
 </style>
 {% endblock %}
@@ -275,48 +351,50 @@
 <div class="container-fluid px-4">
     <!-- Leads Header -->
     <div class="leads-header">
-        <div class="lead-filters">
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    Фильтр
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">Все обращения</a></li>
-                    <li><a class="dropdown-item" href="#">Мои обращения</a></li>
-                    <li><a class="dropdown-item" href="#">Неназначенные</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#">Новые за сегодня</a></li>
-                    <li><a class="dropdown-item" href="#">Новые за неделю</a></li>
-                </ul>
+        <h5 class="mb-0">Управление и обслуживание процесса обработки обращений</h5>
+        <div class="d-flex align-items-center">
+            <div class="lead-stats me-4">
+                <span class="me-3">Всего: <span class="fw-bold">6</span></span>
+                <span class="me-3">Новые: <span class="fw-bold text-primary">0</span></span>
+                <span class="me-3">В работе: <span class="fw-bold text-warning">3</span></span>
+                <span class="me-3">Ожидание: <span class="fw-bold text-info">0</span></span>
+                <span class="me-3">Выполнено: <span class="fw-bold text-success">0</span></span>
             </div>
-            
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    Источник
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">Все источники</a></li>
-                    <li><a class="dropdown-item" href="#">Telegram</a></li>
-                    <li><a class="dropdown-item" href="#">Веб-сайт</a></li>
-                    <li><a class="dropdown-item" href="#">Телефон</a></li>
-                    <li><a class="dropdown-item" href="#">Email</a></li>
-                </ul>
-            </div>
-            
-            <div class="input-group">
-                <input type="text" class="form-control form-control-sm" placeholder="Поиск...">
-                <button class="btn btn-sm btn-outline-secondary" type="button">
+        </div>
+    </div>
+    
+    <!-- Search and Action Bar -->
+    <div class="d-flex justify-content-between mb-4 mt-3">
+        <div class="d-flex">
+            <div class="input-group me-3" style="width: 220px;">
+                <input type="text" class="form-control" placeholder="Поиск обращений...">
+                <button class="btn btn-outline-secondary" type="button">
                     <i class="bi bi-search"></i>
                 </button>
             </div>
             
-            <button id="auto-process-btn" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#autoProcessModal">
-                <i class="bi bi-robot"></i> Автообработка
+            <div class="input-group-text me-3">ИИ обработка:</div>
+            
+            <button class="btn btn-outline-success me-2" id="auto-process-btn">
+                <i class="bi bi-play-fill"></i> Авто-обработка
             </button>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Все статусы
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все статусы</a></li>
+                    <li><a class="dropdown-item" href="#">Новые</a></li>
+                    <li><a class="dropdown-item" href="#">В работе</a></li>
+                    <li><a class="dropdown-item" href="#">Ожидание</a></li>
+                    <li><a class="dropdown-item" href="#">Выполнено</a></li>
+                </ul>
+            </div>
         </div>
         
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
-            <i class="bi bi-plus"></i> Новое обращение
+            <i class="bi bi-plus"></i> Создать обращение
         </button>
     </div>
     
@@ -335,15 +413,17 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
+                <div class="lead-card auto-processing" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal" draggable="true">
                     <div class="lead-source">
                         <i class="bi bi-telegram source-icon"></i> Telegram
+                        <span class="ai-badge"><i class="bi bi-robot"></i> Обработано ИИ</span>
                     </div>
                     <div class="lead-name">Анна Смирнова</div>
-                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025</div>
+                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025. Интересуют отели 5* с аквапарком и детской анимацией.</div>
                     <div class="lead-tags">
                         <span class="lead-tag">Пляжный отдых</span>
                         <span class="lead-tag">Семья</span>
+                        <span class="lead-tag">Турция</span>
                     </div>
                     <div class="lead-footer">
                         <div class="lead-date">2 часа назад</div>
