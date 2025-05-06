@@ -7,7 +7,7 @@
  * 
  * @module drag-and-drop
  * @author Crystal Bay Travel
- * @version 1.2.0
+ * @version 1.3.0
  */
 
 /**
@@ -38,6 +38,7 @@ const CONFIG = {
         dragging: 'dragging',
         dropTarget: 'drop-target',
         leadTag: 'lead-tag',
+        borderSuccess: 'border-success',
     },
     
     /**
@@ -47,245 +48,259 @@ const CONFIG = {
     api: {
         updateStatus: '/api/leads/{id}/status',
         fetchLead: '/api/leads/{id}',
+        fetchInteractions: '/api/leads/{id}/interactions',
     },
     
     /**
-     * Timing configurations (in milliseconds)
+     * Timing for animations and effects (in milliseconds)
      * @memberof Config
      */
     timing: {
-        fadeTransition: 0,
-        statusUpdateDelay: 1500,
+        visualFeedback: 1000,
+        toastDisplay: 5000,
     },
+    
+    /**
+     * Status mapping for column indices
+     * @memberof Config
+     */
+    statusMapping: [
+        { id: 'new', name: 'Новый' },
+        { id: 'in_progress', name: 'В работе' },
+        { id: 'negotiation', name: 'Переговоры' },
+        { id: 'booked', name: 'Забронировано' },
+        { id: 'canceled', name: 'Отменено' }
+    ]
 };
 
-// Store for currently dragged card
-let draggedItem = null;
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing drag and drop functionality');
-    initDragAndDrop();
-    
-    // Add test functionality in development mode
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        runDragAndDropTests();
-    }
-});
+// Global variables for drag and drop state
+let draggedCard = null;
 
 /**
- * Initialize drag and drop for all lead cards
- * @function initDragAndDrop
+ * Initialize all drag and drop functionality
  */
 function initDragAndDrop() {
-    // Add ID to cards that don't have one
-    const cardsWithoutId = document.querySelectorAll('.lead-card:not([data-lead-id])');
-    console.log(`Adding IDs to ${cardsWithoutId.length} cards without data-lead-id`);
+    console.log('Initializing drag and drop...');
     
-    cardsWithoutId.forEach((card, index) => {
-        const cardId = 1000 + index;
-        card.setAttribute('data-lead-id', cardId);
-        console.log(`Added ID ${cardId} to card`);
-    });
-    
-    // Get all cards
-    const cards = document.querySelectorAll('.lead-card');
-    console.log(`Found ${cards.length} cards to initialize`);
-    
-    // Setup drag handlers for each card
-    cards.forEach(card => {
-        card.setAttribute('draggable', 'true');
+    try {
+        // Clean any existing event listeners first
+        cleanupExistingListeners();
         
-        // Add drag start and end event listeners
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
+        // Setup card drag events
+        setupCardDragEvents();
         
-        // Modify card to handle clicks for viewing details separately from drag
-        setupCardForClicks(card);
+        // Setup column drop events
+        setupColumnDropEvents();
         
-        console.log(`Card ${card.getAttribute('data-lead-id')} initialized for drag`);
-    });
-    
-    // Setup drop targets (the columns)
-    const columns = document.querySelectorAll('.lead-list');
-    console.log(`Found ${columns.length} columns to set as drop targets`);
-    
-    columns.forEach((column, index) => {
-        column.addEventListener('dragover', handleDragOver);
-        column.addEventListener('dragenter', handleDragEnter);
-        column.addEventListener('dragleave', handleDragLeave);
-        column.addEventListener('drop', handleDrop);
-        console.log(`Column ${index} initialized for drop`);
-    });
-    
-    // Update column counts initially
-    updateColumnCounts();
-    console.log('Drag and drop initialization complete');
+        // Update column counts initially
+        updateColumnCounts();
+        
+        console.log('Drag and drop initialized successfully');
+    } catch (error) {
+        console.error('Error initializing drag and drop:', error);
+    }
 }
 
 /**
- * Handle the start of drag
- * 
- * @function handleDragStart
- * @param {DragEvent} e - The drag event
- * @returns {boolean} - Returns true to allow drag, false to cancel
+ * Clean up any existing event listeners (useful for re-initialization)
  */
-function handleDragStart(e) {
+function cleanupExistingListeners() {
     try {
-        // Skip if dragging from buttons or actions
-        if (e.target && 
-            (typeof e.target.closest === 'function' && (
-                e.target.closest('.lead-actions') || 
-                e.target.closest('button')
-            ) || 
-            e.target.tagName === 'BUTTON')) {
-            console.log('Ignoring drag from button or action');
+        // Remove drag and drop listeners from cards
+        document.querySelectorAll(CONFIG.selectors.leadCard).forEach(card => {
+            card.removeAttribute('draggable');
+            
+            // Clone to remove all event listeners
+            const clone = card.cloneNode(true);
+            if (card.parentNode) {
+                card.parentNode.replaceChild(clone, card);
+            }
+        });
+        
+        // Remove listeners from columns
+        document.querySelectorAll(CONFIG.selectors.leadList).forEach(list => {
+            const clone = list.cloneNode(false);
+            
+            // Move all children to the clone
+            while (list.firstChild) {
+                clone.appendChild(list.firstChild);
+            }
+            
+            if (list.parentNode) {
+                list.parentNode.replaceChild(clone, list);
+            }
+        });
+        
+        console.log('Existing event listeners cleaned up');
+    } catch (error) {
+        console.error('Error cleaning up event listeners:', error);
+    }
+}
+
+/**
+ * Set up drag events on all lead cards
+ */
+function setupCardDragEvents() {
+    try {
+        const cards = document.querySelectorAll(CONFIG.selectors.leadCard);
+        console.log(`Found ${cards.length} cards to make draggable`);
+        
+        cards.forEach((card, index) => {
+            // Ensure each card has an ID
+            if (!card.hasAttribute('data-lead-id')) {
+                const cardId = `temp-${index}`;
+                card.setAttribute('data-lead-id', cardId);
+                console.log(`Added temporary ID ${cardId} to card`);
+            }
+            
+            // Make the card draggable
+            card.setAttribute('draggable', 'true');
+            
+            // Add drag event listeners
+            card.addEventListener('dragstart', handleCardDragStart);
+            card.addEventListener('dragend', handleCardDragEnd);
+            
+            // Add click event for viewing details
+            card.addEventListener('click', handleCardClick);
+            
+            console.log(`Card ${card.getAttribute('data-lead-id')} is now draggable`);
+        });
+    } catch (error) {
+        console.error('Error setting up card drag events:', error);
+    }
+}
+
+/**
+ * Set up drop events on all columns
+ */
+function setupColumnDropEvents() {
+    try {
+        const columns = document.querySelectorAll(CONFIG.selectors.leadList);
+        console.log(`Found ${columns.length} columns for drop targets`);
+        
+        columns.forEach((column, index) => {
+            column.addEventListener('dragover', handleColumnDragOver);
+            column.addEventListener('dragenter', handleColumnDragEnter);
+            column.addEventListener('dragleave', handleColumnDragLeave);
+            column.addEventListener('drop', handleColumnDrop);
+            console.log(`Column ${index} is now a drop target`);
+        });
+    } catch (error) {
+        console.error('Error setting up column drop events:', error);
+    }
+}
+
+/**
+ * Handle the start of dragging a card
+ * @param {DragEvent} e - The drag event
+ */
+function handleCardDragStart(e) {
+    try {
+        // Don't start drag if clicking on action buttons
+        if (e.target.closest(CONFIG.selectors.leadActions) || 
+            e.target.tagName === 'BUTTON' || 
+            e.target.closest('button')) {
             e.preventDefault();
-            e.stopPropagation();
             return false;
         }
         
-        // Store the dragged card reference
-        draggedItem = this;
+        // Store reference to dragged card
+        draggedCard = this;
         
         // Add visual effect
         this.classList.add(CONFIG.classes.dragging);
+        
+        // Store card ID in the data transfer
+        const leadId = this.getAttribute('data-lead-id');
+        e.dataTransfer.setData('text/plain', leadId);
+        e.dataTransfer.effectAllowed = 'move';
+        
+        console.log(`Started dragging card ${leadId}`);
+        
+        // Opacity effect with delay
         setTimeout(() => {
-            if (this.style) {
+            if (this && this.style) {
                 this.style.opacity = '0.4';
             }
         }, 0);
         
-        // Set data for transfer
-        e.dataTransfer.effectAllowed = 'move';
-        const leadId = this.getAttribute('data-lead-id');
-        if (!leadId) {
-            console.warn('Card has no lead ID, cannot drag properly');
-        }
-        e.dataTransfer.setData('text/plain', leadId || 'undefined');
-        
-        console.log(`Started dragging card ${leadId}`);
         return true;
     } catch (error) {
-        console.error('Error in handleDragStart:', error);
+        console.error('Error in card drag start handler:', error);
         return false;
     }
 }
 
 /**
- * Handle the end of drag
- * 
- * @function handleDragEnd
+ * Handle the end of dragging a card
  * @param {DragEvent} e - The drag event
  */
-function handleDragEnd(e) {
+function handleCardDragEnd(e) {
     try {
-        // Remove visual effects
-        if (this && this.classList) {
-            this.classList.remove(CONFIG.classes.dragging);
-            if (this.style) {
-                this.style.opacity = '1';
-            }
+        // Reset visual appearance
+        this.classList.remove(CONFIG.classes.dragging);
+        
+        if (this && this.style) {
+            this.style.opacity = '';
         }
         
-        // Remove drop target highlighting from all columns
-        document.querySelectorAll(CONFIG.selectors.leadList).forEach(column => {
-            if (column && column.classList) {
-                column.classList.remove(CONFIG.classes.dropTarget);
-            }
+        // Remove drop target highlights
+        document.querySelectorAll(CONFIG.selectors.leadList).forEach(list => {
+            list.classList.remove(CONFIG.classes.dropTarget);
         });
         
-        console.log('Drag ended');
+        console.log('Card drag ended');
     } catch (error) {
-        console.error('Error in handleDragEnd:', error);
+        console.error('Error in card drag end handler:', error);
     }
 }
 
 /**
- * Handle drag over event (needed to allow drops)
+ * Handle dragover event on columns (needed to allow drops)
+ * @param {DragEvent} e - The drag event
  */
-function handleDragOver(e) {
-    // Prevent default to allow drop
+function handleColumnDragOver(e) {
     e.preventDefault();
     return false;
 }
 
 /**
- * Handle drag enter event
- * 
- * @function handleDragEnter
+ * Handle dragenter event on columns (for visual feedback)
  * @param {DragEvent} e - The drag event
  */
-function handleDragEnter(e) {
-    // Add highlight to show this is a valid drop target
-    try {
-        if (this && this.classList) {
-            this.classList.add(CONFIG.classes.dropTarget);
-        }
-    } catch (error) {
-        console.error('Error in handleDragEnter:', error);
-    }
+function handleColumnDragEnter(e) {
+    this.classList.add(CONFIG.classes.dropTarget);
 }
 
 /**
- * Handle drag leave event
- * 
- * @function handleDragLeave
+ * Handle dragleave event on columns (for visual feedback)
  * @param {DragEvent} e - The drag event
  */
-function handleDragLeave(e) {
-    // Remove highlight
-    try {
-        if (this && this.classList) {
-            this.classList.remove(CONFIG.classes.dropTarget);
-        }
-    } catch (error) {
-        console.error('Error in handleDragLeave:', error);
-    }
+function handleColumnDragLeave(e) {
+    this.classList.remove(CONFIG.classes.dropTarget);
 }
 
 /**
- * Handle drop event when a card is dropped on a column
- * 
- * @function handleDrop
+ * Handle drop event on columns
  * @param {DragEvent} e - The drag event
- * @returns {boolean} - Returns false to prevent default browser behavior
  */
-function handleDrop(e) {
+function handleColumnDrop(e) {
     try {
-        // Prevent default browser behavior
         e.preventDefault();
         e.stopPropagation();
         
-        // Remove highlight
-        if (this && this.classList) {
-            this.classList.remove(CONFIG.classes.dropTarget);
-        }
+        // Remove visual feedback
+        this.classList.remove(CONFIG.classes.dropTarget);
         
-        // Get the dragged card ID
-        let leadId = 'undefined';
-        try {
-            leadId = e.dataTransfer.getData('text/plain');
-        } catch (transferError) {
-            console.error('Error getting transfer data:', transferError);
-        }
-        
-        console.log(`Drop detected for lead ID: ${leadId}`);
-        
-        // Ignore if leadId is invalid
-        if (leadId === 'undefined' || !leadId) {
-            console.warn('Invalid lead ID for drop operation');
-            return false;
-        }
-        
-        // Check if we have a dragged item
-        if (!draggedItem) {
-            console.error('No card being dragged');
+        // Get the card ID from the data transfer
+        const leadId = e.dataTransfer.getData('text/plain');
+        if (!leadId || !draggedCard) {
+            console.error('Missing lead ID or dragged card reference');
             return false;
         }
         
         // Get source and target columns
-        const sourceColumn = draggedItem.closest(CONFIG.selectors.kanbanColumn);
+        const sourceColumn = draggedCard.closest(CONFIG.selectors.kanbanColumn);
         const targetColumn = this.closest(CONFIG.selectors.kanbanColumn);
         
         if (!sourceColumn || !targetColumn) {
@@ -293,172 +308,294 @@ function handleDrop(e) {
             return false;
         }
         
-        // Only move if dropping in a different column
+        // Only move between different columns
         if (sourceColumn !== targetColumn) {
-            console.log('Moving card between different columns');
+            console.log('Moving card between columns');
             
-            // Get column indexes to determine status
+            // Get column indices
             const columns = Array.from(document.querySelectorAll(CONFIG.selectors.kanbanColumn));
             const sourceIndex = columns.indexOf(sourceColumn);
             const targetIndex = columns.indexOf(targetColumn);
             
-            console.log(`Moving from column ${sourceIndex} to ${targetIndex}`);
-            
-            // Map column index to status
+            // Get the new status based on target column
             const newStatus = getStatusByColumnIndex(targetIndex);
-            console.log(`New status will be: ${newStatus}`);
+            console.log(`Moving from column ${sourceIndex} to ${targetIndex}, new status: ${newStatus}`);
             
-            // Move the card to the new column
-            moveCardToColumn(draggedItem, this);
+            // Move the card in the DOM
+            const dropList = this;
+            const addButton = dropList.querySelector(CONFIG.selectors.newLeadBtn);
+            
+            if (addButton) {
+                dropList.insertBefore(draggedCard, addButton);
+            } else {
+                dropList.appendChild(draggedCard);
+            }
             
             // Update column counts
             updateColumnCounts();
             
-            // Send API request to update the status
-            updateLeadStatus(leadId, newStatus)
-                .then(success => {
-                    // If update failed, move card back to original column
-                    if (!success) {
-                        const sourceList = sourceColumn.querySelector(CONFIG.selectors.leadList);
-                        if (sourceList) {
-                            moveCardToColumn(draggedItem, sourceList);
-                            updateColumnCounts();
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error in API call to update status:', error);
-                    // Move card back on error
-                    const sourceList = sourceColumn.querySelector(CONFIG.selectors.leadList);
-                    if (sourceList) {
-                        moveCardToColumn(draggedItem, sourceList);
-                        updateColumnCounts();
-                    }
-                    showToast('Ошибка при обновлении статуса. Карточка возвращена на исходную позицию.', 'danger');
-                });
+            // Show visual feedback
+            showSuccessIndicator(draggedCard);
             
-            // Show confirmation toast (optimistic UI)
-            showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
+            // Update the status on the server
+            updateLeadStatus(leadId, newStatus);
         } else {
             console.log('Same column drop, not moving');
         }
-    } catch (error) {
-        console.error('Error handling drop:', error);
-        // Show error message to user
-        showToast('Ошибка при перемещении карточки', 'danger');
-    }
-    
-    return false;
-}
-
-/**
- * Helper function to move a card to a column
- * 
- * @function moveCardToColumn
- * @param {HTMLElement} card - The card element to move
- * @param {HTMLElement} columnList - The target column list element
- */
-function moveCardToColumn(card, columnList) {
-    if (!card || !columnList) return;
-    
-    // Add card to the new column (before the 'add' button if it exists)
-    const addButton = columnList.querySelector(CONFIG.selectors.newLeadBtn);
-    if (addButton) {
-        columnList.insertBefore(card, addButton);
-    } else {
-        columnList.appendChild(card);
-    }
-}
-
-/**
- * Setup card for handling clicks separate from drag
- * 
- * @function setupCardForClicks
- * @param {HTMLElement} card - The card element to setup
- */
-function setupCardForClicks(card) {
-    try {
-        // Remove modal triggers to handle event ourselves
-        card.removeAttribute('data-bs-toggle');
-        card.removeAttribute('data-bs-target');
         
-        // Add click handler for opening modal
-        card.addEventListener('click', function(e) {
-            try {
-                // Don't open modal if clicking buttons or actions
-                if (e.target && (
-                    (typeof e.target.closest === 'function' && (
-                        e.target.closest('.lead-actions') || 
-                        e.target.closest('button')
-                    )) || 
-                    e.target.tagName === 'BUTTON'
-                )) {
-                    return;
-                }
-                
-                // Get lead ID and open modal
-                const leadId = this.getAttribute('data-lead-id');
-                console.log(`Card clicked, opening modal for lead ID: ${leadId}`);
-                
-                if (!leadId) {
-                    console.warn('Card clicked without valid lead ID');
-                    return;
-                }
-                
-                // Open modal with lead data
-                openLeadModal(leadId);
-            } catch (clickError) {
-                console.error('Error in card click handler:', clickError);
-            }
-        });
+        return false;
     } catch (error) {
-        console.error('Error setting up card for clicks:', error);
+        console.error('Error in column drop handler:', error);
+        return false;
     }
 }
 
 /**
- * Map column index to status code
+ * Handle click on a lead card to show details
+ * @param {MouseEvent} e - The click event
  */
-function getStatusByColumnIndex(index) {
-    const statusMap = [
-        'new',            // 0 - Новые
-        'in_progress',    // 1 - В работе
-        'negotiation',    // 2 - Переговоры
-        'booked',         // 3 - Забронировано
-        'canceled'        // 4 - Отменено
-    ];
-    
-    return statusMap[index] || 'new';
+function handleCardClick(e) {
+    try {
+        // Don't open modal if clicking buttons or action area
+        if (e.target.closest(CONFIG.selectors.leadActions) || 
+            e.target.tagName === 'BUTTON' || 
+            e.target.closest('button')) {
+            return;
+        }
+        
+        const leadId = this.getAttribute('data-lead-id');
+        console.log(`Card clicked, opening details for lead ID: ${leadId}`);
+        
+        // Show modal with lead data
+        openLeadModal(leadId);
+    } catch (error) {
+        console.error('Error handling card click:', error);
+    }
 }
 
 /**
- * Map status code to display name
+ * Open the lead details modal
+ * @param {string} leadId - The ID of the lead to show
  */
-function getStatusName(status) {
-    const statusMap = {
-        'new': 'Новый',
-        'in_progress': 'В работе',
-        'negotiation': 'Переговоры',
-        'booked': 'Забронировано',
-        'canceled': 'Отменено',
-        'pending': 'В ожидании',
-        'confirmed': 'Подтвержден',
-        'closed': 'Закрыт'
-    };
-    
-    return statusMap[status] || status;
+function openLeadModal(leadId) {
+    try {
+        const modalElement = document.getElementById('viewLeadModal');
+        if (!modalElement) {
+            console.error('Modal element not found');
+            return;
+        }
+        
+        // Store the lead ID in the modal
+        modalElement.setAttribute('data-lead-id', leadId);
+        
+        // Create and show the Bootstrap modal
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // Update the modal content
+        updateModalContent(leadId, modalElement);
+        
+        // Show the modal
+        modal.show();
+    } catch (error) {
+        console.error('Error opening lead modal:', error);
+    }
 }
 
 /**
- * Update card status via API
+ * Update the content of the modal with lead data
+ * @param {string} leadId - The ID of the lead
+ * @param {HTMLElement} modalElement - The modal element
+ */
+async function updateModalContent(leadId, modalElement) {
+    try {
+        // Set a loading state
+        modalElement.querySelector('.modal-title').textContent = 'Загрузка...';
+        
+        // Fetch lead data
+        const leadData = await fetchLeadData(leadId);
+        
+        if (leadData) {
+            // Update modal title and basic info
+            modalElement.querySelector('.modal-title').textContent = leadData.customer_name || 'Без имени';
+            
+            // Update other fields if they exist
+            const fields = {
+                '.lead-source-info': leadData.source || 'Неизвестный источник',
+                '.lead-email': leadData.customer_email || 'Нет данных',
+                '.lead-phone': leadData.customer_phone || 'Нет данных',
+                '.lead-status': getStatusName(leadData.status),
+                '.lead-created': formatDate(leadData.created_at),
+                '.lead-notes': leadData.notes || 'Нет заметок'
+            };
+            
+            // Update each field if it exists in the modal
+            Object.entries(fields).forEach(([selector, value]) => {
+                const element = modalElement.querySelector(selector);
+                if (element) {
+                    element.textContent = value;
+                }
+            });
+            
+            // Fetch and display interactions
+            loadLeadInteractions(leadId, modalElement);
+        } else {
+            modalElement.querySelector('.modal-title').textContent = 'Ошибка загрузки';
+        }
+    } catch (error) {
+        console.error('Error updating modal content:', error);
+        modalElement.querySelector('.modal-title').textContent = 'Ошибка загрузки';
+    }
+}
+
+/**
+ * Fetch lead data from the API
+ * @param {string} leadId - The ID of the lead
+ * @returns {Promise<object|null>} The lead data or null if an error occurs
+ */
+async function fetchLeadData(leadId) {
+    try {
+        const url = CONFIG.api.fetchLead.replace('{id}', leadId);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.lead;
+    } catch (error) {
+        console.error('Error fetching lead data:', error);
+        showToast('Ошибка загрузки данных обращения', 'danger');
+        return null;
+    }
+}
+
+/**
+ * Load and display lead interactions in the modal
+ * @param {string} leadId - The ID of the lead
+ * @param {HTMLElement} modalElement - The modal element
+ */
+async function loadLeadInteractions(leadId, modalElement) {
+    try {
+        const url = CONFIG.api.fetchInteractions.replace('{id}', leadId);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const interactionsList = modalElement.querySelector('.comment-list');
+        
+        if (interactionsList && data.interactions && data.interactions.length > 0) {
+            interactionsList.innerHTML = '';
+            
+            data.interactions.forEach(interaction => {
+                const interactionHtml = createInteractionHtml(interaction);
+                interactionsList.insertAdjacentHTML('beforeend', interactionHtml);
+            });
+        } else if (interactionsList) {
+            interactionsList.innerHTML = '<div class="no-interactions">Нет истории взаимодействий</div>';
+        }
+    } catch (error) {
+        console.error('Error loading interactions:', error);
+        showToast('Ошибка загрузки взаимодействий', 'danger');
+    }
+}
+
+/**
+ * Create HTML for a single interaction
+ * @param {object} interaction - The interaction data
+ * @returns {string} HTML string for the interaction
+ */
+function createInteractionHtml(interaction) {
+    const date = formatDate(interaction.created_at);
+    const author = interaction.agent_name || 'Система';
+    const initials = getInitials(author);
+    
+    // Special styling for AI interactions
+    const isAiAnalysis = interaction.type === 'ai_analysis';
+    const aiClass = isAiAnalysis ? 'ai-interaction' : '';
+    
+    return `
+        <div class="comment-item ${aiClass}">
+            <div class="comment-header">
+                <span class="lead-avatar ${isAiAnalysis ? 'ai-avatar' : ''}">
+                    ${isAiAnalysis ? '<i class="bi bi-cpu"></i>' : initials}
+                </span>
+                <span class="comment-author">${author}</span>
+                <span class="comment-date">${date}</span>
+            </div>
+            <div class="comment-content">
+                ${formatInteractionNotes(interaction.notes)}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Get initials from a name
+ * @param {string} name - The name to get initials from
+ * @returns {string} The initials
+ */
+function getInitials(name) {
+    if (!name) return '??';
+    
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+        return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    
+    return name.substring(0, 2).toUpperCase();
+}
+
+/**
+ * Format interaction notes with HTML line breaks
+ * @param {string} notes - The notes to format
+ * @returns {string} Formatted notes
+ */
+function formatInteractionNotes(notes) {
+    if (!notes) return 'Нет данных';
+    return notes.replace(/\n/g, '<br>');
+}
+
+/**
+ * Format a date string for display
+ * @param {string} dateStr - The date string
+ * @returns {string} Formatted date
+ */
+function formatDate(dateStr) {
+    if (!dateStr) return 'Нет даты';
+    
+    try {
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateStr;
+    }
+}
+
+/**
+ * Update the lead status on the server
+ * @param {string} leadId - The ID of the lead
+ * @param {string} newStatus - The new status
  */
 async function updateLeadStatus(leadId, newStatus) {
     try {
-        // Show status update notification
+        const url = CONFIG.api.updateStatus.replace('{id}', leadId);
+        
+        // Notify that update is in progress
         showToast(`Обновление статуса обращения #${leadId}...`, 'info');
         
         // Send API request
-        const response = await fetch(`/api/leads/${leadId}/status`, {
+        const response = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -467,7 +604,7 @@ async function updateLeadStatus(leadId, newStatus) {
         });
         
         if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+            throw new Error(`API error: ${response.status}`);
         }
         
         const data = await response.json();
@@ -484,531 +621,123 @@ async function updateLeadStatus(leadId, newStatus) {
 }
 
 /**
- * Update counts in all columns
+ * Show visual success indicator on a card
+ * @param {HTMLElement} card - The card element
+ */
+function showSuccessIndicator(card) {
+    if (!card) return;
+    
+    card.classList.add(CONFIG.classes.borderSuccess);
+    setTimeout(() => {
+        card.classList.remove(CONFIG.classes.borderSuccess);
+    }, CONFIG.timing.visualFeedback);
+}
+
+/**
+ * Update the count displays in all columns
  */
 function updateColumnCounts() {
-    document.querySelectorAll('.kanban-column').forEach((column, index) => {
-        const countElement = column.querySelector('.column-count');
-        if (countElement) {
-            const cardsCount = column.querySelectorAll('.lead-card').length;
-            countElement.textContent = cardsCount.toString();
-            console.log(`Column ${index} now has ${cardsCount} cards`);
-        }
-    });
-}
-
-/**
- * Open lead details modal
- */
-function openLeadModal(leadId) {
-    const viewLeadModal = document.getElementById('viewLeadModal');
-    if (!viewLeadModal) {
-        console.error('Modal element not found');
-        return;
-    }
-    
-    const bsModal = new bootstrap.Modal(viewLeadModal);
-    
-    // Set lead ID in modal
-    viewLeadModal.setAttribute('data-lead-id', leadId);
-    
-    // Show modal
-    bsModal.show();
-    
-    // Load lead data
-    fetchLeadData(leadId).then(data => {
-        populateLeadModal(data);
-    }).catch(error => {
-        console.error('Error fetching lead data:', error);
-        showToast('Ошибка загрузки данных обращения', 'danger');
-    });
-}
-
-/**
- * Fetch lead data from API
- */
-async function fetchLeadData(leadId) {
     try {
-        const response = await fetch(`/api/leads/${leadId}`);
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
+        document.querySelectorAll(CONFIG.selectors.kanbanColumn).forEach((column, index) => {
+            const cardsCount = column.querySelectorAll(CONFIG.selectors.leadCard).length;
+            const countEl = column.querySelector(CONFIG.selectors.columnCount);
+            
+            if (countEl) {
+                countEl.textContent = cardsCount;
+            }
+            
+            console.log(`Column ${index} now has ${cardsCount} cards`);
+        });
     } catch (error) {
-        console.error('Error fetching lead data:', error);
-        throw error;
+        console.error('Error updating column counts:', error);
     }
 }
 
 /**
- * Populate lead modal with data
+ * Get status code by column index
+ * @param {number} index - Column index
+ * @returns {string} Status code
  */
-function populateLeadModal(data) {
-    const modal = document.getElementById('viewLeadModal');
-    if (!modal || !data || !data.lead) {
-        console.error('Modal element not found or invalid data');
-        return;
-    }
-    
-    const lead = data.lead;
-    
-    // Set modal title
-    const titleEl = modal.querySelector('.modal-title');
-    if (titleEl) {
-        titleEl.textContent = `Обращение #${lead.id}: ${lead.name || 'Без имени'}`;
-    }
-    
-    // Set lead details
-    const nameEl = modal.querySelector('#lead-name');
-    if (nameEl) nameEl.textContent = lead.name || 'Не указано';
-    
-    const emailEl = modal.querySelector('#lead-email');
-    if (emailEl) emailEl.textContent = lead.email || 'Не указано';
-    
-    const phoneEl = modal.querySelector('#lead-phone');
-    if (phoneEl) phoneEl.textContent = lead.phone || 'Не указано';
-    
-    const sourceEl = modal.querySelector('#lead-source');
-    if (sourceEl) sourceEl.textContent = lead.source || 'Не указано';
-    
-    const dateEl = modal.querySelector('#lead-date');
-    if (dateEl) dateEl.textContent = lead.created_at ? new Date(lead.created_at).toLocaleString() : 'Не указано';
-    
-    const statusSelect = modal.querySelector('#lead-status-select');
-    if (statusSelect) statusSelect.value = lead.status || 'new';
-    
-    const detailsEl = modal.querySelector('#lead-details');
-    if (detailsEl) detailsEl.textContent = lead.details || lead.message || 'Нет дополнительной информации';
-    
-    const tagsEl = modal.querySelector('#lead-tags');
-    if (tagsEl) {
-        tagsEl.innerHTML = '';
-        if (lead.tags && lead.tags.length > 0) {
-            lead.tags.forEach(tag => {
-                const tagSpan = document.createElement('span');
-                tagSpan.className = 'lead-tag me-2';
-                tagSpan.textContent = tag;
-                tagsEl.appendChild(tagSpan);
-            });
-        } else {
-            tagsEl.textContent = 'Нет тегов';
-        }
-    }
-    
-    // Populate interactions
-    const interactionsEl = modal.querySelector('#lead-interactions');
-    if (interactionsEl) {
-        interactionsEl.innerHTML = '';
-        if (data.interactions && data.interactions.length > 0) {
-            data.interactions.forEach(interaction => {
-                const commentDiv = document.createElement('div');
-                commentDiv.className = 'comment-item';
-                
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'comment-header';
-                
-                const authorSpan = document.createElement('span');
-                authorSpan.className = 'comment-author';
-                authorSpan.textContent = interaction.user_name || 'Система';
-                
-                const dateSpan = document.createElement('span');
-                dateSpan.className = 'comment-date';
-                dateSpan.textContent = interaction.created_at ? new Date(interaction.created_at).toLocaleString() : 'Неизвестно';
-                
-                headerDiv.appendChild(authorSpan);
-                headerDiv.appendChild(dateSpan);
-                
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'comment-content';
-                contentDiv.textContent = interaction.content || 'Пустое сообщение';
-                
-                commentDiv.appendChild(headerDiv);
-                commentDiv.appendChild(contentDiv);
-                
-                interactionsEl.appendChild(commentDiv);
-            });
-        } else {
-            interactionsEl.innerHTML = '<div class="text-center py-3">Нет записей о взаимодействиях</div>';
-        }
-    }
+function getStatusByColumnIndex(index) {
+    return CONFIG.statusMapping[index]?.id || 'new';
 }
 
 /**
- * Helper function to show toast notifications
+ * Get status display name by status code
+ * @param {string} statusCode - Status code
+ * @returns {string} Status display name
+ */
+function getStatusName(statusCode) {
+    const status = CONFIG.statusMapping.find(s => s.id === statusCode);
+    return status ? status.name : 'Неизвестный';
+}
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to show
+ * @param {string} type - The type of toast (success, info, warning, danger)
  */
 function showToast(message, type = 'info') {
-    // Check if we already have a toast container
-    let toastContainer = document.querySelector('.toast-container');
-    
-    // Create container if it doesn't exist
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
+    try {
+        // Check if showToast function is defined globally
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type);
+        } else {
+            // Create a toast if global function doesn't exist
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-0 end-0 m-3`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: CONFIG.timing.toastDisplay
+            });
+            
+            bsToast.show();
+            
+            // Remove from DOM after hiding
+            toast.addEventListener('hidden.bs.toast', () => {
+                document.body.removeChild(toast);
+            });
+        }
+    } catch (error) {
+        console.error('Error showing toast:', error);
     }
-    
-    // Create toast element
-    const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-white bg-${type}`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-    toastEl.setAttribute('id', toastId);
-    
-    // Create toast content
-    const toastContent = document.createElement('div');
-    toastContent.className = 'd-flex';
-    
-    const toastBody = document.createElement('div');
-    toastBody.className = 'toast-body';
-    toastBody.textContent = message;
-    
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'btn-close btn-close-white me-2 m-auto';
-    closeButton.setAttribute('data-bs-dismiss', 'toast');
-    closeButton.setAttribute('aria-label', 'Close');
-    
-    toastContent.appendChild(toastBody);
-    toastContent.appendChild(closeButton);
-    toastEl.appendChild(toastContent);
-    
-    // Add toast to container
-    toastContainer.appendChild(toastEl);
-    
-    // Initialize and show toast
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-    
-    // Remove toast element after hiding
-    toastEl.addEventListener('hidden.bs.toast', function () {
-        toastEl.remove();
-    });
 }
 
-/**
- * Auto-process leads functionality
- */
+// Initialize drag and drop when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    initAutoProcessButtons();
+    try {
+        console.log('DOM loaded, initializing drag and drop');
+        initDragAndDrop();
+        
+        // Show initial page load notification
+        setTimeout(() => {
+            const totalCards = document.querySelectorAll(CONFIG.selectors.leadCard).length;
+            showToast(`Загружено ${totalCards} обращений`, 'info');
+        }, 500);
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 
-/**
- * Initialize buttons for auto-processing
- */
-function initAutoProcessButtons() {
-    // Start process button in modal
-    const startProcessBtn = document.getElementById('start-process-btn');
-    const stopProcessBtn = document.getElementById('stop-process-btn');
-    
-    if (startProcessBtn) {
-        startProcessBtn.addEventListener('click', startAutoProcess);
-    }
-    
-    if (stopProcessBtn) {
-        stopProcessBtn.addEventListener('click', stopAutoProcess);
-    }
-}
-
-/**
- * Start the auto processing flow
- */
-function startAutoProcess() {
-    // Show stop button, hide start button
-    const startBtn = document.getElementById('start-process-btn');
-    const stopBtn = document.getElementById('stop-process-btn');
-    
-    if (startBtn) startBtn.classList.add('d-none');
-    if (stopBtn) stopBtn.classList.remove('d-none');
-    
-    // Reset UI
-    updateProcessingUI('Начало обработки обращений...', 5);
-    clearProcessLog();
-    logProcessAction('Запуск автоматической обработки обращений');
-    
-    // Get process scope
-    const scopeSelect = document.getElementById('process-scope');
-    const scope = scopeSelect ? scopeSelect.value : 'new';
-    
-    // Get options
-    const analyzeChecked = document.getElementById('analyze-check')?.checked || false;
-    const categorizeChecked = document.getElementById('categorize-check')?.checked || false;
-    const responseChecked = document.getElementById('response-check')?.checked || false;
-    const statusChecked = document.getElementById('status-check')?.checked || false;
-    const showAnimation = document.getElementById('show-animation')?.checked || false;
-    
-    // Log selected options
-    logProcessAction(`Параметры обработки: ${scope === 'new' ? 'только новые' : scope === 'all' ? 'все активные' : 'выбранные'}`);
-    
-    if (analyzeChecked) logProcessAction('✓ Анализ содержимого включен');
-    if (categorizeChecked) logProcessAction('✓ Категоризация включена');
-    if (responseChecked) logProcessAction('✓ Подготовка ответов включена');
-    if (statusChecked) logProcessAction('✓ Изменение статусов включено');
-    
-    // Start progress animation
-    updateProcessingUI('Получение обращений для обработки...', 10);
-    
-    // Make API call to process all
-    processAllInquiries(scope, {
-        analyze: analyzeChecked,
-        categorize: categorizeChecked,
-        response: responseChecked,
-        status: statusChecked,
-        animation: showAnimation
-    });
-}
-
-/**
- * Stop the auto processing flow
- */
-function stopAutoProcess() {
-    // Show start button, hide stop button
-    const startBtn = document.getElementById('start-process-btn');
-    const stopBtn = document.getElementById('stop-process-btn');
-    
-    if (stopBtn) stopBtn.classList.add('d-none');
-    if (startBtn) startBtn.classList.remove('d-none');
-    
-    logProcessAction('Процесс остановлен пользователем');
-    updateProcessingUI('Обработка остановлена', 0);
-    
-    // We would need to cancel any pending operations here if possible
-    // For now, we just update the UI
-}
-
-/**
- * Call API to process all inquiries
- */
-async function processAllInquiries(scope, options) {
-    try {
-        logProcessAction('Отправка запроса на обработку обращений...');
-        
-        const response = await fetch('/api/leads/process-all', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                scope: scope,
-                options: options
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        updateProcessingUI('Получение результатов обработки...', 25);
-        
-        // Process results
-        if (data.total === 0) {
-            logProcessAction('Не найдено обращений для обработки');
-            updateProcessingUI('Обработка завершена: нет обращений', 100);
-            completeProcessing();
-            return;
-        }
-        
-        logProcessAction(`Найдено ${data.total} обращений для обработки`);
-        
-        // Process each result sequentially with visual updates
-        const details = data.details || [];
-        const total = details.length;
-        let processed = 0;
-        
-        // Process in batches or one by one depending on animation option
-        if (options.animation) {
-            // Sequential processing with animation
-            for (const detail of details) {
-                await processLeadWithAnimation(detail);
-                processed++;
-                const progress = 25 + (processed / total * 75);
-                updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
-            }
-        } else {
-            // Process all at once without animation
-            for (const detail of details) {
-                logProcessAction(`Обработка обращения #${detail.lead_id}: ${detail.old_status} -> ${detail.new_status}`);
-                processed++;
-            }
-            updateProcessingUI('Обработка завершена', 100);
-        }
-        
-        // Show summary
-        logProcessAction(`Автоматическая обработка завершена. Обработано ${data.updated} обращений, ${data.failed} ошибок.`);
-        completeProcessing();
-        
-    } catch (error) {
-        console.error('Error processing inquiries:', error);
-        logProcessAction(`Ошибка при обработке: ${error.message}`);
-        updateProcessingUI('Обработка прервана из-за ошибки', 0);
-        completeProcessing();
-    }
-}
-
-/**
- * Process a single lead with animation
- */
-async function processLeadWithAnimation(detail) {
-    return new Promise(resolve => {
-        const leadId = detail.lead_id;
-        const oldStatus = detail.old_status;
-        const newStatus = detail.new_status;
-        
-        logProcessAction(`Обработка обращения #${leadId}...`);
-        
-        // Find the lead card
-        const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
-        if (!leadCard) {
-            logProcessAction(`Карточка для обращения #${leadId} не найдена в интерфейсе`);
-            setTimeout(resolve, 500); // Short delay for log readability
-            return;
-        }
-        
-        // If status changed, move the card
-        if (oldStatus !== newStatus) {
-            logProcessAction(`Изменение статуса #${leadId}: ${getStatusName(oldStatus)} -> ${getStatusName(newStatus)}`);
-            
-            // Get source and target columns
-            const sourceColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(oldStatus) + 1}) .lead-list`);
-            const targetColumn = document.querySelector(`.kanban-column:nth-child(${getColumnIndexByStatus(newStatus) + 1}) .lead-list`);
-            
-            if (sourceColumn && targetColumn && sourceColumn !== targetColumn) {
-                // Highlight the card
-                leadCard.style.boxShadow = '0 0 10px rgba(0, 123, 255, 0.7)';
-                
-                // Create a visual clone for animation
-                const rect = leadCard.getBoundingClientRect();
-                const clone = leadCard.cloneNode(true);
-                clone.style.position = 'fixed';
-                clone.style.width = rect.width + 'px';
-                clone.style.top = rect.top + 'px';
-                clone.style.left = rect.left + 'px';
-                clone.style.zIndex = '9999';
-                clone.style.opacity = '0.9';
-                clone.style.pointerEvents = 'none';
-                document.body.appendChild(clone);
-                
-                // Get target position
-                const targetRect = targetColumn.getBoundingClientRect();
-                const targetTop = targetRect.top + 20; // Padding
-                const targetLeft = targetRect.left + 20; // Padding
-                
-                // Hide original during animation
-                leadCard.style.opacity = '0';
-                
-                // Perform animation
-                setTimeout(() => {
-                    clone.style.transition = 'all 0.8s ease-in-out';
-                    clone.style.top = targetTop + 'px';
-                    clone.style.left = targetLeft + 'px';
-                    
-                    setTimeout(() => {
-                        // Remove clone and show original in new position
-                        document.body.removeChild(clone);
-                        
-                        // Move actual card
-                        const addButton = targetColumn.querySelector('.new-lead-btn');
-                        if (addButton) {
-                            targetColumn.insertBefore(leadCard, addButton);
-                        } else {
-                            targetColumn.appendChild(leadCard);
-                        }
-                        
-                        // Reset and show the original
-                        leadCard.style.opacity = '1';
-                        leadCard.style.boxShadow = '';
-                        
-                        // Update column counts
-                        updateColumnCounts();
-                        
-                        // Complete
-                        setTimeout(resolve, 200);
-                    }, 800); // Match transition duration
-                }, 100);
-            } else {
-                logProcessAction(`Невозможно переместить карточку #${leadId}: колонки не найдены`);
-                setTimeout(resolve, 500);
-            }
-        } else {
-            // Just update card data
-            logProcessAction(`Обновление данных обращения #${leadId} без изменения статуса`);
-            setTimeout(resolve, 800);
-        }
-    });
-}
-
-/**
- * Complete the processing flow
- */
-function completeProcessing() {
-    // Reset buttons
-    const startBtn = document.getElementById('start-process-btn');
-    const stopBtn = document.getElementById('stop-process-btn');
-    
-    if (stopBtn) stopBtn.classList.add('d-none');
-    if (startBtn) startBtn.classList.remove('d-none');
-}
-
-/**
- * Clear the process log
- */
-function clearProcessLog() {
-    const log = document.getElementById('process-log');
-    if (log) log.innerHTML = '';
-}
-
-/**
- * Update processing UI elements
- */
-function updateProcessingUI(status, progress) {
-    const statusEl = document.getElementById('process-status');
-    const progressBar = document.getElementById('process-progress');
-    
-    // Update progress bar
-    if (progressBar) {
-        progressBar.style.width = `${progress}%`;
-        progressBar.setAttribute('aria-valuenow', progress);
-    }
-    
-    // Update status text
-    if (statusEl) statusEl.textContent = status;
-}
-
-/**
- * Log a process action to the UI
- */
-function logProcessAction(message) {
-    const log = document.getElementById('process-log');
-    const timestamp = new Date().toLocaleTimeString();
-    
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = `<small class="text-muted">${timestamp}</small> ${message}`;
-    
-    if (log) {
-        log.appendChild(entry);
-        log.scrollTop = log.scrollHeight; // Auto-scroll to bottom
-    }
-    
-    console.log(`[Process] ${message}`);
-}
-
-/**
- * Get column index by status
- */
-function getColumnIndexByStatus(status) {
-    // Map status to column index
-    const statusMap = {
-        'new': 0,
-        'in_progress': 1,
-        'negotiation': 2,
-        'booked': 3,
-        'canceled': 4,
-        'pending': 1,  // Map to in_progress
-        'confirmed': 3 // Map to booked
-    };
-    
-    return statusMap[status] || 0;
-}
+// Expose functions for external use
+window.kanbanBoard = {
+    initDragAndDrop,
+    openLeadModal,
+    updateColumnCounts,
+    showToast
+};
