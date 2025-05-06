@@ -679,7 +679,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                    <button type="button" class="btn btn-primary">Сохранить изменения</button>
+                    <button type="button" class="btn btn-primary" id="save-lead-btn">Сохранить изменения</button>
                 </div>
             </div>
         </div>
@@ -818,6 +818,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/js/drag-and-drop.js"></script>
 <script src="/static/js/leads-processing.js"></script>
 <script>
@@ -832,6 +833,9 @@
         $('#viewLeadModal').on('show.bs.modal', function (event) {
             const button = $(event.relatedTarget); // Кнопка, которая вызвала модальное окно
             const leadId = button.data('lead-id'); // Получение ID обращения из кнопки
+            
+            // Сохраняем ID обращения в атрибуте модального окна
+            $(this).attr('data-lead-id', leadId);
             
             console.log('Card clicked, opening modal for lead ID:', leadId);
             
@@ -919,6 +923,75 @@
                     console.error('Error fetching lead data:', error);
                     // При ошибке оставляем демо-данные
                 });
+        });
+        
+        // Обработчик кнопки Сохранить изменения
+        $('#save-lead-btn').on('click', function() {
+            // Получаем ID обращения из модального окна
+            const modal = document.getElementById('viewLeadModal');
+            const leadId = modal.getAttribute('data-lead-id');
+            const statusSelect = document.getElementById('lead-status-select');
+            const newStatus = statusSelect.value;
+            
+            console.log('Saving changes for lead ID:', leadId, 'New status:', newStatus);
+            
+            // Отправляем запрос на обновление статуса
+            fetch(`/api/leads/${leadId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status update success:', data);
+                
+                // Находим карточку
+                const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                
+                if (leadCard) {
+                    // Получаем текущий статус
+                    const oldStatus = leadCard.getAttribute('data-status') || 'new';
+                    
+                    if (oldStatus !== newStatus) {
+                        // Обновляем статус карточки
+                        leadCard.setAttribute('data-status', newStatus);
+                        
+                        // Перемещаем карточку в новую колонку
+                        if (typeof animateCardMovement === 'function') {
+                            // Если есть функция анимации, используем её
+                            animateCardMovement(leadCard, oldStatus, newStatus, () => {
+                                // Закрываем модальное окно после завершения анимации
+                                $('#viewLeadModal').modal('hide');
+                            });
+                        } else if (typeof moveCardToNewStatus === 'function') {
+                            // Иначе используем простое перемещение
+                            moveCardToNewStatus(leadId, newStatus);
+                            $('#viewLeadModal').modal('hide');
+                        } else {
+                            // Если функции перемещения нет, просто закрываем и обновляем страницу
+                            $('#viewLeadModal').modal('hide');
+                            location.reload();
+                        }
+                    } else {
+                        // Закрываем модальное окно, если статус не изменился
+                        $('#viewLeadModal').modal('hide');
+                    }
+                    
+                    // Показываем уведомление об успешном сохранении
+                    showToast('Изменения успешно сохранены', 'success');
+                } else {
+                    console.error('Card not found for lead ID:', leadId);
+                    showToast('Ошибка при обновлении карточки', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                showToast('Ошибка при сохранении изменений', 'danger');
+            });
         });
         
         // При закрытии модального окна сбрасываем состояние
