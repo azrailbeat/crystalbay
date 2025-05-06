@@ -1,0 +1,1453 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Обращения клиентов{% endblock %}
+
+{% block page_title %}
+Обращения клиентов <span id="auto-process-indicator" class="badge ms-2" style="display: none; background: linear-gradient(135deg, #4a6cf7, #7224d1); border-radius: 20px; padding: 8px 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); font-weight: 500; font-size: 0.8rem;"><i class="bi bi-stars me-1"></i> Автообработка включена</span>
+{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary-blue: #4a6cf7;
+        --secondary-blue: #6485fa;
+        --light-blue: #eef1ff;
+        --primary-green: #4ade80;
+        --primary-orange: #ff9800;
+        --primary-red: #ff5724;
+        --background-gray: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-dark: #1e293b;
+        --text-secondary: #64748b;
+        --border-color: #e2e8f0;
+        --header-height: 60px;
+    }
+    
+    body {
+        background-color: var(--background-gray);
+        color: var(--text-dark);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    .leads-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem 0;
+    }
+    
+    .leads-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+    
+    .sales-stats {
+        display: flex;
+        gap: 1.5rem;
+    }
+    
+    .stat-block {
+        padding: 1rem;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        min-width: 120px;
+    }
+    
+    .stat-title {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-blue);
+    }
+    
+    .lead-filters {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-control {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        outline: none;
+    }
+    
+    .kanban-board {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 75vh;
+    }
+    
+    .kanban-column {
+        min-width: 280px;
+        width: 280px;
+        background-color: var(--background-gray);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .kanban-column-header {
+        padding: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-dark);
+    }
+    
+    .column-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .column-color-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .column-color-new { background-color: #6485fa; }
+    .column-color-progress { background-color: #ff9800; }
+    .column-color-negotiation { background-color: #facc15; }
+    .column-color-contract { background-color: #f87171; }
+    .column-color-closed { background-color: #4ade80; }
+    .column-color-lost { background-color: #f43f5e; }
+    
+    .column-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        color: var(--text-secondary);
+        border-radius: 12px;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .lead-list {
+        padding: 0.75rem;
+        flex-grow: 1;
+        overflow-y: auto;
+        min-height: 100px;
+        transition: background-color 0.2s ease, border 0.2s ease;
+    }
+    
+    /* Стили для Drag and Drop */
+    .lead-list.drop-target {
+        background-color: rgba(74, 108, 247, 0.08);
+        border: 2px dashed rgba(74, 108, 247, 0.25);
+        border-radius: 8px;
+    }
+    
+    .lead-card {
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: box-shadow 0.2s ease, transform 0.1s ease, opacity 0.3s ease;
+        position: relative;
+        border: 1px solid var(--border-color);
+    }
+    
+    .lead-card:hover {
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        border-color: rgba(74, 108, 247, 0.25);
+    }
+    
+    /* Drag and Drop styles */
+    .lead-card[draggable="true"] {
+        cursor: grab !important;
+    }
+    
+    .lead-card[draggable="true"]:active {
+        cursor: grabbing !important;
+    }
+    
+    .lead-card.dragging {
+        opacity: 0.7;
+        box-shadow: 0 5px 15px rgba(74, 108, 247, 0.15);
+        transform: scale(1.02);
+    }
+    
+    .lead-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .lead-number {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+    
+    .lead-source {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .source-icon {
+        color: var(--primary-blue);
+    }
+    
+    .lead-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-dark);
+    }
+    
+    .lead-details {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
+    }
+    
+    .lead-meta {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    
+    .lead-price {
+        font-weight: 600;
+        color: var(--primary-blue);
+        font-size: 0.875rem;
+    }
+    
+    .lead-date {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+    
+    .lead-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    
+    .lead-tag {
+        background-color: var(--light-blue);
+        border-radius: 20px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        color: var(--primary-blue);
+    }
+    
+    .lead-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .lead-date {
+        color: var(--secondary-color);
+    }
+    
+    .lead-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .lead-actions button {
+        background: none;
+        border: none;
+        color: var(--secondary-color);
+        padding: 0.25rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .lead-actions button:hover {
+        color: var(--primary-color);
+    }
+    
+    .new-lead-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.75rem;
+        background-color: transparent;
+        border: 2px dashed var(--light-border);
+        border-radius: var(--border-radius);
+        color: var(--secondary-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .new-lead-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .lead-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: var(--light-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    /* Lead modal */
+    .lead-modal .modal-header {
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .lead-modal .modal-footer {
+        border-top: 1px solid var(--light-border);
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .lead-info-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-info-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--secondary-color);
+    }
+    
+    .lead-info-value {
+        font-size: 1rem;
+    }
+    
+    .lead-status-select {
+        width: auto;
+    }
+    
+    .comment-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .comment-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--light-border);
+    }
+    
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comment-author {
+        font-weight: 500;
+    }
+    
+    .comment-date {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .comment-content {
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="fw-semibold mb-3">Воронка сделок</h5>
+            <p class="text-secondary small mb-3">Управление и отслеживание вашему потоку продаж недвижимости</p>
+            
+            <!-- Sales Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-block">
+                        <div class="stat-title">Активная воронка</div>
+                        <div class="stat-value">$94,155,000</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-block">
+                        <div class="stat-title">Закрытые сделки</div>
+                        <div class="stat-value">$50</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-block">
+                        <div class="stat-title">Всего сделок</div>
+                        <div class="stat-value">$</div>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-light me-2">
+                        <i class="bi bi-download"></i> Экспорт
+                    </button>
+                    <button id="auto-process-btn" class="btn btn-light me-2" data-bs-toggle="modal" data-bs-target="#autoProcessModal">
+                        <i class="bi bi-robot"></i> Автообработка
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+                        <i class="bi bi-plus"></i> Новая сделка
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="lead-filters">
+                    <div class="dropdown me-2">
+                        <select class="filter-control">
+                            <option>Поиск сделки по названию, клиенту или объекту...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <button class="btn btn-sm btn-light">
+                            <i class="bi bi-grid"></i> Все столбцы <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-light">
+                            <i class="bi bi-funnel"></i> Сортировка
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <!-- New Leads Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <span class="column-color-indicator column-color-new"></span> Новые
+                    <span class="column-count">8</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Анна Смирнова</div>
+                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Пляжный отдых</span>
+                        <span class="lead-tag">Семья</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="2">
+                    <div class="lead-source">
+                        <i class="bi bi-globe source-icon"></i> Веб-сайт
+                    </div>
+                    <div class="lead-name">Иван Петров</div>
+                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Экскурсии</span>
+                        <span class="lead-tag">Европа</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 часа назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="3">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Екатерина Васильева</div>
+                    <div class="lead-details">Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Горнолыжный</span>
+                        <span class="lead-tag">Зима</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">5 часов назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="4">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Михаил Кузнецов</div>
+                    <div class="lead-details">Запрос о турах в Японию на период цветения сакуры, апрель 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Япония</span>
+                        <span class="lead-tag">Культурный туризм</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">1 день назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="5">
+                    <div class="lead-source">
+                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    </div>
+                    <div class="lead-name">Ольга Николаева</div>
+                    <div class="lead-details">Интересуется групповым туром в Грецию для 6 человек, июнь 2025</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Греция</span>
+                        <span class="lead-tag">Группа</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">2 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="6">
+                    <div class="lead-source">
+                        <i class="bi bi-telephone source-icon"></i> Телефон
+                    </div>
+                    <div class="lead-name">Алексей Соколов</div>
+                    <div class="lead-details">Запрос детального предложения по Мальдивам, рассматривает несколько вариантов отелей</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Мальдивы</span>
+                        <span class="lead-tag">Премиум</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">3 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="7">
+                    <div class="lead-source">
+                        <i class="bi bi-envelope source-icon"></i> Email
+                    </div>
+                    <div class="lead-name">Сергей Морозов</div>
+                    <div class="lead-details">Запрос на индивидуальный тур в ОАЭ, высокий бюджет, все включено</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">ОАЭ</span>
+                        <span class="lead-tag">VIP</span>
+                    </div>
+                    <div class="lead-footer">
+                        <div class="lead-date">4 дня назад</div>
+                        <div class="lead-actions">
+                            <button><i class="bi bi-chat"></i></button>
+                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="new-lead-btn" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить новое обращение
+                </button>
+            </div>
+        </div>
+        
+        <!-- In Progress Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <span class="column-color-indicator column-color-progress"></span> В работе
+                    <span class="column-count">3</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <div class="lead-card" data-lead-id="8">
+                    <div class="lead-number">#104892</div>
+                    <div class="lead-name">Вилла в Найтоне</div>
+                    <div class="lead-details">Стильная вилла с 4 спальнями, панорамным видом на море</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Вилла</span>
+                        <span class="lead-tag">Продажа</span>
+                    </div>
+                    <div class="lead-meta">
+                        <div class="lead-price">$2,900,000</div>
+                        <div class="lead-date">13 мая</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="9">
+                    <div class="lead-number">#104765</div>
+                    <div class="lead-name">Апартаменты рядом с пляжем</div>
+                    <div class="lead-details">Современные апартаменты в 100 метрах от пляжа Бангтао</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Апартаменты</span>
+                        <span class="lead-tag">Аренда</span>
+                    </div>
+                    <div class="lead-meta">
+                        <div class="lead-price">$1,200/мес</div>
+                        <div class="lead-date">10 мая</div>
+                    </div>
+                </div>
+                
+                <div class="lead-card" data-lead-id="10">
+                    <div class="lead-number">#104601</div>
+                    <div class="lead-name">Коммерческая недвижимость в центре</div>
+                    <div class="lead-details">Торговая площадь с высокой проходимостью в центре Патонга</div>
+                    <div class="lead-tags">
+                        <span class="lead-tag">Коммерческая</span>
+                        <span class="lead-tag">Аренда</span>
+                    </div>
+                    <div class="lead-meta">
+                        <div class="lead-price">$3,500/мес</div>
+                        <div class="lead-date">8 мая</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Negotiation Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <span class="column-color-indicator column-color-negotiation"></span> Переговоры
+                    <span class="column-count">3</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <!-- Карточки будут перемещены сюда ИИ-агентом автоматически -->
+            </div>
+        </div>
+        
+        <!-- Booked Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <span class="column-color-indicator column-color-closed"></span> Забронировано
+                    <span class="column-count">4</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <!-- Карточки будут перемещены сюда ИИ-агентом автоматически -->
+            </div>
+        </div>
+        
+        <!-- Cancelled Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <span class="column-color-indicator column-color-lost"></span> Отменено
+                    <span class="column-count">2</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                <!-- Карточки будут перемещены сюда ИИ-агентом автоматически -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Lead Modal -->
+    <div class="modal fade lead-modal" id="viewLeadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Карточка обращения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Имя клиента</div>
+                                <div id="lead-name" class="lead-info-value">Анна Смирнова</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Email</div>
+                                <div id="lead-email" class="lead-info-value">anna.smirnova@example.com</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Телефон</div>
+                                <div id="lead-phone" class="lead-info-value">+7 (xxx) xxx-xx-xx</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Источник</div>
+                                <div id="lead-source" class="lead-info-value">Telegram</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Дата обращения</div>
+                                <div id="lead-date" class="lead-info-value">01.01.2023 12:34</div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Статус</div>
+                                <select id="lead-status-select" class="form-select lead-status-select">
+                                    <option value="new">Новый</option>
+                                    <option value="in_progress">В работе</option>
+                                    <option value="negotiation">Переговоры</option>
+                                    <option value="booked">Забронировано</option>
+                                    <option value="canceled">Отменено</option>
+                                </select>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Теги</div>
+                                <div id="lead-tags">
+                                    <span class="lead-tag">Пляжный отдых</span>
+                                    <span class="lead-tag">Семья</span>
+                                </div>
+                            </div>
+                            
+                            <!-- AI Analysis Button -->
+                            <button class="btn btn-outline-primary mt-3 w-100">
+                                <i class="bi bi-robot me-2"></i> Анализировать с помощью AI
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">Детали обращения</div>
+                                <div id="lead-details" class="lead-info-value">
+                                    Запрос на тур в Турцию, семейный отдых, июль-август 2025. Семья из 4 человек (2 взрослых, 2 детей). Интересует отель 5* с аквапарком, all inclusive. Бюджет до 300 000 руб. Предпочтительные курорты: Анталия, Кемер, Белек.
+                                </div>
+                            </div>
+                            
+                            <!-- Важная информация -->
+                            <div id="important-info-container" class="lead-info-group mt-3" style="display: none;">
+                                <div class="important-info-block" style="background-color: #FFEEEE; border-left: 4px solid #dc3545; border-radius: 4px; padding: 12px;">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="me-2 text-danger" style="display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-exclamation-circle"></i>
+                                        </div>
+                                        <span class="fw-bold text-danger">Важная информация</span>
+                                    </div>
+                                    <div id="important-info-content" style="color: #333;">
+                                        <!-- Содержимое будет заполняться динамически -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="lead-info-group">
+                                <div class="lead-info-label">История взаимодействий</div>
+                                <div id="lead-interactions" class="comment-list">
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <span class="comment-author">Менеджер Ольга</span>
+                                            <span class="comment-date">01.01.2023 12:45</span>
+                                        </div>
+                                        <div class="comment-content">
+                                            Связался с клиентом по Telegram. Обсудили предпочтения по отелям. Отправил варианты: Selge Beach Resort & Spa 5*, Alva Donna World Palace 5*, Nirvana Mediterranean Excellence 5*.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <span class="comment-author">Система</span>
+                                            <span class="comment-date">01.01.2023 13:10</span>
+                                        </div>
+                                        <div class="comment-content">
+                                            Клиенту отправлено автоматическое письмо с информацией по предложенным вариантам.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <textarea class="form-control" rows="3" placeholder="Добавить комментарий..."></textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary me-2">
+                                                <i class="bi bi-paperclip"></i> Прикрепить
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-calendar-event"></i> Запланировать
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-primary">Отправить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" id="save-lead-btn">Сохранить изменения</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Lead Modal -->
+    <div class="modal fade" id="newLeadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать новое обращение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="leadName" class="form-label">Имя клиента</label>
+                            <input type="text" class="form-control" id="leadName">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="leadEmail">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadPhone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="leadPhone">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadSource" class="form-label">Источник</label>
+                            <select class="form-select" id="leadSource">
+                                <option value="website">Веб-сайт</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="phone">Телефон</option>
+                                <option value="email">Email</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadDetails" class="form-label">Детали обращения</label>
+                            <textarea class="form-control" id="leadDetails" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadTags" class="form-label">Теги</label>
+                            <input type="text" class="form-control" id="leadTags" placeholder="Введите теги через запятую">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Auto Processing Modal -->
+    <!-- Основное модальное окно настроек обработки -->
+    <div class="modal fade" id="autoProcessModal" tabindex="-1" aria-hidden="true">
+        
+    <!-- Мини-окно обработки, которое появляется после сворачивания основного окна -->
+    <div id="miniProcessWindow" class="card position-fixed shadow-lg" style="display: none; right: 20px; bottom: 20px; width: 300px; z-index: 1050;">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center p-2">
+            <span class="small"><i class="bi bi-cpu"></i> Обработка обращений</span>
+            <div>
+                <button type="button" class="btn btn-sm btn-link text-white p-0 me-2" id="expand-process-btn" title="Развернуть">
+                    <i class="bi bi-arrows-angle-expand"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-link text-white p-0" id="mini-stop-process-btn" title="Остановить">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-2">
+            <div class="progress mb-2" style="height: 5px;">
+                <div id="mini-process-progress" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div id="mini-process-status" class="small mb-2 text-muted">Обработка обращений...</div>
+            <div id="mini-process-current" class="small fw-bold"></div>
+        </div>
+    </div>
+    
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Автоматическая обработка обращений</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Настройки обработки</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Обрабатывать обращения</label>
+                                <select id="process-scope" class="form-select">
+                                    <option value="new">Только новые</option>
+                                    <option value="all">Все активные</option>
+                                    <option value="selected">Выбранные</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Действия</label>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="analyze-check" checked>
+                                    <label class="form-check-label" for="analyze-check">Анализировать содержимое</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="categorize-check" checked>
+                                    <label class="form-check-label" for="categorize-check">Категоризировать</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="response-check" checked>
+                                    <label class="form-check-label" for="response-check">Подготовить ответ</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="status-check" checked>
+                                    <label class="form-check-label" for="status-check">Изменять статус</label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Визуализация</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="show-animation" checked>
+                                    <label class="form-check-label" for="show-animation">Показывать анимацию перемещения</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="minimize-on-process" checked>
+                                    <label class="form-check-label" for="minimize-on-process">Автоматически сворачивать окно</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-7">
+                            <h6 class="mb-3">Журнал обработки</h6>
+                            
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div id="process-progress" class="progress-bar" style="width: 0%"></div>
+                            </div>
+                            
+                            <div id="process-status" class="text-center text-muted mb-3">Ожидание начала обработки</div>
+                            
+                            <div id="process-log" class="border rounded p-2" style="height: 200px; overflow-y: auto; font-size: 0.85rem;">
+                                <div class="text-center text-muted py-5">Журнал будет отображаться после начала обработки</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-danger d-none" id="stop-process-btn">Остановить</button>
+                    <button type="button" class="btn btn-success" id="start-process-btn">Начать обработку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="/static/js/drag-and-drop.js"></script>
+<script src="/static/js/leads-processing.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Добавляем стиль курсора и обработчик клика для карточек lead
+        document.querySelectorAll('.lead-card').forEach(card => {
+            // Делаем карточки выглядящими кликабельными
+            card.style.cursor = 'pointer';
+            
+            // Добавляем обработчик клика на всю карточку
+            card.addEventListener('click', function(e) {
+                // Пропускаем клики по кнопкам и другим элементам управления
+                if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                
+                // Получаем ID карточки
+                const leadId = this.getAttribute('data-lead-id');
+                console.log('Lead clicked, ID:', leadId);
+                
+                // Открываем модальное окно и передаем ID в атрибут
+                const modal = document.getElementById('viewLeadModal');
+                if (modal) {
+                    modal.setAttribute('data-lead-id', leadId);
+                    $('#viewLeadModal').modal('show');
+                }
+            });
+        });
+        
+        // При открытии модального окна просмотра обращения
+        $('#viewLeadModal').on('show.bs.modal', function (event) {
+            // Определяем ID карточки, которая была нажата
+            let leadId = null;
+            let leadCard = null;
+            
+            // Сначала проверяем, является ли нажатый элемент частью карточки
+            if (event.relatedTarget) {
+                // Найдем родительскую карточку
+                leadCard = event.relatedTarget.closest('.lead-card');
+                
+                if (leadCard) {
+                    // Если нашли карточку, получаем прямо из неё ID
+                    leadId = leadCard.getAttribute('data-lead-id');
+                    
+                    // Устанавливаем атрибут в заголовок модального окна
+                    const modalTitle = document.querySelector('#viewLeadModal .modal-title');
+                    if (modalTitle) {
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (leadNum) {
+                            modalTitle.textContent = leadNum.textContent;
+                        }
+                    }
+                    
+                    console.log('Найдена карточка с ID:', leadId);
+                } else {
+                    // Если не удалось найти карточку, проверяем другие способы
+                    leadId = event.relatedTarget.getAttribute('data-lead-id');
+                    
+                    if (leadId) {
+                        // Если нашли ID в элементе, ищем карточку по этому ID
+                        leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                    }
+                }
+            }
+            
+            // Если все еще не нашли ID, пробуем получить из jQuery данных
+            if (!leadId) {
+                const button = $(event.relatedTarget);
+                if (button && button.data && typeof button.data === 'function') {
+                    leadId = button.data('lead-id');
+                    
+                    if (leadId && !leadCard) {
+                        // Если нашли ID, но не нашли карточку, ищем её по ID
+                        leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                    }
+                }
+            }
+            
+            // Устанавливаем ID в модальное окно
+            const modal = document.getElementById('viewLeadModal');
+            if (leadId && modal) {
+                modal.setAttribute('data-lead-id', leadId);
+                console.log('Записываем ID в модальное окно:', leadId);
+            } else {
+                // Если все способы не сработали, устанавливаем значение по умолчанию
+                console.error('Не удалось получить ID карточки');
+                
+                // Если нет карточки, выбираем первую карточку на странице
+                const firstCard = document.querySelector('.lead-card');
+                if (firstCard) {
+                    leadId = firstCard.getAttribute('data-lead-id');
+                    leadCard = firstCard;
+                    modal.setAttribute('data-lead-id', leadId);
+                    console.log('Используем первую карточку с ID:', leadId);
+                }
+            }
+            
+            // Сохраняем ID обращения в атрибуте модального окна
+            $(this).attr('data-lead-id', leadId);
+            
+            console.log('Card clicked, opening modal for lead ID:', leadId);
+            
+            // Предварительно чистим старые данные
+            $('#lead-name').text('');
+            $('#lead-email').text('');
+            $('#lead-phone').text('');
+            $('#lead-source').text('');
+            $('#lead-date').text('');
+            $('#lead-details').text('');
+            
+            // Получаем данные клиента из DOM для быстрого отображения
+            if (leadId && leadId !== '1') {
+                // Ищем непосредственно карточку с указанным ID
+                const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                if (leadCard) {
+                    // Заполняем быстрые данные из DOM
+                    const titleEl = document.querySelector('#viewLeadModal .modal-title');
+                    
+                    // Заголовок модального окна
+                    if (titleEl) {
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (leadNum) {
+                            titleEl.textContent = leadNum.textContent;
+                        }
+                    }
+                    
+                    // Имя клиента
+                    const nameEl = leadCard.querySelector('.lead-name');
+                    if (nameEl) {
+                        $('#lead-name').text(nameEl.textContent.trim());
+                    }
+                    
+                    // Детали запроса
+                    const detailsEl = leadCard.querySelector('.lead-details');
+                    if (detailsEl) {
+                        $('#lead-details').text(detailsEl.textContent.trim());
+                    }
+                }
+            }
+            
+            // Если карточка еще не найдена, находим её по ID
+            if (!leadCard) {
+                leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+            }
+            if (leadCard) {
+                console.log('Найдена карточка:', leadCard);
+                
+                // Проверяем наличие полных данных анализа ИИ
+                let aiAnalysis = null;
+                const aiAnalysisJson = leadCard.getAttribute('data-ai-analysis');
+                if (aiAnalysisJson) {
+                    try {
+                        aiAnalysis = JSON.parse(aiAnalysisJson);
+                        console.log('Анализ ИИ для карточки:', aiAnalysis);
+                    } catch (e) {
+                        console.error('Ошибка парсинга данных анализа ИИ:', e);
+                    }
+                }
+                
+                // Проверяем важную информацию из атрибутов
+                // Сначала проверяем новый атрибут, затем старый
+                let importantInfo = leadCard.getAttribute('data-ai-important-info');
+                if (!importantInfo) {
+                    importantInfo = leadCard.getAttribute('data-important-info');
+                }
+                
+                // Если есть важная информация, показываем блок и заполняем его
+                const importantInfoContainer = document.getElementById('important-info-container');
+                const importantInfoContent = document.getElementById('important-info-content');
+                
+                if (importantInfo && importantInfo.trim() !== '') {
+                    console.log('Найдена важная информация:', importantInfo);
+                    importantInfoContent.textContent = importantInfo;
+                    importantInfoContainer.style.display = 'block';
+                } else {
+                    console.log('Важная информация не найдена');
+                    importantInfoContainer.style.display = 'none';
+                }
+                
+                // Добавляем кнопку анализа ИИ, если еще нет данных анализа
+                const aiAnalysisButton = document.getElementById('ai-analysis-btn');
+                if (aiAnalysisButton) {
+                    if (!aiAnalysis) {
+                        aiAnalysisButton.style.display = 'block';
+                    } else {
+                        aiAnalysisButton.style.display = 'none';
+                    }
+                }
+            }
+            
+            // Получение настоящих данных обращения с сервера
+            fetch(`/api/leads/${leadId}`)
+                .then(response => response.json())
+                .then(lead => {
+                    // Заполнение полей модального окна из полученных данных
+                    $('#lead-name').text(lead.name || '');
+                    $('#lead-email').text(lead.email || '');
+                    $('#lead-phone').text(lead.phone || '');
+                    $('#lead-source').text(lead.source || '');
+                    $('#lead-date').text(lead.created_at || '');
+                    $('#lead-details').text(lead.details || '');
+                    
+                    // При помощи ссылки на DOM ищем данные из карточки, если API не предоставил их
+                    if (leadCard) {
+                        // Заполняем заголовок модального окна
+                        const modalTitle = document.querySelector('#viewLeadModal .modal-title');
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (modalTitle && leadNum) {
+                            modalTitle.textContent = leadNum.textContent;
+                        }
+                        
+                        // Дополняем имя из карточки, если нет в API
+                        if (!lead.name || lead.name.trim() === '') {
+                            const cardNameEl = leadCard.querySelector('.lead-name');
+                            if (cardNameEl && cardNameEl.textContent) {
+                                $('#lead-name').text(cardNameEl.textContent.trim());
+                            }
+                        }
+                        
+                        // Дополняем детали из карточки, если нет в API
+                        if (!lead.details || lead.details.trim() === '') {
+                            const cardDetailsEl = leadCard.querySelector('.lead-details');
+                            if (cardDetailsEl && cardDetailsEl.textContent) {
+                                $('#lead-details').text(cardDetailsEl.textContent.trim());
+                            }
+                        }
+                    }
+                    
+                    // Если есть данные по важной информации в API, обновляем блок
+                    if (lead.ai_analysis && lead.ai_analysis.important_info) {
+                        const importantInfoContainer = document.getElementById('important-info-container');
+                        const importantInfoContent = document.getElementById('important-info-content');
+                        
+                        importantInfoContent.textContent = lead.ai_analysis.important_info;
+                        importantInfoContainer.style.display = 'block';
+                    }
+                    
+                    // Установка статуса
+                    const statusSelect = document.getElementById('lead-status-select');
+                    if (statusSelect) {
+                        for (let i = 0; i < statusSelect.options.length; i++) {
+                            if (statusSelect.options[i].value === lead.status) {
+                                statusSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Заполнение тегов
+                    if (lead.tags && lead.tags.length > 0) {
+                        const tagsContainer = $('#lead-tags');
+                        tagsContainer.empty();
+                        
+                        lead.tags.forEach(tag => {
+                            const tagElement = $('<span></span>').addClass('lead-tag').text(tag);
+                            tagsContainer.append(tagElement);
+                        });
+                    }
+                    
+                    // Заполнение истории взаимодействий
+                    if (lead.interactions && lead.interactions.length > 0) {
+                        const interactionsContainer = $('#lead-interactions');
+                        interactionsContainer.empty();
+                        
+                        lead.interactions.forEach(interaction => {
+                            const interactionItem = $(`
+                                <div class="comment-item">
+                                    <div class="comment-header">
+                                        <span class="comment-author">${interaction.author}</span>
+                                        <span class="comment-date">${interaction.date}</span>
+                                    </div>
+                                    <div class="comment-content">${interaction.content}</div>
+                                </div>
+                            `);
+                            
+                            interactionsContainer.append(interactionItem);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching lead data:', error);
+                    // При ошибке оставляем демо-данные
+                });
+        });
+        
+        // Обработчик кнопки Сохранить изменения
+        $('#save-lead-btn').on('click', function() {
+            // Получаем ID обращения из модального окна
+            const modal = document.getElementById('viewLeadModal');
+            const leadId = modal.getAttribute('data-lead-id');
+            const statusSelect = document.getElementById('lead-status-select');
+            const newStatus = statusSelect.value;
+            
+            console.log('Saving changes for lead ID:', leadId, 'New status:', newStatus);
+            
+            // Отправляем запрос на обновление статуса
+            fetch(`/api/leads/${leadId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status update success:', data);
+                
+                // Находим карточку
+                const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                
+                if (leadCard) {
+                    // Получаем текущий статус
+                    const oldStatus = leadCard.getAttribute('data-status') || 'new';
+                    
+                    if (oldStatus !== newStatus) {
+                        // Обновляем статус карточки
+                        leadCard.setAttribute('data-status', newStatus);
+                        
+                        // Перемещаем карточку в новую колонку
+                        if (typeof animateCardMovement === 'function') {
+                            // Если есть функция анимации, используем её
+                            animateCardMovement(leadCard, oldStatus, newStatus, () => {
+                                // Закрываем модальное окно после завершения анимации
+                                $('#viewLeadModal').modal('hide');
+                            });
+                        } else if (typeof moveCardToNewStatus === 'function') {
+                            // Иначе используем простое перемещение
+                            moveCardToNewStatus(leadId, newStatus);
+                            $('#viewLeadModal').modal('hide');
+                        } else {
+                            // Если функции перемещения нет, просто закрываем и обновляем страницу
+                            $('#viewLeadModal').modal('hide');
+                            location.reload();
+                        }
+                    } else {
+                        // Закрываем модальное окно, если статус не изменился
+                        $('#viewLeadModal').modal('hide');
+                    }
+                    
+                    // Показываем уведомление об успешном сохранении
+                    showToast('Изменения успешно сохранены', 'success');
+                } else {
+                    console.error('Card not found for lead ID:', leadId);
+                    showToast('Ошибка при обновлении карточки', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                showToast('Ошибка при сохранении изменений', 'danger');
+            });
+        });
+        
+        // При закрытии модального окна сбрасываем состояние
+        $('#viewLeadModal').on('hidden.bs.modal', function () {
+            // Скрываем блок важной информации
+            const importantInfoContainer = document.getElementById('important-info-container');
+            if (importantInfoContainer) {
+                importantInfoContainer.style.display = 'none';
+            }
+        });
+        
+        // Показываем уведомление о загрузке страницы
+        setTimeout(() => {
+            showToast('Загружено 22 обращения', 'info');
+            
+            // Запускаем автоматическую обработку всех новых обращений
+            setTimeout(() => {
+                console.log('Запуск автоматической обработки новых обращений...');
+                // Собираем все необходимые параметры
+                const processOptions = {
+                    analyze: true,     // Анализировать содержимое
+                    categorize: true,  // Категоризировать
+                    response: true,    // Подготовить ответ
+                    status: true,      // Изменять статус
+                    animation: true    // Показывать анимацию
+                };
+                
+                // Запускаем автоматическую обработку и отображаем уведомление
+                fetch('/api/leads/process-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scope: 'new',      // Обрабатываем только новые обращения
+                        options: processOptions
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Обрабатываем каждое обращение и обновляем интерфейс
+                    if (data.total > 0) {
+                        console.log(`Обработано обращений: ${data.total}`);
+                        
+                        // Обрабатываем каждое детальное обращение
+                        data.details.forEach(detail => {
+                            // Находим карточку
+                            const leadCard = document.querySelector(`.lead-card[data-lead-id="${detail.lead_id}"]`);
+                            if (leadCard) {
+                                // Обновляем карточку с данными анализа AI
+                                if (typeof updateCardWithAIResults === 'function') {
+                                    updateCardWithAIResults(detail, leadCard);
+                                }
+                                
+                                // Перемещаем карточку в соответствующую колонку
+                                if (typeof animateCardMovement === 'function' && processOptions.animation) {
+                                    // Если есть функция анимации, используем её
+                                    animateCardMovement(leadCard, detail.old_status, detail.new_status, () => {});
+                                } else if (typeof moveCardToNewStatus === 'function') {
+                                    // Иначе используем простое перемещение
+                                    moveCardToNewStatus(detail.lead_id, detail.new_status);
+                                }
+                            }
+                        });
+                        
+                        // Показываем уведомление о результатах
+                        showToast(`Автоматически обработано ${data.updated} обращений`, 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обработки обращений:', error);
+                    showToast('Ошибка автоматической обработки обращений', 'danger');
+                });
+            }, 1500); // Небольшая задержка для разделения уведомлений
+        }, 500);
+    });
+</script>
+{% endblock %}
