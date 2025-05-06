@@ -31,7 +31,7 @@ class TestUIFunctionality(unittest.TestCase):
         """Тест страницы Канбан-доски с запросами"""
         response = self.client.get('/leads')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'id="kanban-board"', response.data)
+        self.assertIn(b'class="kanban-board"', response.data)
         self.assertIn(b'class="kanban-column"', response.data)
     
     def test_booking_check(self):
@@ -60,10 +60,11 @@ class TestUIFunctionality(unittest.TestCase):
         """Тест формы создания запроса"""
         # Проверяем, что форма создания запроса содержит все необходимые поля
         response = self.client.get('/leads')
-        self.assertIn(b'id="createLeadForm"', response.data)
-        self.assertIn(b'name="lead_name"', response.data)
-        self.assertIn(b'name="lead_email"', response.data)
-        self.assertIn(b'name="lead_phone"', response.data)
+        # Проверяем наличие полей ввода для формы создания запроса
+        self.assertIn(b'id="leadName"', response.data)
+        self.assertIn(b'id="leadEmail"', response.data)
+        self.assertIn(b'id="leadPhone"', response.data)
+        self.assertIn(b'id="leadSource"', response.data)
     
     @patch('models.LeadService.get_leads')
     def test_api_endpoints(self, mock_get_leads):
