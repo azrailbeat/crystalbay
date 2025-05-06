@@ -70,14 +70,23 @@ def run_tests(test_classes=None, verbose=2, failfast=False):
 
 def run_selected_tests():
     """Запускает только выбранные тесты (для быстрой разработки)"""
-    from test_models import TestLeadService
-    from test_api_integration import TestAPIIntegration
-    from test_inquiry_processor import TestInquiryProcessor
+    from tests.test_models import TestLeadService
+    from tests.test_api_integration import TestAPIIntegration
+    from tests.test_inquiry_processor import TestInquiryProcessor
+    from tests.test_ui import TestUIFunctionality, TestUIAppearance
+    from tests.test_telegram_bot import TestTelegramBot, TestBotIntegrations
+    from tests.test_email_integration import TestEmailIntegration, TestEmailProcessor
     
     test_classes = [
         TestLeadService,
         TestAPIIntegration,
-        TestInquiryProcessor
+        TestInquiryProcessor,
+        TestUIFunctionality,
+        TestUIAppearance,
+        TestTelegramBot,
+        TestBotIntegrations,
+        TestEmailIntegration,
+        TestEmailProcessor
     ]
     
     return run_tests(test_classes=test_classes, verbose=2, failfast=True)
@@ -95,7 +104,7 @@ def run_unit_tests():
 
 def run_integration_tests():
     """Запускает только интеграционные тесты"""
-    from test_integration import TestFullSystemIntegration
+    from tests.test_integration import TestFullSystemIntegration
     
     test_classes = [
         TestFullSystemIntegration
@@ -106,10 +115,13 @@ def run_integration_tests():
 def run_ui_tests():
     """Запускает только UI тесты"""
     try:
-        from test_javascript_ui import TestJavaScriptUI
+        from tests.test_javascript_ui import TestJavaScriptUI
+        from tests.test_ui import TestUIFunctionality, TestUIAppearance
         
         test_classes = [
-            TestJavaScriptUI
+            TestJavaScriptUI,
+            TestUIFunctionality,
+            TestUIAppearance
         ]
         
         return run_tests(test_classes=test_classes, verbose=2, failfast=False)
