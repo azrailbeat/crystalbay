@@ -17,7 +17,7 @@ from flask import Flask
 from app_api import register_api_routes
 from models import (
     LeadService, BookingService, is_supabase_available, 
-    _memory_leads, _memory_agents_config, _memory_ai_agents
+    _memory_leads, _memory_ai_config, _memory_ai_agents
 )
 from inquiry_processor import InquiryProcessor
 from api_integration import APIIntegration, get_api_integration
@@ -31,14 +31,14 @@ class TestEndToEndIntegration(unittest.TestCase):
         """Настройка перед каждым тестом"""
         # Сохраняем оригинальные данные
         self.original_leads = _memory_leads.copy()
-        self.original_config = _memory_agents_config.copy()
+        self.original_config = _memory_ai_config.copy()
         self.original_agents = _memory_ai_agents.copy()
         
         # Очищаем данные для тестов
         _memory_leads.clear()
         
         # Настраиваем тестовую конфигурацию агентов
-        _memory_agents_config.update({
+        _memory_ai_config.update({
             'auto_process_enabled': True,
             'default_agent_id': 'test_agent'
         })
@@ -61,8 +61,8 @@ class TestEndToEndIntegration(unittest.TestCase):
         self.client = self.app.test_client()
         
         # Настраиваем патчи для внешних компонентов
-        # Патч для OpenAI
-        self.openai_patcher = patch('inquiry_processor.OpenAI')
+        # Патч для openai
+        self.openai_patcher = patch('inquiry_processor.openai')
         self.mock_openai = self.openai_patcher.start()
         
         # Настраиваем мок для ChatCompletion
@@ -76,7 +76,7 @@ class TestEndToEndIntegration(unittest.TestCase):
         mock_response.choices = [mock_choice]
         mock_chat.return_value = mock_response
         
-        self.mock_openai.return_value.chat.completions.create = mock_chat
+        self.mock_openai.chat.completions.create = mock_chat
         
         # Патч для API интеграции
         self.api_patcher = patch('api_integration.requests.request')
@@ -95,8 +95,8 @@ class TestEndToEndIntegration(unittest.TestCase):
         _memory_leads.extend(self.original_leads)
         
         # Восстанавливаем конфигурацию
-        _memory_agents_config.clear()
-        _memory_agents_config.update(self.original_config)
+        _memory_ai_config.clear()
+        _memory_ai_config.update(self.original_config)
         
         # Восстанавливаем агентов
         _memory_ai_agents.clear()
