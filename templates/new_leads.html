@@ -974,42 +974,42 @@
             <div class="lead-list">
                 <div class="lead-card" data-lead-id="8">
                     <div class="lead-number">#104892</div>
-                    <div class="lead-name">Вилла в Найтоне</div>
-                    <div class="lead-details">Стильная вилла с 4 спальнями, панорамным видом на море</div>
+                    <div class="lead-name">Отдых в Angsana Laguna Phuket 5*</div>
+                    <div class="lead-details">Премиум-отдых в 5* отеле, 14 ночей, всё включено</div>
                     <div class="lead-tags">
-                        <span class="lead-tag">Вилла</span>
-                        <span class="lead-tag">Продажа</span>
+                        <span class="lead-tag">Пляжный отдых</span>
+                        <span class="lead-tag">Семейный</span>
                     </div>
                     <div class="lead-meta">
-                        <div class="lead-price">$2,900,000</div>
+                        <div class="lead-price">$2,900 / чел.</div>
                         <div class="lead-date">13 мая</div>
                     </div>
                 </div>
                 
                 <div class="lead-card" data-lead-id="9">
                     <div class="lead-number">#104765</div>
-                    <div class="lead-name">Апартаменты рядом с пляжем</div>
-                    <div class="lead-details">Современные апартаменты в 100 метрах от пляжа Бангтао</div>
+                    <div class="lead-name">Тур в Hilton Phuket Arcadia 5*</div>
+                    <div class="lead-details">Отдых для двоих, 10 ночей, завтраки и ужины</div>
                     <div class="lead-tags">
-                        <span class="lead-tag">Апартаменты</span>
-                        <span class="lead-tag">Аренда</span>
+                        <span class="lead-tag">Пляжный отдых</span>
+                        <span class="lead-tag">Для пары</span>
                     </div>
                     <div class="lead-meta">
-                        <div class="lead-price">$1,200/мес</div>
+                        <div class="lead-price">$2,100 / чел.</div>
                         <div class="lead-date">10 мая</div>
                     </div>
                 </div>
                 
                 <div class="lead-card" data-lead-id="10">
                     <div class="lead-number">#104601</div>
-                    <div class="lead-name">Коммерческая недвижимость в центре</div>
-                    <div class="lead-details">Торговая площадь с высокой проходимостью в центре Патонга</div>
+                    <div class="lead-name">Экскурсионный тур по Таиланду</div>
+                    <div class="lead-details">Бангкок - Аюттайя - Чиангмай - Пхукет, 12 ночей</div>
                     <div class="lead-tags">
-                        <span class="lead-tag">Коммерческая</span>
-                        <span class="lead-tag">Аренда</span>
+                        <span class="lead-tag">Экскурсионный</span>
+                        <span class="lead-tag">Активный</span>
                     </div>
                     <div class="lead-meta">
-                        <div class="lead-price">$3,500/мес</div>
+                        <div class="lead-price">$1,850 / чел.</div>
                         <div class="lead-date">8 мая</div>
                     </div>
                 </div>
@@ -1075,7 +1075,7 @@
                 <div class="modal-header">
                     <div class="d-flex align-items-center">
                         <span class="modal-property-badge me-3">#104892</span>
-                        <h5 class="modal-title">Вилла в Найтоне</h5>
+                        <h5 class="modal-title">Отдых в Angsana Laguna Phuket 5*</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -1311,7 +1311,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Создать новое обращение</h5>
+                    <h5 class="modal-title">Создать новый запрос на тур</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -1343,7 +1343,57 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="leadDetails" class="form-label">Детали обращения</label>
+                            <label for="leadTourType" class="form-label">Тип тура</label>
+                            <select class="form-select" id="leadTourType">
+                                <option value="beach">Пляжный отдых</option>
+                                <option value="excursion">Экскурсионный</option>
+                                <option value="active">Активный</option>
+                                <option value="family">Семейный</option>
+                                <option value="luxury">Премиум</option>
+                                <option value="wellness">СПА и оздоровление</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="leadCountry" class="form-label">Страна</label>
+                            <select class="form-select" id="leadCountry">
+                                <option value="thailand">Таиланд</option>
+                                <option value="vietnam">Вьетнам</option>
+                                <option value="indonesia">Индонезия</option>
+                                <option value="maldives">Мальдивы</option>
+                                <option value="uae">ОАЭ</option>
+                                <option value="turkey">Турция</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadTourists" class="form-label">Количество туристов</label>
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <label class="form-label small">Взрослые</label>
+                                    <select class="form-select form-select-sm" id="leadAdults">
+                                        <option value="1">1</option>
+                                        <option value="2" selected>2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5+">5+</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label small">Дети</label>
+                                    <select class="form-select form-select-sm" id="leadChildren">
+                                        <option value="0" selected>0</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4+">4+</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="leadDetails" class="form-label">Дополнительные пожелания</label>
                             <textarea class="form-control" id="leadDetails" rows="3"></textarea>
                         </div>
                         
@@ -1355,7 +1405,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary">Создать</button>
+                    <button type="button" class="btn btn-primary">Создать запрос</button>
                 </div>
             </div>
         </div>
@@ -1470,7 +1520,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="viewLeadModalLabel">Просмотр обращения</h5>
+                <h5 class="modal-title" id="viewLeadModalLabel">Просмотр запроса на тур</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -1615,7 +1665,7 @@
                     
                     if (result.success) {
                         // Показываем успешное уведомление
-                        showToast('Тестовая карточка успешно создана', 'success');
+                        showToast('Тестовый запрос на тур успешно создан', 'success');
                         
                         // Перезагружаем страницу для отображения новой карточки
                         setTimeout(() => {
