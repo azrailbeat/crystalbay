@@ -368,7 +368,7 @@ function updateCardWithAIResults(lead, leadCard) {
             summaryText = lead.ai_analysis.summary;
         }
         
-        // Add important information with bold highlight if available
+        // Добавляем информацию о важной информации, но не отображаем её прямо в карточке
         if (lead.ai_analysis && lead.ai_analysis.important_info) {
             importantInfo = lead.ai_analysis.important_info;
         } else {
@@ -389,9 +389,24 @@ function updateCardWithAIResults(lead, leadCard) {
                 } else if (text.includes('Мальдив')) {
                     importantInfo = 'премиум-сегмент, интересуют только 5* отели с собственными виллами на воде';
                 } else {
-                    importantInfo = 'Важно: необходимо уточнить детали поездки';
+                    importantInfo = 'необходимо уточнить детали поездки';
                 }
             }
+        }
+        
+        // Добавляем атрибут с важной информацией в карточку для использования в модальном окне
+        if (importantInfo && importantInfo.trim() !== '') {
+            leadCard.setAttribute('data-important-info', importantInfo);
+            
+            // Добавляем индикатор наличия важной информации
+            const infoIndicator = document.createElement('div');
+            infoIndicator.className = 'important-info-indicator position-absolute top-0 start-0 m-2';
+            infoIndicator.innerHTML = '<i class="bi bi-exclamation-circle text-danger"></i>';
+            infoIndicator.style.zIndex = '2';
+            infoIndicator.style.fontSize = '1rem';
+            infoIndicator.style.opacity = '0.9';
+            leadCard.style.position = leadCard.style.position || 'relative';
+            leadCard.appendChild(infoIndicator);
         }
         
         // Create a collapsible section for AI analysis
