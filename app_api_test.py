@@ -166,7 +166,7 @@ def register_test_routes(app):
                 'error': str(e)
             }), 500
             
-    @app.route('/api/test-leads/<lead_id>', methods=['GET'])
+    @app.route('/api/test/leads/<lead_id>', methods=['GET'])
     def get_test_lead_api(lead_id):
         """Get a specific test lead by ID"""
         try:
@@ -186,7 +186,7 @@ def register_test_routes(app):
                 'error': str(e)
             }), 500
             
-    @app.route('/api/test-leads/<lead_id>/status', methods=['PUT'])
+    @app.route('/api/test/leads/<lead_id>/status', methods=['PUT'])
     def update_test_lead_status_api(lead_id):
         """Update a test lead's status"""
         try:
@@ -233,7 +233,7 @@ def register_test_routes(app):
                 'error': str(e)
             }), 500
             
-    @app.route('/api/test-leads/<lead_id>/interactions', methods=['GET'])
+    @app.route('/api/test/leads/<lead_id>/interactions', methods=['GET'])
     def get_test_lead_interactions_api(lead_id):
         """Get interactions for a test lead"""
         try:
@@ -246,7 +246,7 @@ def register_test_routes(app):
                 'error': str(e)
             }), 500
             
-    @app.route('/api/test-leads/<lead_id>/interactions', methods=['POST'])
+    @app.route('/api/test/leads/<lead_id>/interactions', methods=['POST'])
     def add_test_lead_interaction_api(lead_id):
         """Add an interaction to a test lead"""
         try:

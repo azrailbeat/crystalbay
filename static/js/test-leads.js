@@ -4,7 +4,8 @@
  * This module handles the test functionality for the leads Kanban board,
  * providing buttons to create test leads and reset all leads for testing.
  * 
- * @version 1.0.0
+ * @version 1.1.0
+ * @updated 2025-05-06
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -175,17 +176,16 @@ function addNewLeadCardToDOM(lead) {
         <div class="lead-source">
             <i class="bi bi-robot source-icon"></i> Тестовая карточка
         </div>
-        <div class="lead-name">${lead.name || 'Тестовый клиент'}</div>
-        <div class="lead-details">${lead.inquiry || 'Тестовый запрос для демонстрации функциональности Kanban-доски'}</div>
+        <div class="lead-name">${lead.customer_name || 'Тестовый клиент'}</div>
+        <div class="lead-details">${lead.notes || 'Тестовый запрос для демонстрации функциональности Kanban-доски'}</div>
         <div class="lead-tags">
-            <span class="lead-tag">Тестовый тег</span>
-            <span class="lead-tag">Демо</span>
+            ${lead.tags ? lead.tags.map(tag => `<span class="lead-tag">${tag}</span>`).join('') : '<span class="lead-tag">Тестовый тег</span><span class="lead-tag">Демо</span>'}
         </div>
         <div class="lead-footer">
             <div class="lead-date">только что</div>
             <div class="lead-actions">
-                <button><i class="bi bi-chat"></i></button>
-                <button><i class="bi bi-arrow-right-circle"></i></button>
+                <button class="action-button" title="Добавить комментарий"><i class="bi bi-chat"></i></button>
+                <button class="action-button" title="Обработать с AI"><i class="bi bi-robot"></i></button>
             </div>
         </div>
     `;
@@ -202,11 +202,12 @@ function addNewLeadCardToDOM(lead) {
     // Update column count
     updateColumnCount(0);
     
-    // Make the new card draggable
-    if (typeof makeCardDraggable === 'function') {
-        makeCardDraggable(newCard);
+    // Initialize drag functionality on the new card
+    if (window.kanbanBoard && typeof window.kanbanBoard.initDragAndDrop === 'function') {
+        // Run the kanban board initialization which will make all cards draggable
+        window.kanbanBoard.initDragAndDrop();
     } else {
-        console.warn('makeCardDraggable function not available, card may not be draggable');
+        console.warn('kanbanBoard.initDragAndDrop function not available, card may not be draggable');
     }
     
     // Add click event to open modal
@@ -270,6 +271,13 @@ function updateColumnCount(columnIndex) {
  * Update the count displays for all columns
  */
 function updateAllColumnCounts() {
+    // Use the kanban board's updateColumnCounts function if available
+    if (window.kanbanBoard && typeof window.kanbanBoard.updateColumnCounts === 'function') {
+        window.kanbanBoard.updateColumnCounts();
+        return;
+    }
+    
+    // Fallback if the kanban board function is not available
     const columns = document.querySelectorAll('.kanban-column');
     
     columns.forEach((column, index) => {
@@ -278,5 +286,26 @@ function updateAllColumnCounts() {
         
         const cardCount = column.querySelectorAll('.lead-card').length;
         countElement.textContent = cardCount;
+        
+        // Handle empty state visualization
+        const leadList = column.querySelector('.lead-list');
+        if (cardCount === 0 && leadList) {
+            // Check if empty state message already exists
+            let emptyStateMsg = leadList.querySelector('.empty-column-message');
+            
+            // Only add message if it doesn't already exist
+            if (!emptyStateMsg && !leadList.querySelector('.new-lead-btn')) {
+                emptyStateMsg = document.createElement('div');
+                emptyStateMsg.className = 'empty-column-message text-muted text-center p-3';
+                emptyStateMsg.innerHTML = '<em>Нет запросов</em>';
+                leadList.appendChild(emptyStateMsg);
+            }
+        } else {
+            // Remove empty state message if there are cards
+            const emptyStateMsg = leadList && leadList.querySelector('.empty-column-message');
+            if (emptyStateMsg) {
+                emptyStateMsg.remove();
+            }
+        }
     });
 }
