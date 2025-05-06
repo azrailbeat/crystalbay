@@ -859,32 +859,70 @@
         
         // При открытии модального окна просмотра обращения
         $('#viewLeadModal').on('show.bs.modal', function (event) {
-            // Устраняем проблему с получением ID из разных источников
+            // Определяем ID карточки, которая была нажата
             let leadId = null;
+            let leadCard = null;
             
-            // Метод 1: используем relatedTarget (то, что было нажато)
-            const button = $(event.relatedTarget);
-            if (button && button.data && typeof button.data === 'function') {
-                leadId = button.data('lead-id');
-            }
-            
-            // Метод 2: если не нашли ID через button, проверяем атрибут
-            if (!leadId && event.relatedTarget) {
-                leadId = event.relatedTarget.getAttribute('data-lead-id');
-            }
-            
-            // Метод 3: если это карточка, ищем родительский элемент с атрибутом
-            if (!leadId && event.relatedTarget) {
-                const parentCard = event.relatedTarget.closest('.lead-card');
-                if (parentCard) {
-                    leadId = parentCard.getAttribute('data-lead-id');
+            // Сначала проверяем, является ли нажатый элемент частью карточки
+            if (event.relatedTarget) {
+                // Найдем родительскую карточку
+                leadCard = event.relatedTarget.closest('.lead-card');
+                
+                if (leadCard) {
+                    // Если нашли карточку, получаем прямо из неё ID
+                    leadId = leadCard.getAttribute('data-lead-id');
+                    
+                    // Устанавливаем атрибут в заголовок модального окна
+                    const modalTitle = document.querySelector('#viewLeadModal .modal-title');
+                    if (modalTitle) {
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (leadNum) {
+                            modalTitle.textContent = leadNum.textContent;
+                        }
+                    }
+                    
+                    console.log('Найдена карточка с ID:', leadId);
+                } else {
+                    // Если не удалось найти карточку, проверяем другие способы
+                    leadId = event.relatedTarget.getAttribute('data-lead-id');
+                    
+                    if (leadId) {
+                        // Если нашли ID в элементе, ищем карточку по этому ID
+                        leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                    }
                 }
             }
             
-            // Если все равно не нашли, используем значение по умолчанию
+            // Если все еще не нашли ID, пробуем получить из jQuery данных
             if (!leadId) {
-                leadId = '1'; // Значение по умолчанию для демо-режима
-                console.warn('Не удалось получить ID карточки, используем значение по умолчанию:', leadId);
+                const button = $(event.relatedTarget);
+                if (button && button.data && typeof button.data === 'function') {
+                    leadId = button.data('lead-id');
+                    
+                    if (leadId && !leadCard) {
+                        // Если нашли ID, но не нашли карточку, ищем её по ID
+                        leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+                    }
+                }
+            }
+            
+            // Устанавливаем ID в модальное окно
+            const modal = document.getElementById('viewLeadModal');
+            if (leadId && modal) {
+                modal.setAttribute('data-lead-id', leadId);
+                console.log('Записываем ID в модальное окно:', leadId);
+            } else {
+                // Если все способы не сработали, устанавливаем значение по умолчанию
+                console.error('Не удалось получить ID карточки');
+                
+                // Если нет карточки, выбираем первую карточку на странице
+                const firstCard = document.querySelector('.lead-card');
+                if (firstCard) {
+                    leadId = firstCard.getAttribute('data-lead-id');
+                    leadCard = firstCard;
+                    modal.setAttribute('data-lead-id', leadId);
+                    console.log('Используем первую карточку с ID:', leadId);
+                }
             }
             
             // Сохраняем ID обращения в атрибуте модального окна
@@ -892,8 +930,10 @@
             
             console.log('Card clicked, opening modal for lead ID:', leadId);
             
-            // Проверяем, есть ли важная информация в карточке
-            const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+            // Если карточка еще не найдена, находим её по ID
+            if (!leadCard) {
+                leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+            }
             if (leadCard) {
                 console.log('Найдена карточка:', leadCard);
                 
@@ -944,13 +984,39 @@
             fetch(`/api/leads/${leadId}`)
                 .then(response => response.json())
                 .then(lead => {
-                    // Заполнение полей модального окна
-                    $('#lead-name').text(lead.name || 'Анна Смирнова');
-                    $('#lead-email').text(lead.email || 'anna.smirnova@example.com');
-                    $('#lead-phone').text(lead.phone || '+7 (xxx) xxx-xx-xx');
-                    $('#lead-source').text(lead.source || 'Telegram');
-                    $('#lead-date').text(lead.created_at || '01.01.2023 12:34');
-                    $('#lead-details').text(lead.details || 'Запрос на тур в Турцию, семейный отдых, июль-август 2025.');
+                    // Заполнение полей модального окна из полученных данных
+                    $('#lead-name').text(lead.name || '');
+                    $('#lead-email').text(lead.email || '');
+                    $('#lead-phone').text(lead.phone || '');
+                    $('#lead-source').text(lead.source || '');
+                    $('#lead-date').text(lead.created_at || '');
+                    $('#lead-details').text(lead.details || '');
+                    
+                    // При помощи ссылки на DOM ищем данные из карточки, если API не предоставил их
+                    if (leadCard) {
+                        // Заполняем заголовок модального окна
+                        const modalTitle = document.querySelector('#viewLeadModal .modal-title');
+                        const leadNum = leadCard.querySelector('.lead-number');
+                        if (modalTitle && leadNum) {
+                            modalTitle.textContent = leadNum.textContent;
+                        }
+                        
+                        // Дополняем имя из карточки, если нет в API
+                        if (!lead.name || lead.name.trim() === '') {
+                            const cardNameEl = leadCard.querySelector('.lead-name');
+                            if (cardNameEl && cardNameEl.textContent) {
+                                $('#lead-name').text(cardNameEl.textContent.trim());
+                            }
+                        }
+                        
+                        // Дополняем детали из карточки, если нет в API
+                        if (!lead.details || lead.details.trim() === '') {
+                            const cardDetailsEl = leadCard.querySelector('.lead-details');
+                            if (cardDetailsEl && cardDetailsEl.textContent) {
+                                $('#lead-details').text(cardDetailsEl.textContent.trim());
+                            }
+                        }
+                    }
                     
                     // Если есть данные по важной информации в API, обновляем блок
                     if (lead.ai_analysis && lead.ai_analysis.important_info) {
