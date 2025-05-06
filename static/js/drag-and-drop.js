@@ -673,6 +673,13 @@ function updateColumnCounts() {
             
             console.log(`Column ${index} now has ${cardsCount} cards`);
         });
+        
+        // Make module accessible from outside for test-leads.js
+        if (typeof window !== 'undefined' && window) {
+            window.kanbanBoard = window.kanbanBoard || {};
+            window.kanbanBoard.updateColumnCounts = updateColumnCounts;
+            window.kanbanBoard.initDragAndDrop = initDragAndDrop;
+        }
     } catch (error) {
         console.error('Error updating column counts:', error);
     }
