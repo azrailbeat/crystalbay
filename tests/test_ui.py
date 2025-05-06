@@ -111,8 +111,9 @@ class TestUIFunctionality(unittest.TestCase):
         # API возвращает 201 Created при успешном создании ресурса
         self.assertEqual(response.status_code, 201)
         data = response.get_json()
-        self.assertEqual(data['id'], 'test123')
-        self.assertEqual(data['status'], 'new')
+        # API возвращает данные лида в поле 'lead'
+        self.assertEqual(data['lead']['id'], 'test123')
+        self.assertEqual(data['lead']['status'], 'new')
         
         # Проверяем вызов мока
         mock_create_lead.assert_called_once_with(test_data)
