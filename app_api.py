@@ -314,6 +314,9 @@ def register_api_routes(app):
             new_status = data['status']
             old_status = 'unknown'
             
+            # Инициализируем переменную для измененного лида
+            updated_lead = None
+            
             try:
                 # Get the current lead data
                 lead = LeadService.get_lead(lead_id)
@@ -357,11 +360,17 @@ def register_api_routes(app):
                 except Exception as e:
                     logger.warning(f"Cannot update lead status in database: {e}")
                     # Обновляем статус в резервных данных
+                    updated_lead = None
                     for memory_lead in _memory_leads:
                         if str(memory_lead.get('id')) == str(lead_id):
                             memory_lead['status'] = new_status
                             updated_lead = memory_lead
                             break
+                    
+                    # Если по-прежнему обновленный лид не найден, используем оригинальный с измененным статусом
+                    if not updated_lead and lead:
+                        lead['status'] = new_status
+                        updated_lead = lead
             except Exception as db_error:
                 logger.error(f"Database error when updating lead {lead_id}: {db_error}")
                 # Обновляем статус в резервных данных
@@ -399,10 +408,12 @@ def register_api_routes(app):
     @app.route('/api/leads/analyze', methods=['POST'])
     def analyze_lead_content_api():
         """Analyze lead content and determine next status"""
+        # Инициализируем data за пределами try/except для доступности в обработчике ошибок
+        data = request.json
+        
         try:
             from inquiry_processor import get_inquiry_processor
             
-            data = request.json
             if not data:
                 return jsonify({'error': 'No data provided'}), 400
                 
@@ -444,8 +455,13 @@ def register_api_routes(app):
             })
         except Exception as e:
             logger.error(f"Error analyzing lead content: {e}")
-            # В случае ошибки возвращаем текущий статус, если он есть, или дефолтный 'new'
-            status_to_return = data.get('current_status', 'new') if data else 'new'
+            # В случае ошибки возвращаем текущий статус или дефолтный 'new'
+            # Инициализируем переменную статуса дефолтным значением
+            status_to_return = 'new'
+            # Проверяем data на None и если есть, то используем current_status из неё
+            if isinstance(data, dict) and 'current_status' in data:
+                status_to_return = data.get('current_status')
+                
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -717,6 +733,9 @@ def register_api_routes(app):
     @app.route('/api/flights/check', methods=['GET'])
     def check_flight_api():
         """Check a flight's status"""
+        # Инициализируем переменные за пределами try/except для доступности в обработчике ошибок
+        flight_number = "unknown"
+        
         try:
             from api_integration import get_api_integration
             
@@ -734,6 +753,7 @@ def register_api_routes(app):
             
             return jsonify({'flight': result})
         except Exception as e:
+            # Используем номер рейса в логах
             logger.error(f"Error checking flight {flight_number}: {e}")
             return jsonify({
                 "error": str(e),
