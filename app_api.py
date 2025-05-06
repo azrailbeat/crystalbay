@@ -324,11 +324,110 @@ def register_api_routes(app):
         """Process all active inquiries"""
         try:
             from inquiry_processor import get_inquiry_processor
+            from models import LeadService
             
+            # Get parameters from request
+            data = request.json or {}
+            scope = data.get('scope', 'new')
+            options = data.get('options', {})
+            
+            # Initialize processor
             processor = get_inquiry_processor()
-            result = processor.process_all_inquiries()
             
-            return jsonify(result)
+            # Get leads based on scope
+            leads = []
+            if scope == 'new':
+                # Only process new leads
+                new_leads = LeadService.get_leads(status='new') or []
+                leads.extend(new_leads)
+            elif scope == 'all':
+                # Process all active leads
+                active_statuses = ['new', 'in_progress', 'pending', 'negotiation']
+                for status in active_statuses:
+                    status_leads = LeadService.get_leads(status=status) or []
+                    leads.extend(status_leads)
+            elif scope == 'selected':
+                # For selected, we'd need lead IDs from request
+                lead_ids = data.get('lead_ids', [])
+                if lead_ids:
+                    for lead_id in lead_ids:
+                        lead = LeadService.get_lead(lead_id)
+                        if lead:
+                            leads.append(lead)
+            
+            # Process results
+            results = {
+                'total': len(leads),
+                'updated': 0,
+                'failed': 0,
+                'details': []
+            }
+            
+            # Process each lead
+            for lead in leads:
+                try:
+                    # First analyze to get recommended actions and categories
+                    if options.get('analyze', True):
+                        # Extract lead content to analyze
+                        lead_content = lead.get('message', '') or lead.get('details', '')
+                        if lead_content:
+                            try:
+                                analysis = processor._analyze_with_ai(lead_content)
+                                
+                                # Apply analysis results to lead
+                                if options.get('categorize', True) and analysis.get('category'):
+                                    # Add category as tag
+                                    tags = lead.get('tags', []) or []
+                                    if analysis['category'] not in tags:
+                                        tags.append(analysis['category'])
+                                        LeadService.update_lead(lead['id'], {'tags': tags})
+                                        
+                                # Add analysis to lead notes
+                                summary = analysis.get('summary', '')
+                                if summary and options.get('response', True):
+                                    # Record analysis as interaction
+                                    interaction_data = {
+                                        'type': 'ai_analysis',
+                                        'notes': f"AI анализ: {summary}"
+                                    }
+                                    LeadService.add_lead_interaction(lead['id'], interaction_data)
+                            except Exception as e:
+                                logger.error(f"Error analyzing lead {lead['id']}: {e}")
+                    
+                    # Determine if status should change
+                    old_status = lead.get('status', 'new')
+                    new_status = old_status
+                    
+                    if options.get('status', True):
+                        # Use processor logic to determine next status
+                        suggested_status = processor._determine_next_status(lead)
+                        if suggested_status:
+                            new_status = suggested_status
+                    
+                    # Only update if status changed
+                    if new_status != old_status:
+                        # Update the lead status
+                        updated_lead = LeadService.update_lead(lead['id'], {'status': new_status})
+                        
+                        # Add an interaction to record the status change
+                        interaction_data = {
+                            'type': 'status_change',
+                            'notes': f"Статус автоматически изменен с '{old_status}' на '{new_status}'"
+                        }
+                        LeadService.add_lead_interaction(lead['id'], interaction_data)
+                        
+                        # Record success and details
+                        results['updated'] += 1
+                        results['details'].append({
+                            'lead_id': lead['id'],
+                            'old_status': old_status,
+                            'new_status': new_status
+                        })
+                except Exception as e:
+                    results['failed'] += 1
+                    logger.error(f"Error processing lead {lead['id']}: {e}")
+            
+            return jsonify(results)
         except Exception as e:
             logger.error(f"Error processing all inquiries: {e}")
             return jsonify({
