@@ -901,17 +901,28 @@
             });
             
             // Добавляем обработчик клика для открытия модального окна деталей
-            if (!card.hasAttribute('data-bs-toggle')) {
-                card.addEventListener('click', function(e) {
-                    // Проверяем, что клик не был по кнопке действия
-                    const isActionButton = e.target.closest('.lead-actions button');
-                    if (!isActionButton) {
-                        // Открываем модальное окно с деталями
-                        const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+            card.addEventListener('click', function(e) {
+                // Проверяем, что клик не был по кнопке действия
+                const isActionButton = e.target.closest('.lead-actions button');
+                if (!isActionButton) {
+                    // Получаем ID карточки
+                    const leadId = this.getAttribute('data-lead-id');
+                    console.log('Opening lead modal for ID:', leadId);
+                    
+                    // Открываем модальное окно с деталями
+                    const viewLeadModal = document.getElementById('viewLeadModal');
+                    if (viewLeadModal) {
+                        // Устанавливаем данные карточки в модальное окно
+                        viewLeadModal.setAttribute('data-lead-id', leadId);
+                        
+                        // Показываем модальное окно
+                        const modal = new bootstrap.Modal(viewLeadModal);
                         modal.show();
+                    } else {
+                        console.error('viewLeadModal element not found');
                     }
-                });
-            }
+                }
+            });
         });
         
         // Настройка зон для drop
@@ -1094,47 +1105,78 @@
             return;
         }
         
-        const leadId = this.getAttribute('data-lead-id');
-        console.log('Card clicked, opening modal for lead ID:', leadId);
-        openLeadModal(leadId);
+        try {
+            const leadId = this.getAttribute('data-lead-id');
+            console.log('Card clicked, opening modal for lead ID:', leadId);
+            
+            // Открываем модальное окно с деталями
+            const viewLeadModal = document.getElementById('viewLeadModal');
+            if (viewLeadModal) {
+                // Устанавливаем данные карточки в модальное окно
+                viewLeadModal.setAttribute('data-lead-id', leadId);
+                
+                // Показываем модальное окно напрямую
+                const modal = new bootstrap.Modal(viewLeadModal);
+                modal.show();
+            } else {
+                console.error('viewLeadModal element not found');
+            }
+        } catch (error) {
+            console.error('Error opening lead modal:', error);
+        }
     }
     
     function cardDragStart(e) {
-        // Предотвращаем события, если это клик по кнопкам или действиям
-        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-            e.preventDefault();
+        try {
+            // Предотвращаем события, если это клик по кнопкам или действиям
+            if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            console.log('Starting drag for card:', this.getAttribute('data-lead-id'));
+            currentDraggedCard = this;
+            
+            // Добавляем класс для стилизации
+            this.classList.add('dragging');
+            
+            // Сохраняем ID карточки
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+            e.dataTransfer.effectAllowed = 'move';
+            
+            // Задержка для визуализации начала перетаскивания
+            setTimeout(() => {
+                if (this && this.style) {
+                    this.style.opacity = '0.4';
+                }
+            }, 0);
+            
+            return true;
+        } catch (error) {
+            console.error('Error in cardDragStart:', error);
             return false;
         }
-        
-        console.log('Starting drag for card:', this.getAttribute('data-lead-id'));
-        currentDraggedCard = this;
-        
-        // Добавляем класс для стилизации
-        this.classList.add('dragging');
-        
-        // Сохраняем ID карточки
-        e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
-        e.dataTransfer.effectAllowed = 'move';
-        
-        // Задержка для визуализации начала перетаскивания
-        setTimeout(() => {
-            this.style.opacity = '0.4';
-        }, 0);
-        
-        return true;
     }
     
     function cardDragEnd(e) {
         console.log('Drag ended');
         
-        // Восстанавливаем нормальный вид карточки
-        this.classList.remove('dragging');
-        this.style.opacity = '1';
-        
-        // Убираем подсветку со всех колонок
-        document.querySelectorAll('.lead-list').forEach(col => {
-            col.classList.remove('drop-target');
-        });
+        try {
+            // Восстанавливаем нормальный вид карточки
+            this.classList.remove('dragging');
+            
+            // Проверяем наличие style перед обращением к нему
+            if (this && this.style) {
+                this.style.opacity = '1';
+            }
+            
+            // Убираем подсветку со всех колонок
+            document.querySelectorAll('.lead-list').forEach(col => {
+                col.classList.remove('drop-target');
+            });
+        } catch (error) {
+            console.error('Error in cardDragEnd:', error);
+        }
     }
     
     function columnDragOver(e) {
@@ -1253,13 +1295,21 @@
     }
     
     function handleDragEnd(e) {
-        this.classList.remove('dragging');
-        this.style.opacity = '1';
-        
-        // Сбрасываем подсветку всех колонок
-        document.querySelectorAll('.lead-list').forEach(col => {
-            col.classList.remove('drop-target');
-        });
+        try {
+            this.classList.remove('dragging');
+            
+            // Проверяем наличие style перед обращением к нему
+            if (this && this.style) {
+                this.style.opacity = '1';
+            }
+            
+            // Сбрасываем подсветку всех колонок
+            document.querySelectorAll('.lead-list').forEach(col => {
+                col.classList.remove('drop-target');
+            });
+        } catch (error) {
+            console.error('Error in handleDragEnd:', error);
+        }
     }
     
     function handleDragOver(e) {
