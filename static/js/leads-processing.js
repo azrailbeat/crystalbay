@@ -80,6 +80,7 @@ function startAutoProcess() {
     const responseCheckbox = document.getElementById('response-check');
     const statusCheckbox = document.getElementById('status-check');
     const showAnimationCheckbox = document.getElementById('show-animation');
+    const minimizeCheckbox = document.getElementById('minimize-on-process');
     
     // Устанавливаем все опции по умолчанию в true
     const analyzeChecked = analyzeCheckbox ? analyzeCheckbox.checked : true;
@@ -87,6 +88,7 @@ function startAutoProcess() {
     const responseChecked = responseCheckbox ? responseCheckbox.checked : true;
     const statusChecked = statusCheckbox ? statusCheckbox.checked : true;
     const showAnimation = showAnimationCheckbox ? showAnimationCheckbox.checked : true;
+    const minimizeOnProcess = minimizeCheckbox ? minimizeCheckbox.checked : true;
     
     // Проставляем галочки в интерфейсе, если чекбоксы существуют
     if (analyzeCheckbox) analyzeCheckbox.checked = true;
@@ -94,6 +96,7 @@ function startAutoProcess() {
     if (responseCheckbox) responseCheckbox.checked = true;
     if (statusCheckbox) statusCheckbox.checked = true;
     if (showAnimationCheckbox) showAnimationCheckbox.checked = true;
+    if (minimizeCheckbox) minimizeCheckbox.checked = true;
     
     // Log selected options
     logProcessAction(`Параметры обработки: ${scope === 'new' ? 'только новые' : scope === 'all' ? 'все активные' : 'выбранные'}`);
@@ -106,6 +109,42 @@ function startAutoProcess() {
     // Start progress animation
     updateProcessingUI('Получение обращений для обработки...', 10);
     
+    // Если выбрана опция сворачивания окна, скрываем основное модальное окно и показываем мини-окно
+    if (minimizeOnProcess) {
+        // Скрыть основное модальное окно после небольшой задержки
+        setTimeout(() => {
+            // Получаем ссылку на модальное окно и мини-окно
+            const modalElement = document.getElementById('autoProcessModal');
+            const miniWindow = document.getElementById('miniProcessWindow');
+            
+            // Создаем объект модального окна Bootstrap и скрываем его
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+            
+            // Показываем мини-окно с анимацией
+            if (miniWindow) {
+                miniWindow.style.display = 'block';
+                miniWindow.style.opacity = '0';
+                miniWindow.style.transform = 'translateY(20px)';
+                miniWindow.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                
+                // Force reflow
+                void miniWindow.offsetWidth;
+                
+                // Apply animation
+                miniWindow.style.opacity = '1';
+                miniWindow.style.transform = 'translateY(0)';
+                
+                // Инициализация обработчиков событий для мини-окна
+                initMiniWindowHandlers();
+            }
+        }, 1000); // Задержка перед сворачиванием
+    }
+    
     // Make API call to process all
     processAllInquiries(scope, {
         analyze: analyzeChecked,
@@ -114,6 +153,63 @@ function startAutoProcess() {
         status: statusChecked,
         animation: showAnimation
     });
+}
+
+/**
+ * Stop the auto processing flow
+ */
+/**
+ * Initialize handlers for mini process window
+ */
+function initMiniWindowHandlers() {
+    // Обработчик кнопки развертывания
+    const expandBtn = document.getElementById('expand-process-btn');
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function() {
+            // Скрываем мини-окно
+            const miniWindow = document.getElementById('miniProcessWindow');
+            if (miniWindow) {
+                // Анимация скрытия
+                miniWindow.style.opacity = '0';
+                miniWindow.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    miniWindow.style.display = 'none';
+                    
+                    // Показываем основное модальное окно
+                    const modalElement = document.getElementById('autoProcessModal');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
+                }, 300);
+            }
+        });
+    }
+    
+    // Обработчик кнопки остановки в мини-окне
+    const miniStopBtn = document.getElementById('mini-stop-process-btn');
+    if (miniStopBtn) {
+        miniStopBtn.addEventListener('click', function() {
+            // Останавливаем процесс
+            stopAutoProcess();
+            
+            // Скрываем мини-окно
+            const miniWindow = document.getElementById('miniProcessWindow');
+            if (miniWindow) {
+                // Анимация скрытия
+                miniWindow.style.opacity = '0';
+                miniWindow.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    miniWindow.style.display = 'none';
+                }, 300);
+            }
+        });
+    }
+    
+    // Переносим обновления интерфейса в мини-окно
+    // Добавляем в updateProcessingUI синхронизацию с мини-окном
 }
 
 /**
@@ -143,6 +239,18 @@ function stopAutoProcess() {
         setTimeout(() => {
             autoProcessIndicator.style.display = 'none';
         }, 500);
+    }
+    
+    // Скрываем мини-окно если оно открыто
+    const miniWindow = document.getElementById('miniProcessWindow');
+    if (miniWindow && miniWindow.style.display !== 'none') {
+        // Анимация скрытия
+        miniWindow.style.opacity = '0';
+        miniWindow.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            miniWindow.style.display = 'none';
+        }, 300);
     }
     
     // We would need to cancel any pending operations here if possible
@@ -591,6 +699,32 @@ function completeProcessing() {
             autoProcessIndicator.style.display = 'none';
         }, 500);
     }
+    
+    // Скрываем мини-окно с задержкой, чтобы пользователь увидел завершение
+    setTimeout(() => {
+        const miniWindow = document.getElementById('miniProcessWindow');
+        if (miniWindow && miniWindow.style.display !== 'none') {
+            // Добавляем визуальное подтверждение завершения
+            const miniCurrentEl = document.getElementById('mini-process-current');
+            if (miniCurrentEl) {
+                miniCurrentEl.textContent = 'Завершено';
+                miniCurrentEl.classList.add('text-success');
+                miniCurrentEl.classList.add('fw-bold');
+            }
+            
+            // Задержка перед скрытием мини-окна
+            setTimeout(() => {
+                // Анимация исчезновения
+                miniWindow.style.opacity = '0';
+                miniWindow.style.transform = 'translateY(20px)';
+                
+                // Скрыть после завершения анимации
+                setTimeout(() => {
+                    miniWindow.style.display = 'none';
+                }, 300);
+            }, 1500); // Даем время увидеть завершение
+        }
+    }, 1000);
 }
 
 /**
@@ -605,6 +739,7 @@ function clearProcessLog() {
  * Update processing UI elements
  */
 function updateProcessingUI(status, progress) {
+    // Обновляем статус и прогресс в основном модальном окне
     const statusEl = document.getElementById('process-status');
     const progressBar = document.getElementById('process-progress');
     
@@ -616,6 +751,37 @@ function updateProcessingUI(status, progress) {
     
     // Update status text
     if (statusEl) statusEl.textContent = status;
+    
+    // Обновляем статус и прогресс в мини-окне, если оно открыто
+    const miniStatusEl = document.getElementById('mini-process-status');
+    const miniProgressBar = document.getElementById('mini-process-progress');
+    const miniCurrentEl = document.getElementById('mini-process-current');
+    
+    // Обновляем мини-интерфейс, если он видим
+    if (miniProgressBar) {
+        miniProgressBar.style.width = `${progress}%`;
+        miniProgressBar.setAttribute('aria-valuenow', progress);
+    }
+    
+    if (miniStatusEl) miniStatusEl.textContent = status;
+    
+    // Если статус содержит информацию о конкретном обращении, выделяем его в отдельное поле
+    if (miniCurrentEl) {
+        const regex = /Обработка (\d+) из (\d+)/;
+        const match = status.match(regex);
+        
+        if (match) {
+            const [_, current, total] = match;
+            miniCurrentEl.textContent = `Обращение ${current} из ${total}`;
+            // Добавим визуальную индикацию прогресса с пульсацией
+            miniCurrentEl.classList.add('text-primary');
+            miniCurrentEl.classList.add('fw-bold');
+        } else {
+            miniCurrentEl.textContent = '';
+            miniCurrentEl.classList.remove('text-primary');
+            miniCurrentEl.classList.remove('fw-bold');
+        }
+    }
 }
 
 /**
