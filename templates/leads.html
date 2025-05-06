@@ -434,15 +434,19 @@
                     </div>
                 </div>
                 
-                <div class="lead-card" data-lead-id="2">
+                <div class="lead-card auto-processing" data-lead-id="2" draggable="true">
+                    <div class="processing-indicator">
+                        <div class="processing-spinner"></div>
+                    </div>
                     <div class="lead-source">
                         <i class="bi bi-globe source-icon"></i> Веб-сайт
                     </div>
                     <div class="lead-name">Иван Петров</div>
-                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция</div>
+                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция. Предпочтение отелям 4-5*.</div>
                     <div class="lead-tags">
                         <span class="lead-tag">Экскурсии</span>
                         <span class="lead-tag">Европа</span>
+                        <span class="lead-tag">VIP</span>
                     </div>
                     <div class="lead-footer">
                         <div class="lead-date">3 часа назад</div>
@@ -863,15 +867,131 @@
 <script src="/static/js/drag-and-drop.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Добавляем стиль курсора для карточек lead
-        document.querySelectorAll('.lead-card').forEach(card => {
-            // Делаем карточки выглядящими кликабельными
-            card.style.cursor = 'pointer';
+        // Инициализация всех draggable элементов
+        const draggableCards = document.querySelectorAll('.lead-card');
+        const dropZones = document.querySelectorAll('.lead-list');
+        
+        let draggedItem = null;
+        
+        // Настраиваем карточки как перетаскиваемые
+        draggableCards.forEach(card => {
+            // Добавляем атрибут draggable и стиль курсора
+            card.setAttribute('draggable', 'true');
+            card.style.cursor = 'grab';
+            
+            // События для drag-and-drop
+            card.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                e.dataTransfer.setData('text/plain', this.dataset.leadId || 'unknown');
+                
+                // Небольшая задержка для визуального эффекта
+                setTimeout(() => {
+                    this.classList.add('dragging');
+                }, 0);
+            });
+            
+            card.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                draggedItem = null;
+                
+                // Убираем подсветку со всех контейнеров
+                dropZones.forEach(zone => {
+                    zone.classList.remove('drop-target');
+                });
+            });
+            
+            // Добавляем обработчик клика для открытия модального окна деталей
+            if (!card.hasAttribute('data-bs-toggle')) {
+                card.addEventListener('click', function(e) {
+                    // Проверяем, что клик не был по кнопке действия
+                    const isActionButton = e.target.closest('.lead-actions button');
+                    if (!isActionButton) {
+                        // Открываем модальное окно с деталями
+                        const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+                        modal.show();
+                    }
+                });
+            }
+        });
+        
+        // Настройка зон для drop
+        dropZones.forEach(zone => {
+            // Разрешаем drop при перетаскивании над зоной
+            zone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drop-target');
+            });
+            
+            // При выходе из зоны убираем подсветку
+            zone.addEventListener('dragleave', function() {
+                this.classList.remove('drop-target');
+            });
+            
+            // Обработка события drop
+            zone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const leadId = e.dataTransfer.getData('text/plain');
+                
+                if (draggedItem) {
+                    // Добавляем карточку в новый контейнер
+                    this.appendChild(draggedItem);
+                    
+                    // Получаем новый статус из колонки
+                    const column = this.closest('.kanban-column');
+                    const newStatus = getStatusFromColumn(column);
+                    
+                    // Вызываем API для обновления статуса
+                    updateLeadStatus(leadId, newStatus);
+                    
+                    // Показываем индикатор обновления на короткое время
+                    showUpdateIndicator(draggedItem);
+                    
+                    // Обновляем счетчики в колонках
+                    updateColumnCounts();
+                }
+                
+                // Убираем подсветку
+                this.classList.remove('drop-target');
+            });
         });
         
         // Инициализируем автоматическую обработку
         if (typeof initProcessButtons === 'function') {
             initProcessButtons();
+        }
+        
+        // Вспомогательные функции
+        function getStatusFromColumn(column) {
+            const columnTitle = column.querySelector('.column-title').textContent.trim();
+            // Разделяем текст и берем второе слово (после иконки)
+            return columnTitle.split(' ').slice(1).join(' ').trim();
+        }
+        
+        function updateLeadStatus(leadId, status) {
+            console.log(`Обновление статуса обращения ${leadId} на "${status}"`);
+            
+            // Здесь был бы вызов к API, например:
+            // fetch('/api/leads/' + leadId + '/status', {
+            //     method: 'PATCH',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ status: status })
+            // }).then(response => response.json())
+            //   .then(data => console.log('Статус обновлен:', data));
+        }
+        
+        function updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                const cardsCount = column.querySelectorAll('.lead-card').length;
+                column.querySelector('.column-count').textContent = cardsCount;
+            });
+        }
+        
+        function showUpdateIndicator(card) {
+            // Добавляем временный класс, показывающий успешное обновление
+            card.classList.add('border-success');
+            setTimeout(() => {
+                card.classList.remove('border-success');
+            }, 1000);
         }
         
         // Показываем уведомление о загрузке страницы
