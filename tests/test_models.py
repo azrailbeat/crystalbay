@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from models import (
     LeadService, BookingService, is_supabase_available,
-    _memory_leads, _memory_agents_config, _memory_ai_agents
+    _memory_leads, _memory_ai_config, _memory_ai_agents
 )
 
 class TestLeadService(unittest.TestCase):
