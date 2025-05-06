@@ -420,18 +420,6 @@ function updateCardWithAIResults(lead, leadCard) {
             <div class="ai-summary small mb-2">
                 <i class="bi bi-robot me-1 text-primary"></i> <span class="text-muted">${summaryText}</span>
             </div>
-            ${hasImportantInfo ? `
-            <div class="ai-important-info my-2" style="background-color: #FFEEEE; border-left: 4px solid #dc3545; border-radius: 4px; padding: 10px;">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="me-2 text-danger" style="display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-exclamation-circle"></i>
-                    </div>
-                    <span class="fw-bold text-danger">Важная информация</span>
-                </div>
-                <div style="color: #333;">
-                    ${importantInfo.replace('Важно:', '')}
-                </div>
-            </div>` : ''}
         `;
         
         // Add tags section if not already present

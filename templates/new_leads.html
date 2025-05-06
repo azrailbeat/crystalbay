@@ -828,6 +828,108 @@
             card.style.cursor = 'pointer';
         });
         
+        // При открытии модального окна просмотра обращения
+        $('#viewLeadModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget); // Кнопка, которая вызвала модальное окно
+            const leadId = button.data('lead-id'); // Получение ID обращения из кнопки
+            
+            console.log('Card clicked, opening modal for lead ID:', leadId);
+            
+            // Проверяем, есть ли важная информация в карточке
+            const leadCard = document.querySelector(`.lead-card[data-lead-id="${leadId}"]`);
+            if (leadCard) {
+                const importantInfo = leadCard.getAttribute('data-important-info');
+                
+                // Если есть важная информация, показываем блок и заполняем его
+                const importantInfoContainer = document.getElementById('important-info-container');
+                const importantInfoContent = document.getElementById('important-info-content');
+                
+                if (importantInfo && importantInfo.trim() !== '') {
+                    importantInfoContent.textContent = importantInfo;
+                    importantInfoContainer.style.display = 'block';
+                } else {
+                    importantInfoContainer.style.display = 'none';
+                }
+            }
+            
+            // Получение настоящих данных обращения с сервера
+            fetch(`/api/leads/${leadId}`)
+                .then(response => response.json())
+                .then(lead => {
+                    // Заполнение полей модального окна
+                    $('#lead-name').text(lead.name || 'Анна Смирнова');
+                    $('#lead-email').text(lead.email || 'anna.smirnova@example.com');
+                    $('#lead-phone').text(lead.phone || '+7 (xxx) xxx-xx-xx');
+                    $('#lead-source').text(lead.source || 'Telegram');
+                    $('#lead-date').text(lead.created_at || '01.01.2023 12:34');
+                    $('#lead-details').text(lead.details || 'Запрос на тур в Турцию, семейный отдых, июль-август 2025.');
+                    
+                    // Если есть данные по важной информации в API, обновляем блок
+                    if (lead.ai_analysis && lead.ai_analysis.important_info) {
+                        const importantInfoContainer = document.getElementById('important-info-container');
+                        const importantInfoContent = document.getElementById('important-info-content');
+                        
+                        importantInfoContent.textContent = lead.ai_analysis.important_info;
+                        importantInfoContainer.style.display = 'block';
+                    }
+                    
+                    // Установка статуса
+                    const statusSelect = document.getElementById('lead-status-select');
+                    if (statusSelect) {
+                        for (let i = 0; i < statusSelect.options.length; i++) {
+                            if (statusSelect.options[i].value === lead.status) {
+                                statusSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Заполнение тегов
+                    if (lead.tags && lead.tags.length > 0) {
+                        const tagsContainer = $('#lead-tags');
+                        tagsContainer.empty();
+                        
+                        lead.tags.forEach(tag => {
+                            const tagElement = $('<span></span>').addClass('lead-tag').text(tag);
+                            tagsContainer.append(tagElement);
+                        });
+                    }
+                    
+                    // Заполнение истории взаимодействий
+                    if (lead.interactions && lead.interactions.length > 0) {
+                        const interactionsContainer = $('#lead-interactions');
+                        interactionsContainer.empty();
+                        
+                        lead.interactions.forEach(interaction => {
+                            const interactionItem = $(`
+                                <div class="comment-item">
+                                    <div class="comment-header">
+                                        <span class="comment-author">${interaction.author}</span>
+                                        <span class="comment-date">${interaction.date}</span>
+                                    </div>
+                                    <div class="comment-content">${interaction.content}</div>
+                                </div>
+                            `);
+                            
+                            interactionsContainer.append(interactionItem);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching lead data:', error);
+                    // При ошибке оставляем демо-данные
+                });
+        });
+        
+        // При закрытии модального окна сбрасываем состояние
+        $('#viewLeadModal').on('hidden.bs.modal', function () {
+            // Скрываем блок важной информации
+            const importantInfoContainer = document.getElementById('important-info-container');
+            if (importantInfoContainer) {
+                importantInfoContainer.style.display = 'none';
+            }
+        });
+        
         // Показываем уведомление о загрузке страницы
         setTimeout(() => {
             showToast('Загружено 22 обращения', 'info');
