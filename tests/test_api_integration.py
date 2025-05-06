@@ -76,35 +76,36 @@ class TestAPIIntegration(unittest.TestCase):
         no_amenities = self.api.check_hotel_amenities('INVALID')
         self.assertIsNone(no_amenities)
     
-    @patch('api_integration.requests.request')
-    def test_samo_request(self, mock_request):
+    @patch('api_integration.requests.get')
+    @patch('api_integration.requests.post')
+    @patch('api_integration.requests.put')
+    @patch('api_integration.requests.delete')
+    def test_samo_request(self, mock_delete, mock_put, mock_post, mock_get):
         """Тест запросов к API SAMO с использованием моков"""
         # Настраиваем мок для успешного ответа
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {'status': 'success', 'data': [{'test': 'data'}]}
-        mock_request.return_value = mock_response
+        mock_get.return_value = mock_response
         
-        # Выполняем запрос
-        result = self.api._make_samo_request('/test/endpoint')
+        # Выполняем запрос GET
+        result = self.api._make_samo_request('https://api.samo.travel/test/endpoint')
         
         # Проверяем, что метод был вызван с правильными параметрами
-        mock_request.assert_called_once()
-        args, kwargs = mock_request.call_args
-        self.assertEqual(kwargs['method'], 'GET')
-        self.assertIn('/test/endpoint', kwargs['url'])
+        mock_get.assert_called_once()
+        args, kwargs = mock_get.call_args
+        self.assertEqual(args[0], 'https://api.samo.travel/test/endpoint')
         self.assertIn('Authorization', kwargs['headers'])
         
         # Проверяем результат
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json(), {'status': 'success', 'data': [{'test': 'data'}]})
         
-        # Тестируем обработку ошибок
-        mock_request.reset_mock()
-        mock_request.side_effect = Exception('Test exception')
+        # Тестируем обработку ошибок для POST
+        mock_post.side_effect = Exception('Test exception')
         
         # Проверяем, что исключение обрабатывается
-        result = self.api._make_samo_request('/test/error')
+        result = self.api._make_samo_request('https://api.samo.travel/test/error', method='POST')
         self.assertIsNone(result)
 
 
