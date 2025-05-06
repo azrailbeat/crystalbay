@@ -1,16 +1,81 @@
 /**
  * Drag and Drop functionality for leads kanban board
+ * 
+ * This module handles the drag and drop functionality for lead cards on the Kanban board.
+ * It allows users to move leads between different status columns visually, which also
+ * updates the lead status in the backend via API calls.
+ * 
+ * @module drag-and-drop
+ * @author Crystal Bay Travel
+ * @version 1.2.0
  */
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing drag and drop functionality');
-    initDragAndDrop();
-});
+
+/**
+ * Configuration and constants
+ * @namespace Config
+ */
+const CONFIG = {
+    /**
+     * CSS selectors used throughout the module
+     * @memberof Config
+     */
+    selectors: {
+        leadCard: '.lead-card',
+        leadCardWithoutId: '.lead-card:not([data-lead-id])',
+        leadList: '.lead-list',
+        kanbanColumn: '.kanban-column',
+        columnCount: '.column-count',
+        leadActions: '.lead-actions',
+        newLeadBtn: '.new-lead-btn',
+        modal: '#viewLeadModal',
+    },
+    
+    /**
+     * CSS classes used for visual effects
+     * @memberof Config
+     */
+    classes: {
+        dragging: 'dragging',
+        dropTarget: 'drop-target',
+        leadTag: 'lead-tag',
+    },
+    
+    /**
+     * API endpoints
+     * @memberof Config
+     */
+    api: {
+        updateStatus: '/api/leads/{id}/status',
+        fetchLead: '/api/leads/{id}',
+    },
+    
+    /**
+     * Timing configurations (in milliseconds)
+     * @memberof Config
+     */
+    timing: {
+        fadeTransition: 0,
+        statusUpdateDelay: 1500,
+    },
+};
 
 // Store for currently dragged card
 let draggedItem = null;
 
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing drag and drop functionality');
+    initDragAndDrop();
+    
+    // Add test functionality in development mode
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        runDragAndDropTests();
+    }
+});
+
 /**
  * Initialize drag and drop for all lead cards
+ * @function initDragAndDrop
  */
 function initDragAndDrop() {
     // Add ID to cards that don't have one
@@ -130,7 +195,11 @@ function handleDragLeave(e) {
 }
 
 /**
- * Handle drop event
+ * Handle drop event when a card is dropped on a column
+ * 
+ * @function handleDrop
+ * @param {DragEvent} e - The drag event
+ * @returns {boolean} - Returns false to prevent default browser behavior
  */
 function handleDrop(e) {
     // Prevent default browser behavior
@@ -138,7 +207,7 @@ function handleDrop(e) {
     e.stopPropagation();
     
     // Remove highlight
-    this.classList.remove('drop-target');
+    this.classList.remove(CONFIG.classes.dropTarget);
     
     // Get the dragged card ID
     const leadId = e.dataTransfer.getData('text/plain');
@@ -151,8 +220,8 @@ function handleDrop(e) {
     
     try {
         // Get source and target columns
-        const sourceColumn = draggedItem.closest('.kanban-column');
-        const targetColumn = this.closest('.kanban-column');
+        const sourceColumn = draggedItem.closest(CONFIG.selectors.kanbanColumn);
+        const targetColumn = this.closest(CONFIG.selectors.kanbanColumn);
         
         if (!sourceColumn || !targetColumn) {
             console.error('Could not determine source or target column');
@@ -164,7 +233,7 @@ function handleDrop(e) {
             console.log('Moving card between different columns');
             
             // Get column indexes to determine status
-            const columns = Array.from(document.querySelectorAll('.kanban-column'));
+            const columns = Array.from(document.querySelectorAll(CONFIG.selectors.kanbanColumn));
             const sourceIndex = columns.indexOf(sourceColumn);
             const targetIndex = columns.indexOf(targetColumn);
             
@@ -174,19 +243,24 @@ function handleDrop(e) {
             const newStatus = getStatusByColumnIndex(targetIndex);
             console.log(`New status will be: ${newStatus}`);
             
-            // Add card to the new column (before the 'add' button if it exists)
-            const addButton = this.querySelector('.new-lead-btn');
-            if (addButton) {
-                this.insertBefore(draggedItem, addButton);
-            } else {
-                this.appendChild(draggedItem);
-            }
+            // Move the card to the new column
+            moveCardToColumn(draggedItem, this);
             
             // Update column counts
             updateColumnCounts();
             
             // Send API request to update the status
-            updateLeadStatus(leadId, newStatus);
+            updateLeadStatus(leadId, newStatus)
+                .then(success => {
+                    // If update failed, move card back to original column
+                    if (!success) {
+                        const sourceList = sourceColumn.querySelector(CONFIG.selectors.leadList);
+                        if (sourceList) {
+                            moveCardToColumn(draggedItem, sourceList);
+                            updateColumnCounts();
+                        }
+                    }
+                });
             
             // Show confirmation toast
             showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
@@ -195,9 +269,30 @@ function handleDrop(e) {
         }
     } catch (error) {
         console.error('Error handling drop:', error);
+        // Show error message to user
+        showToast('Ошибка при перемещении карточки', 'danger');
     }
     
     return false;
+}
+
+/**
+ * Helper function to move a card to a column
+ * 
+ * @function moveCardToColumn
+ * @param {HTMLElement} card - The card element to move
+ * @param {HTMLElement} columnList - The target column list element
+ */
+function moveCardToColumn(card, columnList) {
+    if (!card || !columnList) return;
+    
+    // Add card to the new column (before the 'add' button if it exists)
+    const addButton = columnList.querySelector(CONFIG.selectors.newLeadBtn);
+    if (addButton) {
+        columnList.insertBefore(card, addButton);
+    } else {
+        columnList.appendChild(card);
+    }
 }
 
 /**
