@@ -1,28 +1,164 @@
 /**
  * Lead processing functionality for Crystal Bay Travel
+ * 
+ * This module handles the automated processing of leads in the system
+ * including AI analysis, categorization, and status updates.
+ * 
+ * @module leads-processing
+ * @author Crystal Bay Travel
+ * @version 1.3.0
+ */
+
+/**
+ * Configuration and constants
+ * @namespace Config
+ */
+const PROCESS_CONFIG = {
+    /**
+     * CSS selectors used throughout the module
+     * @memberof Config
+     */
+    selectors: {
+        startButton: '#start-process-btn',
+        stopButton: '#stop-process-btn',
+        autoProcessIndicator: '#auto-process-indicator',
+        scopeSelect: '#process-scope',
+        processModal: '#autoProcessModal',
+        miniWindow: '#miniProcessWindow',
+        expandButton: '#expand-process-btn',
+        miniStopButton: '#mini-stop-process-btn',
+        processLog: '#process-log',
+        progressBar: '#process-progress',
+        progressText: '#process-progress-text',
+        statusText: '#process-status',
+        leadCard: '.lead-card',
+        kanbanColumn: '.kanban-column',
+        columnCount: '.column-count',
+        leadList: '.lead-list',
+        
+        // Option checkboxes
+        analyzeCheck: '#analyze-check',
+        categorizeCheck: '#categorize-check',
+        responseCheck: '#response-check',
+        statusCheck: '#status-check',
+        showAnimationCheck: '#show-animation',
+        minimizeCheck: '#minimize-on-process'
+    },
+    
+    /**
+     * API endpoints
+     * @memberof Config
+     */
+    api: {
+        processAll: '/api/leads/process-all'
+    },
+    
+    /**
+     * Timing configurations (in milliseconds)
+     * @memberof Config
+     */
+    timing: {
+        minimizeDelay: 1000,
+        animationDuration: 500,
+        cardMoveDelay: 800,
+        processDelay: 200
+    },
+    
+    /**
+     * Default processing options
+     * @memberof Config
+     */
+    defaults: {
+        scope: 'new',
+        options: {
+            analyze: true,
+            categorize: true,
+            response: true,
+            status: true,
+            animation: true,
+            minimize: true
+        }
+    },
+    
+    /**
+     * Status map for columns
+     * @memberof Config
+     */
+    statusMap: [
+        'new',           // 0 - Новые
+        'in_progress',   // 1 - В работе
+        'negotiation',   // 2 - Переговоры
+        'booked',        // 3 - Забронировано
+        'canceled'       // 4 - Отменено
+    ],
+    
+    /**
+     * Status display names
+     * @memberof Config
+     */
+    statusNames: {
+        'new': 'Новый',
+        'in_progress': 'В работе',
+        'negotiation': 'Переговоры',
+        'booked': 'Забронировано',
+        'canceled': 'Отменено',
+        'pending': 'В ожидании',
+        'confirmed': 'Подтвержден',
+        'closed': 'Закрыт'
+    }
+};
+
+// Processing state object
+const ProcessingState = {
+    isProcessing: false,
+    totalLeads: 0,
+    processedLeads: 0,
+    successfulLeads: 0,
+    failedLeads: 0,
+    startTime: null,
+    stopRequested: false
+};
+
+/**
+ * Initialize the module when DOM is ready
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing lead processing functionality');
-    initAutoProcessButtons();
     
-    // Автоматическая обработка по умолчанию отключена
-    // Для запуска обработки используйте кнопку "Авто-обработка" в верхней части страницы
+    // Initialize UI elements and event handlers
+    initAutoProcessButtons();
+    initMiniWindowHandlers();
+    
+    // Run tests in development environment
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        runProcessingTests();
+    }
+    
+    // Auto-processing is disabled by default
+    // To start processing, use the "Auto-process" button at the top of the page
     console.log('Автоматическая обработка по умолчанию отключена');
 });
 
 /**
  * Initialize buttons for auto-processing
+ * 
+ * Attaches event listeners to the start and stop buttons
+ * for lead processing
+ * 
+ * @function initAutoProcessButtons
  */
 function initAutoProcessButtons() {
-    // Start process button in modal
-    const startProcessBtn = document.getElementById('start-process-btn');
-    const stopProcessBtn = document.getElementById('stop-process-btn');
+    // Get button elements using selectors from config
+    const startProcessBtn = document.querySelector(PROCESS_CONFIG.selectors.startButton);
+    const stopProcessBtn = document.querySelector(PROCESS_CONFIG.selectors.stopButton);
     
+    // Initialize start button
     if (startProcessBtn) {
         startProcessBtn.addEventListener('click', startAutoProcess);
         console.log('Process start button initialized');
     }
     
+    // Initialize stop button
     if (stopProcessBtn) {
         stopProcessBtn.addEventListener('click', stopAutoProcess);
         console.log('Process stop button initialized');
@@ -31,62 +167,121 @@ function initAutoProcessButtons() {
 
 /**
  * Start the auto processing flow
+ * 
+ * Initiates the automated processing of leads, gathering options
+ * from UI and making the API call to process leads
+ * 
+ * @function startAutoProcess
  */
 function startAutoProcess() {
     console.log('Starting auto-process of leads');
     
-    // Show stop button, hide start button
-    const startBtn = document.getElementById('start-process-btn');
-    const stopBtn = document.getElementById('stop-process-btn');
+    // Set processing state
+    ProcessingState.isProcessing = true;
+    ProcessingState.startTime = new Date();
+    ProcessingState.stopRequested = false;
+    ProcessingState.totalLeads = 0;
+    ProcessingState.processedLeads = 0;
+    ProcessingState.successfulLeads = 0;
+    ProcessingState.failedLeads = 0;
     
-    if (startBtn) startBtn.classList.add('d-none');
-    if (stopBtn) stopBtn.classList.remove('d-none');
-    
-    // Reset UI
+    // Update UI to show processing is active
+    updateButtonVisibility(true);
     updateProcessingUI('Начало обработки обращений...', 5);
     clearProcessLog();
     logProcessAction('Запуск автоматической обработки обращений');
     
-    // Show auto-process indicator in header
-    const autoProcessIndicator = document.getElementById('auto-process-indicator');
-    if (autoProcessIndicator) {
-        autoProcessIndicator.style.display = 'inline-flex';
-        // Добавим анимацию появления
-        autoProcessIndicator.style.opacity = '0';
-        autoProcessIndicator.style.transform = 'translateY(-10px)';
-        autoProcessIndicator.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        
-        // Force reflow
-        void autoProcessIndicator.offsetWidth;
-        
-        // Apply animation
-        autoProcessIndicator.style.opacity = '1';
-        autoProcessIndicator.style.transform = 'translateY(0)';
+    // Show auto-process indicator with animation
+    showAutoProcessIndicator();
+    
+    // Get processing options
+    const processingOptions = getProcessingOptions();
+    
+    // Log selected options
+    logProcessingOptions(processingOptions);
+    
+    // Start progress animation
+    updateProcessingUI('Получение обращений для обработки...', 10);
+    
+    // Minimize modal if option is selected
+    if (processingOptions.minimize) {
+        minimizeProcessModal();
     }
     
-    // Get process scope - всегда используем 'all' для автоматической обработки
-    const scopeSelect = document.getElementById('process-scope');
-    // При загрузке страницы всегда обрабатываем все новые обращения
-    const scope = 'new';
+    // Make API call to process all leads
+    processAllInquiries(processingOptions.scope, {
+        analyze: processingOptions.analyze,
+        categorize: processingOptions.categorize,
+        response: processingOptions.response,
+        status: processingOptions.status,
+        animation: processingOptions.animation
+    });
+}
+
+/**
+ * Show the auto process indicator with animation
+ * 
+ * @function showAutoProcessIndicator
+ */
+function showAutoProcessIndicator() {
+    const autoProcessIndicator = document.querySelector(PROCESS_CONFIG.selectors.autoProcessIndicator);
+    if (!autoProcessIndicator) return;
     
-    // Get options - для автоматической обработки всегда включаем все опции
-    // Проверяем есть ли checkbox'ы на странице, если нет - используем дефолтные значения
-    const analyzeCheckbox = document.getElementById('analyze-check');
-    const categorizeCheckbox = document.getElementById('categorize-check');
-    const responseCheckbox = document.getElementById('response-check');
-    const statusCheckbox = document.getElementById('status-check');
-    const showAnimationCheckbox = document.getElementById('show-animation');
-    const minimizeCheckbox = document.getElementById('minimize-on-process');
+    // Setup initial state
+    autoProcessIndicator.style.display = 'inline-flex';
+    autoProcessIndicator.style.opacity = '0';
+    autoProcessIndicator.style.transform = 'translateY(-10px)';
+    autoProcessIndicator.style.transition = `opacity ${PROCESS_CONFIG.timing.animationDuration}ms ease, transform ${PROCESS_CONFIG.timing.animationDuration}ms ease`;
     
-    // Устанавливаем все опции по умолчанию в true
-    const analyzeChecked = analyzeCheckbox ? analyzeCheckbox.checked : true;
-    const categorizeChecked = categorizeCheckbox ? categorizeCheckbox.checked : true;
-    const responseChecked = responseCheckbox ? responseCheckbox.checked : true;
-    const statusChecked = statusCheckbox ? statusCheckbox.checked : true;
-    const showAnimation = showAnimationCheckbox ? showAnimationCheckbox.checked : true;
-    const minimizeOnProcess = minimizeCheckbox ? minimizeCheckbox.checked : true;
+    // Force reflow to ensure animation works
+    void autoProcessIndicator.offsetWidth;
     
-    // Проставляем галочки в интерфейсе, если чекбоксы существуют
+    // Apply animation
+    autoProcessIndicator.style.opacity = '1';
+    autoProcessIndicator.style.transform = 'translateY(0)';
+}
+
+/**
+ * Update visibility of start/stop buttons
+ * 
+ * @function updateButtonVisibility
+ * @param {boolean} isProcessing - Whether processing is active
+ */
+function updateButtonVisibility(isProcessing) {
+    const startBtn = document.querySelector(PROCESS_CONFIG.selectors.startButton);
+    const stopBtn = document.querySelector(PROCESS_CONFIG.selectors.stopButton);
+    
+    if (startBtn) startBtn.classList.toggle('d-none', isProcessing);
+    if (stopBtn) stopBtn.classList.toggle('d-none', !isProcessing);
+}
+
+/**
+ * Get processing options from UI or use defaults
+ * 
+ * @function getProcessingOptions
+ * @returns {Object} - Processing options
+ */
+function getProcessingOptions() {
+    // Always use 'new' scope for automated processing
+    const scope = PROCESS_CONFIG.defaults.scope;
+    
+    // Get checkbox states from UI or use defaults
+    const analyzeCheckbox = document.querySelector(PROCESS_CONFIG.selectors.analyzeCheck);
+    const categorizeCheckbox = document.querySelector(PROCESS_CONFIG.selectors.categorizeCheck);
+    const responseCheckbox = document.querySelector(PROCESS_CONFIG.selectors.responseCheck);
+    const statusCheckbox = document.querySelector(PROCESS_CONFIG.selectors.statusCheck);
+    const showAnimationCheckbox = document.querySelector(PROCESS_CONFIG.selectors.showAnimationCheck);
+    const minimizeCheckbox = document.querySelector(PROCESS_CONFIG.selectors.minimizeCheck);
+    
+    // Determine checkbox values (checked or default)
+    const analyzeChecked = analyzeCheckbox ? analyzeCheckbox.checked : PROCESS_CONFIG.defaults.options.analyze;
+    const categorizeChecked = categorizeCheckbox ? categorizeCheckbox.checked : PROCESS_CONFIG.defaults.options.categorize;
+    const responseChecked = responseCheckbox ? responseCheckbox.checked : PROCESS_CONFIG.defaults.options.response;
+    const statusChecked = statusCheckbox ? statusCheckbox.checked : PROCESS_CONFIG.defaults.options.status;
+    const showAnimation = showAnimationCheckbox ? showAnimationCheckbox.checked : PROCESS_CONFIG.defaults.options.animation;
+    const minimizeOnProcess = minimizeCheckbox ? minimizeCheckbox.checked : PROCESS_CONFIG.defaults.options.minimize;
+    
+    // Set checkboxes to checked in UI if they exist
     if (analyzeCheckbox) analyzeCheckbox.checked = true;
     if (categorizeCheckbox) categorizeCheckbox.checked = true;
     if (responseCheckbox) responseCheckbox.checked = true;
@@ -94,176 +289,226 @@ function startAutoProcess() {
     if (showAnimationCheckbox) showAnimationCheckbox.checked = true;
     if (minimizeCheckbox) minimizeCheckbox.checked = true;
     
-    // Log selected options
-    logProcessAction(`Параметры обработки: ${scope === 'new' ? 'только новые' : scope === 'all' ? 'все активные' : 'выбранные'}`);
-    
-    if (analyzeChecked) logProcessAction('✓ Анализ содержимого включен');
-    if (categorizeChecked) logProcessAction('✓ Категоризация включена');
-    if (responseChecked) logProcessAction('✓ Подготовка ответов включена');
-    if (statusChecked) logProcessAction('✓ Изменение статусов включено');
-    
-    // Start progress animation
-    updateProcessingUI('Получение обращений для обработки...', 10);
-    
-    // Если выбрана опция сворачивания окна, скрываем основное модальное окно и показываем мини-окно
-    if (minimizeOnProcess) {
-        // Скрыть основное модальное окно после небольшой задержки
-        setTimeout(() => {
-            // Получаем ссылку на модальное окно и мини-окно
-            const modalElement = document.getElementById('autoProcessModal');
-            const miniWindow = document.getElementById('miniProcessWindow');
-            
-            // Создаем объект модального окна Bootstrap и скрываем его
-            if (modalElement) {
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-            
-            // Показываем мини-окно с анимацией
-            if (miniWindow) {
-                miniWindow.style.display = 'block';
-                miniWindow.style.opacity = '0';
-                miniWindow.style.transform = 'translateY(20px)';
-                miniWindow.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                
-                // Force reflow
-                void miniWindow.offsetWidth;
-                
-                // Apply animation
-                miniWindow.style.opacity = '1';
-                miniWindow.style.transform = 'translateY(0)';
-                
-                // Инициализация обработчиков событий для мини-окна
-                initMiniWindowHandlers();
-            }
-        }, 1000); // Задержка перед сворачиванием
-    }
-    
-    // Make API call to process all
-    processAllInquiries(scope, {
+    // Return the options object
+    return {
+        scope: scope,
         analyze: analyzeChecked,
         categorize: categorizeChecked,
         response: responseChecked,
         status: statusChecked,
-        animation: showAnimation
+        animation: showAnimation,
+        minimize: minimizeOnProcess
+    };
+}
+
+/**
+ * Log processing options to the process log
+ * 
+ * @function logProcessingOptions
+ * @param {Object} options - Processing options
+ */
+function logProcessingOptions(options) {
+    const scopeText = options.scope === 'new' ? 'только новые' : 
+                      options.scope === 'all' ? 'все активные' : 'выбранные';
+    
+    logProcessAction(`Параметры обработки: ${scopeText}`);
+    
+    if (options.analyze) logProcessAction('✓ Анализ содержимого включен');
+    if (options.categorize) logProcessAction('✓ Категоризация включена');
+    if (options.response) logProcessAction('✓ Подготовка ответов включена');
+    if (options.status) logProcessAction('✓ Изменение статусов включено');
+}
+
+/**
+ * Minimize the process modal and show mini window
+ * 
+ * @function minimizeProcessModal
+ */
+function minimizeProcessModal() {
+    setTimeout(() => {
+        const modalElement = document.querySelector(PROCESS_CONFIG.selectors.processModal);
+        const miniWindow = document.querySelector(PROCESS_CONFIG.selectors.miniWindow);
+        
+        // Hide modal dialog
+        if (modalElement) {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+        }
+        
+        // Show mini window with animation
+        if (miniWindow) {
+            miniWindow.style.display = 'block';
+            miniWindow.style.opacity = '0';
+            miniWindow.style.transform = 'translateY(20px)';
+            miniWindow.style.transition = `opacity ${PROCESS_CONFIG.timing.animationDuration}ms ease, transform ${PROCESS_CONFIG.timing.animationDuration}ms ease`;
+            
+            // Force reflow
+            void miniWindow.offsetWidth;
+            
+            // Apply animation
+            miniWindow.style.opacity = '1';
+            miniWindow.style.transform = 'translateY(0)';
+        }
+    }, PROCESS_CONFIG.timing.minimizeDelay);
+}
+
+/**
+ * Initialize handlers for mini process window
+ * 
+ * Attaches event handlers to the expand and stop buttons
+ * in the minimized processing window
+ * 
+ * @function initMiniWindowHandlers
+ */
+function initMiniWindowHandlers() {
+    // Expand button handler
+    const expandBtn = document.querySelector(PROCESS_CONFIG.selectors.expandButton);
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function() {
+            expandMiniWindow();
+        });
+    }
+    
+    // Mini window stop button handler
+    const miniStopBtn = document.querySelector(PROCESS_CONFIG.selectors.miniStopButton);
+    if (miniStopBtn) {
+        miniStopBtn.addEventListener('click', function() {
+            // Stop processing
+            stopAutoProcess();
+            
+            // Hide mini window
+            hideMiniWindow();
+        });
+    }
+}
+
+/**
+ * Expand mini window and show full modal
+ * 
+ * @function expandMiniWindow
+ */
+function expandMiniWindow() {
+    const miniWindow = document.querySelector(PROCESS_CONFIG.selectors.miniWindow);
+    if (!miniWindow) return;
+    
+    // Animate hiding
+    animateHide(miniWindow, () => {
+        miniWindow.style.display = 'none';
+        
+        // Show main modal window
+        const modalElement = document.querySelector(PROCESS_CONFIG.selectors.processModal);
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
     });
 }
 
 /**
- * Stop the auto processing flow
+ * Hide mini window with animation
+ * 
+ * @function hideMiniWindow
  */
+function hideMiniWindow() {
+    const miniWindow = document.querySelector(PROCESS_CONFIG.selectors.miniWindow);
+    if (!miniWindow || miniWindow.style.display === 'none') return;
+    
+    animateHide(miniWindow, () => {
+        miniWindow.style.display = 'none';
+    });
+}
+
 /**
- * Initialize handlers for mini process window
+ * Animate hiding of an element
+ * 
+ * @function animateHide
+ * @param {HTMLElement} element - Element to hide
+ * @param {Function} callback - Callback after animation
  */
-function initMiniWindowHandlers() {
-    // Обработчик кнопки развертывания
-    const expandBtn = document.getElementById('expand-process-btn');
-    if (expandBtn) {
-        expandBtn.addEventListener('click', function() {
-            // Скрываем мини-окно
-            const miniWindow = document.getElementById('miniProcessWindow');
-            if (miniWindow) {
-                // Анимация скрытия
-                miniWindow.style.opacity = '0';
-                miniWindow.style.transform = 'translateY(20px)';
-                
-                setTimeout(() => {
-                    miniWindow.style.display = 'none';
-                    
-                    // Показываем основное модальное окно
-                    const modalElement = document.getElementById('autoProcessModal');
-                    if (modalElement) {
-                        const modal = new bootstrap.Modal(modalElement);
-                        modal.show();
-                    }
-                }, 300);
-            }
-        });
-    }
+function animateHide(element, callback) {
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(20px)';
     
-    // Обработчик кнопки остановки в мини-окне
-    const miniStopBtn = document.getElementById('mini-stop-process-btn');
-    if (miniStopBtn) {
-        miniStopBtn.addEventListener('click', function() {
-            // Останавливаем процесс
-            stopAutoProcess();
-            
-            // Скрываем мини-окно
-            const miniWindow = document.getElementById('miniProcessWindow');
-            if (miniWindow) {
-                // Анимация скрытия
-                miniWindow.style.opacity = '0';
-                miniWindow.style.transform = 'translateY(20px)';
-                
-                setTimeout(() => {
-                    miniWindow.style.display = 'none';
-                }, 300);
-            }
-        });
-    }
-    
-    // Переносим обновления интерфейса в мини-окно
-    // Добавляем в updateProcessingUI синхронизацию с мини-окном
+    setTimeout(() => {
+        if (typeof callback === 'function') {
+            callback();
+        }
+    }, PROCESS_CONFIG.timing.animationDuration);
 }
 
 /**
  * Stop the auto processing flow
+ * 
+ * @function stopAutoProcess
  */
 function stopAutoProcess() {
     console.log('Stopping auto-process of leads');
     
-    // Show start button, hide stop button
-    const startBtn = document.getElementById('start-process-btn');
-    const stopBtn = document.getElementById('stop-process-btn');
+    // Update processing state
+    ProcessingState.isProcessing = false;
+    ProcessingState.stopRequested = true;
     
-    if (stopBtn) stopBtn.classList.add('d-none');
-    if (startBtn) startBtn.classList.remove('d-none');
-    
+    // Update UI to show processing is stopped
+    updateButtonVisibility(false);
     logProcessAction('Процесс остановлен пользователем');
     updateProcessingUI('Обработка остановлена', 0);
     
-    // Hide auto-process indicator
-    const autoProcessIndicator = document.getElementById('auto-process-indicator');
-    if (autoProcessIndicator) {
-        // Добавим анимацию исчезновения
-        autoProcessIndicator.style.opacity = '0';
-        autoProcessIndicator.style.transform = 'translateY(-10px)';
-        
-        // Скрыть после завершения анимации
-        setTimeout(() => {
-            autoProcessIndicator.style.display = 'none';
-        }, 500);
-    }
+    // Hide auto-process indicator with animation
+    hideAutoProcessIndicator();
     
-    // Скрываем мини-окно если оно открыто
-    const miniWindow = document.getElementById('miniProcessWindow');
-    if (miniWindow && miniWindow.style.display !== 'none') {
-        // Анимация скрытия
-        miniWindow.style.opacity = '0';
-        miniWindow.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            miniWindow.style.display = 'none';
-        }, 300);
-    }
+    // Hide mini window if it's open
+    hideMiniWindow();
     
-    // We would need to cancel any pending operations here if possible
-    // For now, we just update the UI
+    // Note: We would need to cancel any pending operations here if possible
+    // For now, we just update the UI to indicate stopping
+}
+
+/**
+ * Hide the auto process indicator with animation
+ * 
+ * @function hideAutoProcessIndicator
+ */
+function hideAutoProcessIndicator() {
+    const autoProcessIndicator = document.querySelector(PROCESS_CONFIG.selectors.autoProcessIndicator);
+    if (!autoProcessIndicator) return;
+    
+    // Setup animation
+    autoProcessIndicator.style.opacity = '0';
+    autoProcessIndicator.style.transform = 'translateY(-10px)';
+    
+    // Hide after animation completes
+    setTimeout(() => {
+        autoProcessIndicator.style.display = 'none';
+    }, PROCESS_CONFIG.timing.animationDuration);
 }
 
 /**
  * Call API to process all inquiries
+ * 
+ * Makes API request to process leads according to scope and options,
+ * then handles visual updates for processed leads
+ * 
+ * @function processAllInquiries
+ * @param {string} scope - The scope of processing ('new', 'all', 'selected')
+ * @param {Object} options - Processing options (analyze, categorize, etc.)
+ * @returns {Promise<void>}
  */
 async function processAllInquiries(scope, options) {
+    // Track processing in state
+    ProcessingState.isProcessing = true;
+    ProcessingState.totalLeads = 0;
+    ProcessingState.processedLeads = 0;
+    
     try {
         logProcessAction('Отправка запроса на обработку обращений...');
         
         // Show loading indicator
         showToast('Обработка обращений...', 'info');
         
-        const response = await fetch('/api/leads/process-all', {
+        // Make API request
+        const response = await fetch(PROCESS_CONFIG.api.processAll, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -274,15 +519,23 @@ async function processAllInquiries(scope, options) {
             })
         });
         
+        // Handle HTTP errors
         if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Ошибка сервера ${response.status}: ${errorText || response.statusText}`);
         }
         
+        // Parse response data
         const data = await response.json();
         updateProcessingUI('Получение результатов обработки...', 25);
         
-        // Process results
-        if (data.total === 0) {
+        // Update processing state
+        ProcessingState.totalLeads = data.total || 0;
+        ProcessingState.successfulLeads = data.updated || 0;
+        ProcessingState.failedLeads = data.failed || 0;
+        
+        // Check if there are any leads to process
+        if (ProcessingState.totalLeads === 0) {
             logProcessAction('Не найдено обращений для обработки');
             updateProcessingUI('Обработка завершена: нет обращений', 100);
             showToast('Не найдено обращений для обработки', 'warning');
@@ -290,13 +543,13 @@ async function processAllInquiries(scope, options) {
             return;
         }
         
-        logProcessAction(`Найдено ${data.total} обращений для обработки`);
+        logProcessAction(`Найдено ${ProcessingState.totalLeads} обращений для обработки`);
         
-        // Process each result sequentially with visual updates
+        // Get details of leads to be processed
         const details = data.details || [];
         const total = details.length;
-        let processed = 0;
         
+        // Double-check for empty details array
         if (total === 0) {
             logProcessAction('Нет обращений требующих обработки');
             updateProcessingUI('Обработка завершена: нет обновлений', 100);
@@ -305,37 +558,17 @@ async function processAllInquiries(scope, options) {
             return;
         }
         
-        // Process in batches or one by one depending on animation option
-        if (options.animation) {
-            // Sequential processing with animation
-            for (const detail of details) {
-                await processLeadWithAnimation(detail);
-                processed++;
-                const progress = 25 + (processed / total * 75);
-                updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
-            }
-        } else {
-            // Process all at once without animation
-            for (const detail of details) {
-                logProcessAction(`Обработка обращения #${detail.lead_id}: ${detail.old_status} -> ${detail.new_status}`);
-                // Quietly move cards without animation
-                const leadCard = document.querySelector(`.lead-card[data-lead-id="${detail.lead_id}"]`);
-                if (leadCard) {
-                    updateCardWithAIResults(detail, leadCard);  // Update with AI results
-                    moveCardToNewStatus(detail.lead_id, detail.new_status);
-                }
-                processed++;
-                const progress = 25 + (processed / total * 75);
-                updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
-            }
-            updateProcessingUI('Обработка завершена', 100);
-            updateColumnCounts();
-        }
+        // Process leads based on animation option
+        await processLeadDetails(details, options.animation);
         
-        // Show summary
-        const message = `Автоматическая обработка завершена. Обработано ${data.updated} обращений${data.failed > 0 ? `, ${data.failed} ошибок` : ''}.`;
+        // Show summary of processing
+        const messageType = ProcessingState.failedLeads > 0 ? 'warning' : 'success';
+        const message = `Автоматическая обработка завершена. Обработано ${ProcessingState.successfulLeads} обращений${ProcessingState.failedLeads > 0 ? `, ${ProcessingState.failedLeads} ошибок` : ''}.`;
+        
         logProcessAction(message);
-        showToast(message, 'success');
+        showToast(message, messageType);
+        
+        // Complete processing and reset state
         completeProcessing();
         
     } catch (error) {
@@ -344,6 +577,65 @@ async function processAllInquiries(scope, options) {
         updateProcessingUI('Обработка прервана из-за ошибки', 0);
         showToast(`Ошибка при обработке обращений: ${error.message}`, 'danger');
         completeProcessing();
+    }
+}
+
+/**
+ * Process lead details either with or without animation
+ * 
+ * @function processLeadDetails
+ * @param {Array} details - Array of lead details to process
+ * @param {boolean} useAnimation - Whether to use animations
+ * @returns {Promise<void>}
+ */
+async function processLeadDetails(details, useAnimation) {
+    const total = details.length;
+    let processed = 0;
+    
+    if (useAnimation) {
+        // Process sequentially with animation
+        for (const detail of details) {
+            // Stop if processing was cancelled
+            if (ProcessingState.stopRequested) {
+                logProcessAction('Обработка остановлена пользователем');
+                break;
+            }
+            
+            await processLeadWithAnimation(detail);
+            processed++;
+            ProcessingState.processedLeads = processed;
+            
+            const progress = 25 + (processed / total * 75);
+            updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
+        }
+    } else {
+        // Process all without animation
+        for (const detail of details) {
+            // Stop if processing was cancelled
+            if (ProcessingState.stopRequested) {
+                logProcessAction('Обработка остановлена пользователем');
+                break;
+            }
+            
+            logProcessAction(`Обработка обращения #${detail.lead_id}: ${detail.old_status} -> ${detail.new_status}`);
+            
+            // Update card without animation
+            const leadCard = document.querySelector(`.lead-card[data-lead-id="${detail.lead_id}"]`);
+            if (leadCard) {
+                updateCardWithAIResults(detail, leadCard);
+                moveCardToNewStatus(detail.lead_id, detail.new_status);
+            }
+            
+            processed++;
+            ProcessingState.processedLeads = processed;
+            
+            const progress = 25 + (processed / total * 75);
+            updateProcessingUI(`Обработка ${processed} из ${total}...`, progress);
+        }
+        
+        // Update UI after processing
+        updateProcessingUI('Обработка завершена', 100);
+        updateColumnCounts();
     }
 }
 
