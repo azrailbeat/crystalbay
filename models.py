@@ -29,6 +29,43 @@ _memory_ai_config = {
 }
 _memory_ai_agents = {}
 
+# Sample leads data for demo when database is unavailable
+_memory_leads = [
+    {
+        'id': '1001',
+        'name': 'Анна Смирнова',
+        'email': 'anna.smirnova@example.com',
+        'phone': '+7 (xxx) xxx-xx-xx',
+        'source': 'telegram',
+        'status': 'new',
+        'created_at': '2025-05-05T10:00:00',
+        'details': 'Запрос на тур в Турцию, семейный отдых, июль-август 2025',
+        'tags': ['Пляжный отдых', 'Семья']
+    },
+    {
+        'id': '1002',
+        'name': 'Иван Петров',
+        'email': 'ivan.petrov@example.com',
+        'phone': '+7 (xxx) xxx-xx-xx',
+        'source': 'website',
+        'status': 'new',
+        'created_at': '2025-05-05T11:00:00',
+        'details': 'Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция',
+        'tags': ['Экскурсии', 'Европа']
+    },
+    {
+        'id': '1003',
+        'name': 'Екатерина Васильева',
+        'email': 'ekaterina.vasilyeva@example.com',
+        'phone': '+7 (xxx) xxx-xx-xx',
+        'source': 'phone',
+        'status': 'new',
+        'created_at': '2025-05-05T12:00:00',
+        'details': 'Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025',
+        'tags': ['Горнолыжный', 'Зима']
+    }
+]
+
 try:
     if not supabase_url or not supabase_key:
         logger.warning("SUPABASE_URL or SUPABASE_KEY not set. Using memory storage fallback.")
