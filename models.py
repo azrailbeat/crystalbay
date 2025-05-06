@@ -246,6 +246,24 @@ class BookingService:
         """
         result = supabase.table("bookings").update({"status": status}).eq("id", booking_id).execute()
         return result.data[0] if result.data else None
+    
+    @staticmethod
+    def format_status(status):
+        """
+        Format booking status for display
+        
+        Args:
+            status (str): The status code (pending, confirmed, cancelled)
+            
+        Returns:
+            str: Formatted status in Russian
+        """
+        status_map = {
+            'pending': 'В ожидании',
+            'confirmed': 'Подтверждено',
+            'cancelled': 'Отменено'
+        }
+        return status_map.get(status, status)
         
 class LeadService:
     """Service class for handling leads in Supabase database"""
@@ -322,7 +340,7 @@ class LeadService:
             agent_id (str, optional): Filter by assigned agent
             
         Returns:
-            list: List of leads
+            list: List of leads sorted by created_at (newest first)
         """
         global _memory_leads
         filtered_leads = _memory_leads.copy()
@@ -333,6 +351,9 @@ class LeadService:
         
         if agent_id:
             filtered_leads = [lead for lead in filtered_leads if lead.get('agent_id') == agent_id]
+        
+        # Sort by created_at, newest first
+        filtered_leads.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             
         # Apply limit
         return filtered_leads[:limit]
