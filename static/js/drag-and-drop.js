@@ -125,48 +125,80 @@ function initDragAndDrop() {
 
 /**
  * Handle the start of drag
+ * 
+ * @function handleDragStart
+ * @param {DragEvent} e - The drag event
+ * @returns {boolean} - Returns true to allow drag, false to cancel
  */
 function handleDragStart(e) {
-    // Skip if dragging from buttons or actions
-    if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-        console.log('Ignoring drag from button or action');
-        e.preventDefault();
-        e.stopPropagation();
+    try {
+        // Skip if dragging from buttons or actions
+        if (e.target && 
+            (typeof e.target.closest === 'function' && (
+                e.target.closest('.lead-actions') || 
+                e.target.closest('button')
+            ) || 
+            e.target.tagName === 'BUTTON')) {
+            console.log('Ignoring drag from button or action');
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        
+        // Store the dragged card reference
+        draggedItem = this;
+        
+        // Add visual effect
+        this.classList.add(CONFIG.classes.dragging);
+        setTimeout(() => {
+            if (this.style) {
+                this.style.opacity = '0.4';
+            }
+        }, 0);
+        
+        // Set data for transfer
+        e.dataTransfer.effectAllowed = 'move';
+        const leadId = this.getAttribute('data-lead-id');
+        if (!leadId) {
+            console.warn('Card has no lead ID, cannot drag properly');
+        }
+        e.dataTransfer.setData('text/plain', leadId || 'undefined');
+        
+        console.log(`Started dragging card ${leadId}`);
+        return true;
+    } catch (error) {
+        console.error('Error in handleDragStart:', error);
         return false;
     }
-    
-    // Store the dragged card reference
-    draggedItem = this;
-    
-    // Add visual effect
-    this.classList.add('dragging');
-    setTimeout(() => {
-        this.style.opacity = '0.4';
-    }, 0);
-    
-    // Set data for transfer
-    e.dataTransfer.effectAllowed = 'move';
-    const leadId = this.getAttribute('data-lead-id');
-    e.dataTransfer.setData('text/plain', leadId || 'undefined');
-    
-    console.log(`Started dragging card ${leadId}`);
-    return true;
 }
 
 /**
  * Handle the end of drag
+ * 
+ * @function handleDragEnd
+ * @param {DragEvent} e - The drag event
  */
 function handleDragEnd(e) {
-    // Remove visual effects
-    this.classList.remove('dragging');
-    this.style.opacity = '1';
-    
-    // Remove drop target highlighting from all columns
-    document.querySelectorAll('.lead-list').forEach(column => {
-        column.classList.remove('drop-target');
-    });
-    
-    console.log('Drag ended');
+    try {
+        // Remove visual effects
+        if (this && this.classList) {
+            this.classList.remove(CONFIG.classes.dragging);
+            if (this.style) {
+                this.style.opacity = '1';
+            }
+        }
+        
+        // Remove drop target highlighting from all columns
+        document.querySelectorAll(CONFIG.selectors.leadList).forEach(column => {
+            if (column && column.classList) {
+                column.classList.remove(CONFIG.classes.dropTarget);
+            }
+        });
+        
+        console.log('Drag ended');
+    } catch (error) {
+        console.error('Error in handleDragEnd:', error);
+    }
 }
 
 /**
@@ -180,18 +212,36 @@ function handleDragOver(e) {
 
 /**
  * Handle drag enter event
+ * 
+ * @function handleDragEnter
+ * @param {DragEvent} e - The drag event
  */
 function handleDragEnter(e) {
     // Add highlight to show this is a valid drop target
-    this.classList.add('drop-target');
+    try {
+        if (this && this.classList) {
+            this.classList.add(CONFIG.classes.dropTarget);
+        }
+    } catch (error) {
+        console.error('Error in handleDragEnter:', error);
+    }
 }
 
 /**
  * Handle drag leave event
+ * 
+ * @function handleDragLeave
+ * @param {DragEvent} e - The drag event
  */
 function handleDragLeave(e) {
     // Remove highlight
-    this.classList.remove('drop-target');
+    try {
+        if (this && this.classList) {
+            this.classList.remove(CONFIG.classes.dropTarget);
+        }
+    } catch (error) {
+        console.error('Error in handleDragLeave:', error);
+    }
 }
 
 /**
@@ -202,23 +252,38 @@ function handleDragLeave(e) {
  * @returns {boolean} - Returns false to prevent default browser behavior
  */
 function handleDrop(e) {
-    // Prevent default browser behavior
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Remove highlight
-    this.classList.remove(CONFIG.classes.dropTarget);
-    
-    // Get the dragged card ID
-    const leadId = e.dataTransfer.getData('text/plain');
-    console.log(`Drop detected for lead ID: ${leadId}`);
-    
-    if (!draggedItem) {
-        console.error('No card being dragged');
-        return false;
-    }
-    
     try {
+        // Prevent default browser behavior
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Remove highlight
+        if (this && this.classList) {
+            this.classList.remove(CONFIG.classes.dropTarget);
+        }
+        
+        // Get the dragged card ID
+        let leadId = 'undefined';
+        try {
+            leadId = e.dataTransfer.getData('text/plain');
+        } catch (transferError) {
+            console.error('Error getting transfer data:', transferError);
+        }
+        
+        console.log(`Drop detected for lead ID: ${leadId}`);
+        
+        // Ignore if leadId is invalid
+        if (leadId === 'undefined' || !leadId) {
+            console.warn('Invalid lead ID for drop operation');
+            return false;
+        }
+        
+        // Check if we have a dragged item
+        if (!draggedItem) {
+            console.error('No card being dragged');
+            return false;
+        }
+        
         // Get source and target columns
         const sourceColumn = draggedItem.closest(CONFIG.selectors.kanbanColumn);
         const targetColumn = this.closest(CONFIG.selectors.kanbanColumn);
@@ -260,9 +325,19 @@ function handleDrop(e) {
                             updateColumnCounts();
                         }
                     }
+                })
+                .catch(error => {
+                    console.error('Error in API call to update status:', error);
+                    // Move card back on error
+                    const sourceList = sourceColumn.querySelector(CONFIG.selectors.leadList);
+                    if (sourceList) {
+                        moveCardToColumn(draggedItem, sourceList);
+                        updateColumnCounts();
+                    }
+                    showToast('Ошибка при обновлении статуса. Карточка возвращена на исходную позицию.', 'danger');
                 });
             
-            // Show confirmation toast
+            // Show confirmation toast (optimistic UI)
             showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
         } else {
             console.log('Same column drop, not moving');
@@ -297,24 +372,48 @@ function moveCardToColumn(card, columnList) {
 
 /**
  * Setup card for handling clicks separate from drag
+ * 
+ * @function setupCardForClicks
+ * @param {HTMLElement} card - The card element to setup
  */
 function setupCardForClicks(card) {
-    // Remove modal triggers
-    card.removeAttribute('data-bs-toggle');
-    card.removeAttribute('data-bs-target');
-    
-    // Add click handler for opening modal
-    card.addEventListener('click', function(e) {
-        // Don't open modal if clicking buttons or actions
-        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-            return;
-        }
+    try {
+        // Remove modal triggers to handle event ourselves
+        card.removeAttribute('data-bs-toggle');
+        card.removeAttribute('data-bs-target');
         
-        // Get lead ID and open modal
-        const leadId = this.getAttribute('data-lead-id');
-        console.log(`Card clicked, opening modal for lead ID: ${leadId}`);
-        openLeadModal(leadId);
-    });
+        // Add click handler for opening modal
+        card.addEventListener('click', function(e) {
+            try {
+                // Don't open modal if clicking buttons or actions
+                if (e.target && (
+                    (typeof e.target.closest === 'function' && (
+                        e.target.closest('.lead-actions') || 
+                        e.target.closest('button')
+                    )) || 
+                    e.target.tagName === 'BUTTON'
+                )) {
+                    return;
+                }
+                
+                // Get lead ID and open modal
+                const leadId = this.getAttribute('data-lead-id');
+                console.log(`Card clicked, opening modal for lead ID: ${leadId}`);
+                
+                if (!leadId) {
+                    console.warn('Card clicked without valid lead ID');
+                    return;
+                }
+                
+                // Open modal with lead data
+                openLeadModal(leadId);
+            } catch (clickError) {
+                console.error('Error in card click handler:', clickError);
+            }
+        });
+    } catch (error) {
+        console.error('Error setting up card for clicks:', error);
+    }
 }
 
 /**
