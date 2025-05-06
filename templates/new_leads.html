@@ -1672,14 +1672,14 @@
                             window.location.reload();
                         }, 1000);
                     } else {
-                        showToast(`Ошибка: ${result.error || 'Не удалось создать тестовую карточку'}`, 'danger');
+                        showToast(`Ошибка: ${result.error || 'Не удалось создать тестовый запрос на тур'}`, 'danger');
                     }
                 } catch (error) {
                     console.error('Ошибка при создании тестовой карточки:', error);
-                    showToast('Произошла ошибка при создании тестовой карточки', 'danger');
+                    showToast('Произошла ошибка при создании тестового запроса на тур', 'danger');
                 } finally {
                     // Восстанавливаем кнопку
-                    this.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Создать тестовую карточку';
+                    this.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Создать тестовый запрос на тур';
                     this.disabled = false;
                 }
             });
@@ -1689,7 +1689,7 @@
         const resetLeadsBtn = document.getElementById('reset-leads');
         if (resetLeadsBtn) {
             resetLeadsBtn.addEventListener('click', async function() {
-                if (!confirm('Вы уверены, что хотите удалить все карточки и создать одну тестовую? Это действие нельзя отменить.')) {
+                if (!confirm('Вы уверены, что хотите удалить все запросы на туры и создать один тестовый? Это действие нельзя отменить.')) {
                     return;
                 }
                 
@@ -1710,21 +1710,21 @@
                     
                     if (result.success) {
                         // Показываем успешное уведомление
-                        showToast('Все карточки сброшены, создана одна тестовая', 'success');
+                        showToast('Все запросы на туры сброшены, создан один тестовый запрос', 'success');
                         
                         // Перезагружаем страницу для обновления списка карточек
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        showToast(`Ошибка: ${result.error || 'Не удалось сбросить карточки'}`, 'danger');
+                        showToast(`Ошибка: ${result.error || 'Не удалось сбросить запросы на туры'}`, 'danger');
                     }
                 } catch (error) {
                     console.error('Ошибка при сбросе карточек:', error);
-                    showToast('Произошла ошибка при сбросе карточек', 'danger');
+                    showToast('Произошла ошибка при сбросе запросов на туры', 'danger');
                 } finally {
                     // Восстанавливаем кнопку
-                    this.innerHTML = '<i class="bi bi-trash me-1"></i> Сбросить все карточки';
+                    this.innerHTML = '<i class="bi bi-trash me-1"></i> Сбросить все запросы на туры';
                     this.disabled = false;
                 }
             });
