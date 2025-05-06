@@ -484,7 +484,55 @@
         margin-left: 4px;
     }
     
-    /* Секции информации о недвижимости */
+    /* Секции информации о туре */
+    .tour-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+    
+    .tour-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .tour-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    
+    .tour-info-label {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    
+    .tour-info-value {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+    
+    .tour-price {
+        color: var(--primary-blue);
+        font-weight: 600;
+    }
+    
+    .tour-status-select {
+        width: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .tour-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    /* Для обратной совместимости */
     .property-section-title {
         font-size: 0.875rem;
         font-weight: 600;
@@ -516,20 +564,6 @@
     .property-price {
         color: var(--primary-blue);
         font-weight: 600;
-    }
-    
-    .property-status-select {
-        width: 100%;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .property-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
     }
     
     .ai-analyze-btn {
@@ -737,27 +771,27 @@
 <div class="container-fluid px-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h5 class="fw-semibold mb-3">Воронка сделок</h5>
-            <p class="text-secondary small mb-3">Управление и отслеживание вашему потоку продаж недвижимости</p>
+            <h5 class="fw-semibold mb-3">Запросы на туры</h5>
+            <p class="text-secondary small mb-3">Управление и отслеживание запросов клиентов на туры</p>
             
             <!-- Sales Statistics -->
             <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="stat-block">
-                        <div class="stat-title">Активная воронка</div>
-                        <div class="stat-value">$94,155,000</div>
+                        <div class="stat-title">Активные запросы</div>
+                        <div class="stat-value">$142,800</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-block">
-                        <div class="stat-title">Закрытые сделки</div>
-                        <div class="stat-value">$50</div>
+                        <div class="stat-title">Забронировано</div>
+                        <div class="stat-value">$28,500</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-block">
-                        <div class="stat-title">Всего сделок</div>
-                        <div class="stat-value">$</div>
+                        <div class="stat-title">Всего запросов</div>
+                        <div class="stat-value">12</div>
                     </div>
                 </div>
                 <div class="col-md-3 text-end">
