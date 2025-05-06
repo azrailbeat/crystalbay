@@ -21,6 +21,10 @@ bot_process = None
 from app_api import register_api_routes
 register_api_routes(app)
 
+# Import and register test API routes
+from app_api_test import register_test_routes
+register_test_routes(app)
+
 def start_bot_process():
     """Start the Telegram bot in a separate process"""
     global bot_process

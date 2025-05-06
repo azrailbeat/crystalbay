@@ -278,6 +278,31 @@ class LeadService:
     """Service class for handling leads in Supabase database"""
     
     @staticmethod
+    def delete_all_leads():
+        """
+        Delete all leads from database and memory storage for testing purposes
+        
+        Returns:
+            bool: True if successful
+        """
+        global _memory_leads
+        
+        # Clear memory leads
+        _memory_leads = []
+        
+        # Try to clear from database if available
+        if is_supabase_available():
+            try:
+                # NOTE: Use with extreme caution - for testing only
+                result = supabase.table("leads").delete().neq("id", "0").execute()
+                logger.info("All leads deleted from database")
+                return True
+            except Exception as e:
+                logger.error(f"Error deleting leads from database: {e}")
+                return False
+        return True
+    
+    @staticmethod
     def create_lead_fallback(lead_data):
         """
         Create a new lead using in-memory storage when database is unavailable
