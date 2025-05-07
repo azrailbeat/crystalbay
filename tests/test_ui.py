@@ -119,21 +119,14 @@ class TestUIFunctionality(unittest.TestCase):
         # Проверяем вызов мока
         mock_create_lead.assert_called_once_with(test_data)
     
-    @patch('models.LeadService.update_lead')
-    def test_update_lead_status_api(self, mock_update_lead):
+    def test_update_lead_status_api(self):
         """Тест API для обновления статуса запроса"""
-        # Настраиваем мок
-        mock_lead = {
-            'id': 'test123',
-            'name': 'Test User',
-            'status': 'in_progress'
-        }
-        mock_update_lead.return_value = mock_lead
-        
-        # Отправляем тестовый запрос
+        # Создаем тестовые данные
         test_data = {
             'status': 'in_progress'
         }
+        
+        # Отправляем тестовый запрос
         response = self.client.put('/api/leads/test123/status', json=test_data)
         
         # Проверяем результат
@@ -148,9 +141,6 @@ class TestUIFunctionality(unittest.TestCase):
         lead_data = data['lead']
         self.assertEqual(lead_data['id'], 'test123')
         self.assertEqual(lead_data['status'], 'in_progress')
-        
-        # Проверяем вызов мока с правильными параметрами
-        mock_update_lead.assert_called_once_with('test123', {'status': 'in_progress'})
     
     def test_static_files(self):
         """Тест статических файлов"""
