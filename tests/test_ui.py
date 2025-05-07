@@ -31,31 +31,6 @@ class TestUIFunctionality(unittest.TestCase):
         """Тест страницы Канбан-доски с запросами"""
         response = self.client.get('/leads')
         self.assertEqual(response.status_code, 200)
-        
-        # Debugging output to find the issue
-        import sys
-        with open('/tmp/debug_test_output.txt', 'w') as f:
-            f.write("Response data snippet:\n")
-            data_str = response.data.decode('utf-8')
-            f.write(data_str[:500] + "...\n")
-            
-            # Check specific pattern
-            f.write("\nSearching for kanban-board:\n")
-            import re
-            kanban_board = re.search(r'class="kanban-board"', data_str)
-            if kanban_board:
-                f.write(f"Found at position {kanban_board.start()}\n")
-            else:
-                f.write("Not found\n")
-                
-            f.write("\nSearching for kanban-column:\n")
-            kanban_column = re.search(r'class="kanban-column', data_str)
-            if kanban_column:
-                f.write(f"Found at position {kanban_column.start()}\n")
-            else:
-                f.write("Not found\n")
-        
-        # Original assertions
         self.assertIn(b'class="kanban-board"', response.data)
         self.assertIn(b'class="kanban-column column-new"', response.data)
     
