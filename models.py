@@ -517,6 +517,30 @@ class LeadService:
         update_data['updated_at'] = datetime.now().isoformat()
         result = supabase.table("leads").update(update_data).eq("id", lead_id).execute()
         return result.data[0] if result.data else None
+    
+    @staticmethod
+    def update_lead_status(lead_id, status):
+        """
+        Update the status of a lead
+        
+        Args:
+            lead_id (str): The lead ID
+            status (str): The new status (new, in_progress, negotiation, booked, canceled)
+            
+        Returns:
+            dict: The updated lead data
+        """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            return LeadService.update_lead_status_fallback(lead_id, status)
+            
+        update_data = {
+            'status': status,
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        result = supabase.table("leads").update(update_data).eq("id", lead_id).execute()
+        return result.data[0] if result.data else None
         
     @staticmethod
     def add_lead_interaction_fallback(lead_id, interaction_data):
