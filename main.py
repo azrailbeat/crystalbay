@@ -29,6 +29,10 @@ register_test_routes(app)
 from lead_import_api import lead_import_bp
 app.register_blueprint(lead_import_bp)
 
+# Import and register Wazzup integration routes
+from wazzup_api import wazzup_bp
+app.register_blueprint(wazzup_bp)
+
 def start_bot_process():
     """Start the Telegram bot in a separate process"""
     global bot_process
