@@ -161,6 +161,11 @@ def widget_demo():
     """Render the widget demo and API documentation page"""
     return render_template('widget_demo.html')
 
+@app.route('/wazzup-integration')
+def wazzup_integration():
+    """Render the Wazzup24.ru integration management page"""
+    return render_template('wazzup_integration.html')
+
 @app.route('/settings')
 def settings():
     """Render the settings page"""

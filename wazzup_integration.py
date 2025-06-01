@@ -337,7 +337,7 @@ class WazzupIntegration:
             return {'status': 'error', 'message': str(e)}
     
     # Chat Interface
-    def get_chat_iframe_url(self, scope: str = 'global', contact_id: str = None) -> str:
+    def get_chat_iframe_url(self, scope: str = 'global', contact_id: Optional[str] = None) -> str:
         """
         Generate iframe URL for Wazzup chat interface
         
@@ -414,6 +414,36 @@ class WazzupIntegration:
     def _handle_channel_update(self, webhook_data: Dict) -> Dict:
         """Handle channel status update webhook"""
         return {'status': 'success', 'message': 'Channel update processed'}
+    
+    def _verify_webhook_signature(self, payload: Dict, signature: str) -> bool:
+        """
+        Verify webhook signature from Wazzup
+        
+        Args:
+            payload (dict): The webhook payload
+            signature (str): The signature from headers
+            
+        Returns:
+            bool: True if signature is valid
+        """
+        if not self.webhook_secret:
+            return True  # If no secret configured, skip verification
+            
+        try:
+            import hmac
+            import hashlib
+            
+            payload_string = json.dumps(payload, separators=(',', ':'), sort_keys=True)
+            expected_signature = hmac.new(
+                self.webhook_secret.encode('utf-8'),
+                payload_string.encode('utf-8'),
+                hashlib.sha256
+            ).hexdigest()
+            
+            return hmac.compare_digest(signature, expected_signature)
+        except Exception as e:
+            logger.error(f"Webhook signature verification failed: {e}")
+            return False
 
 # Global instance
 wazzup_integration = None

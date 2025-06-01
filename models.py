@@ -595,6 +595,41 @@ class LeadService:
         return result.data[0] if result.data else None
     
     @staticmethod
+    def add_interaction(lead_id, interaction_data):
+        """
+        Alias for add_lead_interaction for Wazzup integration compatibility
+        """
+        return LeadService.add_lead_interaction(lead_id, interaction_data)
+    
+    @staticmethod
+    def get_lead_by_external_id(external_id, external_source):
+        """
+        Get a lead by external ID and source (for integrations like Wazzup)
+        
+        Args:
+            external_id (str): The external system ID
+            external_source (str): The external system name (e.g., 'wazzup')
+            
+        Returns:
+            dict: The lead data or None if not found
+        """
+        # Проверка доступности Supabase
+        if not is_supabase_available():
+            global _memory_leads
+            for lead in _memory_leads:
+                if (lead.get('external_id') == external_id and 
+                    lead.get('external_source') == external_source):
+                    return lead
+            return None
+            
+        try:
+            result = supabase.table("leads").select("*").eq("external_id", external_id).eq("external_source", external_source).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"Failed to get lead by external ID: {e}")
+            return None
+    
+    @staticmethod
     def get_lead_interactions_fallback(lead_id):
         """
         Get all interactions for a lead from memory storage

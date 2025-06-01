@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wazzup24.ru Integration - Crystal Bay Travel</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-comments me-2"></i>
+                    Интеграция с Wazzup24.ru
+                </h1>
+                <p class="text-muted mb-4">
+                    Настройте интеграцию с Wazzup24.ru для управления чатами и автоматической синхронизации лидов
+                </p>
+            </div>
+        </div>
+
+        <!-- Integration Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-signal me-2"></i>
+                            Статус интеграции
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="integration-status" class="d-flex align-items-center mb-3">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                            <span>Проверка подключения...</span>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button id="test-connection-btn" class="btn btn-outline-primary" disabled>
+                                    <i class="fas fa-plug me-2"></i>
+                                    Проверить подключение
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="unread-count" class="text-end">
+                                    <span class="badge bg-secondary">Непрочитанных: --</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>
+                            Конфигурация API
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Для настройки интеграции вам понадобятся API ключи от Wazzup24.ru. 
+                            Получите их в <a href="https://app.wazzup24.com/settings/api" target="_blank">настройках API</a>.
+                        </div>
+                        
+                        <form id="config-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="api-key" class="form-label">API Key *</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="api-key" placeholder="Введите API ключ">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('api-key')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="api-secret" class="form-label">API Secret *</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="api-secret" placeholder="Введите API секрет">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('api-secret')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="webhook-secret" class="form-label">Webhook Secret</label>
+                                    <input type="text" class="form-control" id="webhook-secret" placeholder="Секрет для вебхуков (опционально)">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="webhook-url" class="form-label">Webhook URL</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="webhook-url" readonly>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="copyWebhookUrl()">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Скопируйте этот URL в настройки вебхуков Wazzup24.ru</div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                Сохранить настройки
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-rocket me-2"></i>
+                            Быстрая настройка
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users fa-2x mb-3 text-primary"></i>
+                                        <h6>Синхронизация пользователей</h6>
+                                        <p class="text-muted small">Синхронизировать пользователей Crystal Bay с Wazzup</p>
+                                        <button id="sync-users-btn" class="btn btn-outline-primary btn-sm">
+                                            Синхронизировать
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-project-diagram fa-2x mb-3 text-success"></i>
+                                        <h6>Создать воронку</h6>
+                                        <p class="text-muted small">Создать воронку для туристических бронирований</p>
+                                        <button id="setup-pipeline-btn" class="btn btn-outline-success btn-sm">
+                                            Создать воронку
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-sync fa-2x mb-3 text-warning"></i>
+                                        <h6>Синхронизация лидов</h6>
+                                        <p class="text-muted small">Синхронизировать существующие лиды с Wazzup</p>
+                                        <button id="sync-leads-btn" class="btn btn-outline-warning btn-sm">
+                                            Синхронизировать
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Интерфейс чатов
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <button id="open-global-chat-btn" class="btn btn-primary w-100">
+                                    <i class="fas fa-globe me-2"></i>
+                                    Открыть все чаты
+                                </button>
+                                <div class="form-text">Открыть окно со всеми доступными чатами</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="contact-id" placeholder="ID контакта">
+                                    <button id="open-contact-chat-btn" class="btn btn-secondary">
+                                        <i class="fas fa-user me-2"></i>
+                                        Открыть чат контакта
+                                    </button>
+                                </div>
+                                <div class="form-text">Открыть чат с конкретным контактом</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Stats -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Статистика интеграции
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="integration-stats">
+                            <p class="text-muted">Загрузка статистики...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Последние события
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-events">
+                            <p class="text-muted">События не найдены</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="modal fade" id="chatModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Чаты Wazzup24.ru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe id="chat-iframe" src="" width="100%" height="600" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let integrationConfig = {};
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadIntegrationStatus();
+            setWebhookUrl();
+        });
+        
+        // Load integration status
+        async function loadIntegrationStatus() {
+            try {
+                const response = await fetch('/api/wazzup/config');
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('integration-status');
+                const testBtn = document.getElementById('test-connection-btn');
+                
+                if (data.configured) {
+                    statusElement.innerHTML = `
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Интеграция настроена и готова к работе</span>
+                    `;
+                    testBtn.disabled = false;
+                    loadUnreadCount();
+                } else {
+                    statusElement.innerHTML = `
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <span>Интеграция не настроена - введите API ключи</span>
+                    `;
+                }
+                
+                integrationConfig = data;
+                
+            } catch (error) {
+                console.error('Error loading integration status:', error);
+                document.getElementById('integration-status').innerHTML = `
+                    <i class="fas fa-times-circle text-danger me-2"></i>
+                    <span>Ошибка загрузки статуса интеграции</span>
+                `;
+            }
+        }
+        
+        // Load unread count
+        async function loadUnreadCount() {
+            try {
+                const response = await fetch('/api/wazzup/unread-count');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('unread-count').innerHTML = `
+                        <span class="badge bg-${data.unread_count > 0 ? 'danger' : 'secondary'}">
+                            Непрочитанных: ${data.unread_count}
+                        </span>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading unread count:', error);
+            }
+        }
+        
+        // Set webhook URL
+        function setWebhookUrl() {
+            const webhookUrl = `${window.location.origin}/api/wazzup/webhook`;
+            document.getElementById('webhook-url').value = webhookUrl;
+        }
+        
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling.querySelector('i');
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.className = 'fas fa-eye-slash';
+            } else {
+                field.type = 'password';
+                button.className = 'fas fa-eye';
+            }
+        }
+        
+        // Copy webhook URL
+        function copyWebhookUrl() {
+            const webhookUrl = document.getElementById('webhook-url');
+            webhookUrl.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            const button = event.target.closest('button');
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+            }, 2000);
+        }
+        
+        // Test connection
+        document.getElementById('test-connection-btn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверка...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/wazzup/test-connection', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showAlert('Подключение к Wazzup API успешно!', 'success');
+                } else {
+                    showAlert('Ошибка подключения: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Ошибка тестирования подключения: ' + error.message, 'danger');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+        
+        // Setup pipeline
+        document.getElementById('setup-pipeline-btn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Создание...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/wazzup/setup-pipeline', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showAlert('Воронка для туристических бронирований создана!', 'success');
+                } else {
+                    showAlert('Ошибка создания воронки: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Ошибка создания воронки: ' + error.message, 'danger');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+        
+        // Open global chat
+        document.getElementById('open-global-chat-btn').addEventListener('click', async function() {
+            await openChat('global');
+        });
+        
+        // Open contact chat
+        document.getElementById('open-contact-chat-btn').addEventListener('click', async function() {
+            const contactId = document.getElementById('contact-id').value;
+            if (!contactId) {
+                showAlert('Введите ID контакта', 'warning');
+                return;
+            }
+            await openChat('card', contactId);
+        });
+        
+        // Open chat modal
+        async function openChat(scope, contactId = null) {
+            try {
+                const params = new URLSearchParams({ scope });
+                if (contactId) {
+                    params.append('contact_id', contactId);
+                }
+                
+                const response = await fetch(`/api/wazzup/chat-url?${params}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('chat-iframe').src = data.chat_url;
+                    new bootstrap.Modal(document.getElementById('chatModal')).show();
+                } else {
+                    showAlert('Ошибка получения URL чата: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Ошибка открытия чата: ' + error.message, 'danger');
+            }
+        }
+        
+        // Show alert
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alert, document.querySelector('.container').firstChild);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // Refresh unread count every 30 seconds
+        setInterval(loadUnreadCount, 30000);
+    </script>
+</body>
+</html>
