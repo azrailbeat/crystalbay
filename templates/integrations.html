@@ -67,6 +67,11 @@
         color: white;
     }
     
+    .integration-logo.wazzup {
+        background-color: #00BFA5;
+        color: white;
+    }
+    
     .integration-name {
         font-weight: 600;
         font-size: 1.2rem;
@@ -382,6 +387,84 @@
         </div>
     </div>
     
+    <!-- Wazzup24.ru Integration -->
+    <div class="integration-card">
+        <div class="integration-header">
+            <div class="integration-title">
+                <div class="integration-logo wazzup">
+                    <i class="bi bi-chat-dots"></i>
+                </div>
+                <h2 class="integration-name">Wazzup24.ru</h2>
+            </div>
+            <span id="wazzup-status" class="integration-status disconnected">Проверка...</span>
+        </div>
+        <div class="integration-body">
+            <div class="integration-description">
+                Wazzup24.ru интеграция для управления чатами с клиентами и автоматической синхронизации лидов из мессенджеров.
+            </div>
+            
+            <div id="wazzup-settings" class="integration-settings">
+                <div class="settings-row">
+                    <div class="settings-label">API Key</div>
+                    <div class="api-key-field">
+                        <input type="password" id="wazzup-api-key" class="form-control api-key-input" placeholder="Введите API ключ Wazzup24.ru">
+                        <button class="api-key-action" onclick="toggleWazzupPassword('wazzup-api-key')" title="Показать/скрыть">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-label">API Secret</div>
+                    <div class="api-key-field">
+                        <input type="password" id="wazzup-api-secret" class="form-control api-key-input" placeholder="Введите API секрет">
+                        <button class="api-key-action" onclick="toggleWazzupPassword('wazzup-api-secret')" title="Показать/скрыть">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-label">Webhook URL</div>
+                    <div class="webhook-url">
+                        <input type="text" id="wazzup-webhook-url" class="form-control" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyWazzupWebhookUrl()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">Скопируйте этот URL в настройки вебхуков Wazzup24.ru</small>
+                </div>
+                <div id="wazzup-connected-info" class="d-none">
+                    <div class="settings-row">
+                        <div class="settings-label">Непрочитанных сообщений</div>
+                        <div class="settings-value" id="wazzup-unread-count">--</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">Статус синхронизации</div>
+                        <div class="settings-value text-success">Активна</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button id="wazzup-test-btn" class="btn btn-outline-secondary me-2" disabled>
+                        <i class="bi bi-plug me-2"></i> Проверить подключение
+                    </button>
+                    <button id="wazzup-setup-pipeline-btn" class="btn btn-outline-success me-2" disabled>
+                        <i class="bi bi-diagram-3 me-2"></i> Создать воронку
+                    </button>
+                </div>
+                <div>
+                    <button id="wazzup-save-btn" class="btn btn-primary me-2">
+                        <i class="bi bi-check-circle me-2"></i> Сохранить
+                    </button>
+                    <button id="wazzup-chat-btn" class="btn btn-outline-primary" disabled>
+                        <i class="bi bi-chat-dots me-2"></i> Открыть чаты
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SendGrid Integration (Disconnected) -->
     <div class="integration-card">
         <div class="integration-header">
@@ -425,11 +508,30 @@
         </div>
     </div>
 </div>
+
+<!-- Chat Modal for Wazzup -->
+<div class="modal fade" id="wazzupChatModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Чаты Wazzup24.ru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="wazzup-chat-iframe" src="" width="100%" height="600" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Wazzup integration
+        initializeWazzupIntegration();
+        
         // Toggle API key visibility
         const toggleButtons = document.querySelectorAll('.api-key-action');
         toggleButtons.forEach(button => {
@@ -449,5 +551,206 @@
             });
         });
     });
+
+    // Wazzup Integration Functions
+    function initializeWazzupIntegration() {
+        // Set webhook URL
+        const webhookUrl = `${window.location.origin}/api/wazzup/webhook`;
+        document.getElementById('wazzup-webhook-url').value = webhookUrl;
+        
+        // Load integration status
+        loadWazzupStatus();
+        
+        // Bind event handlers
+        document.getElementById('wazzup-save-btn').addEventListener('click', saveWazzupConfig);
+        document.getElementById('wazzup-test-btn').addEventListener('click', testWazzupConnection);
+        document.getElementById('wazzup-setup-pipeline-btn').addEventListener('click', setupWazzupPipeline);
+        document.getElementById('wazzup-chat-btn').addEventListener('click', openWazzupChat);
+    }
+
+    async function loadWazzupStatus() {
+        try {
+            const response = await fetch('/api/wazzup/config');
+            const data = await response.json();
+            
+            const statusElement = document.getElementById('wazzup-status');
+            const connectedInfo = document.getElementById('wazzup-connected-info');
+            const testBtn = document.getElementById('wazzup-test-btn');
+            const pipelineBtn = document.getElementById('wazzup-setup-pipeline-btn');
+            const chatBtn = document.getElementById('wazzup-chat-btn');
+            
+            if (data.configured) {
+                statusElement.textContent = 'Подключено';
+                statusElement.className = 'integration-status connected';
+                connectedInfo.classList.remove('d-none');
+                testBtn.disabled = false;
+                pipelineBtn.disabled = false;
+                chatBtn.disabled = false;
+                
+                // Load unread count
+                loadWazzupUnreadCount();
+            } else {
+                statusElement.textContent = 'Не настроено';
+                statusElement.className = 'integration-status disconnected';
+            }
+        } catch (error) {
+            console.error('Error loading Wazzup status:', error);
+            document.getElementById('wazzup-status').textContent = 'Ошибка';
+            document.getElementById('wazzup-status').className = 'integration-status error';
+        }
+    }
+
+    async function loadWazzupUnreadCount() {
+        try {
+            const response = await fetch('/api/wazzup/unread-count');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('wazzup-unread-count').textContent = data.unread_count;
+            }
+        } catch (error) {
+            console.error('Error loading unread count:', error);
+        }
+    }
+
+    async function saveWazzupConfig() {
+        const apiKey = document.getElementById('wazzup-api-key').value;
+        const apiSecret = document.getElementById('wazzup-api-secret').value;
+        
+        if (!apiKey || !apiSecret) {
+            showAlert('Пожалуйста, введите API ключ и секрет', 'warning');
+            return;
+        }
+        
+        // Note: This would typically save to environment variables or secure storage
+        // For now, we'll show a message about configuration
+        showAlert('Для завершения настройки предоставьте API ключи Wazzup24.ru через переменные окружения WAZZUP_API_KEY и WAZZUP_API_SECRET', 'info');
+    }
+
+    async function testWazzupConnection() {
+        const btn = document.getElementById('wazzup-test-btn');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверка...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/wazzup/test-connection', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showAlert('Подключение к Wazzup API успешно!', 'success');
+                loadWazzupStatus(); // Refresh status
+            } else {
+                showAlert('Ошибка подключения: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Ошибка тестирования подключения: ' + error.message, 'danger');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function setupWazzupPipeline() {
+        const btn = document.getElementById('wazzup-setup-pipeline-btn');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Создание...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/wazzup/setup-pipeline', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showAlert('Воронка для туристических бронирований создана!', 'success');
+            } else {
+                showAlert('Ошибка создания воронки: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Ошибка создания воронки: ' + error.message, 'danger');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function openWazzupChat() {
+        try {
+            const response = await fetch('/api/wazzup/chat-url?scope=global');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('wazzup-chat-iframe').src = data.chat_url;
+                new bootstrap.Modal(document.getElementById('wazzupChatModal')).show();
+            } else {
+                showAlert('Ошибка получения URL чата: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Ошибка открытия чата: ' + error.message, 'danger');
+        }
+    }
+
+    // Wazzup specific functions
+    function toggleWazzupPassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const button = field.nextElementSibling.querySelector('i');
+        
+        if (field.type === 'password') {
+            field.type = 'text';
+            button.className = 'bi bi-eye-slash';
+        } else {
+            field.type = 'password';
+            button.className = 'bi bi-eye';
+        }
+    }
+
+    function copyWazzupWebhookUrl() {
+        const webhookUrl = document.getElementById('wazzup-webhook-url');
+        webhookUrl.select();
+        document.execCommand('copy');
+        
+        const button = event.target.closest('button');
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check"></i>';
+        setTimeout(() => {
+            button.innerHTML = originalIcon;
+        }, 2000);
+        
+        showAlert('Webhook URL скопирован в буфер обмена', 'success');
+    }
+
+    // Utility function for showing alerts
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.style.minWidth = '300px';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+
+    // Refresh unread count every 30 seconds if Wazzup is connected
+    setInterval(() => {
+        const status = document.getElementById('wazzup-status');
+        if (status && status.textContent === 'Подключено') {
+            loadWazzupUnreadCount();
+        }
+    }, 30000);
 </script>
 {% endblock %}
