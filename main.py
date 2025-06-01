@@ -152,11 +152,6 @@ def integrations():
     """Render the integrations page"""
     return render_template('integrations.html', active_page='integrations')
 
-@app.route('/widget-demo')
-def widget_demo():
-    """Render the lead import widget demo page"""
-    return render_template('widget_demo.html', active_page='integrations')
-
 @app.route('/settings')
 def settings():
     """Render the settings page"""

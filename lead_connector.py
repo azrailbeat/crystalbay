@@ -381,9 +381,9 @@ class APILeadProcessor:
                     'phone': api_data.get('phone')
                 }
             
-            customer_name = (customer.get('name') or '').strip()
-            customer_email = (customer.get('email') or '').strip()
-            customer_phone = (customer.get('phone') or '').strip()
+            customer_name = customer.get('name', '').strip()
+            customer_email = customer.get('email', '').strip()
+            customer_phone = customer.get('phone', '').strip()
             
             # Extract inquiry info
             inquiry = api_data.get('inquiry', {})
