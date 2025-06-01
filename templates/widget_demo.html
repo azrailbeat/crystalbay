@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Bay Travel - Widget Demo</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <style>
+        .demo-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            border-radius: 8px;
+            background: var(--bs-gray-100);
+        }
+        .code-block {
+            background: var(--bs-dark);
+            color: var(--bs-light);
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Crystal Bay Travel - Lead Import System</h1>
+                
+                <!-- Widget Demo Section -->
+                <div class="demo-section">
+                    <h2>Website Widget Demo</h2>
+                    <p>This is how the widget appears on external websites:</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Widget Container -->
+                            <div id="crystal-bay-lead-widget"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Integration Code</h4>
+                            <p>Add this code to any website to embed the lead capture widget:</p>
+                            <div class="code-block">
+&lt;!-- Crystal Bay Travel Lead Widget --&gt;
+&lt;div id="crystal-bay-lead-widget"&gt;&lt;/div&gt;
+&lt;script src="{{request.url_root}}static/js/lead-widget.js"&gt;&lt;/script&gt;
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Documentation Section -->
+                <div class="demo-section">
+                    <h2>API Import Endpoints</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Email Import</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>POST</strong> <code>/api/leads/import/email</code></p>
+                                    <p>Import leads from email sources like support tickets or inquiries.</p>
+                                    <button class="btn btn-primary btn-sm" onclick="showExample('email')">View Example</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Widget Import</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>POST</strong> <code>/api/leads/import/widget</code></p>
+                                    <p>Process leads from website contact forms and widgets.</p>
+                                    <button class="btn btn-primary btn-sm" onclick="showExample('widget')">View Example</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>External API</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>POST</strong> <code>/api/leads/import/api</code></p>
+                                    <p>Import leads from partner systems and external APIs.</p>
+                                    <button class="btn btn-primary btn-sm" onclick="showExample('api')">View Example</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examples Section -->
+                <div class="demo-section" id="examples-section" style="display: none;">
+                    <h3 id="example-title">API Example</h3>
+                    <div id="example-content"></div>
+                </div>
+
+                <!-- Test Section -->
+                <div class="demo-section">
+                    <h2>Test API Endpoints</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Test Email Import</h4>
+                            <button class="btn btn-success" onclick="testEmailImport()">Send Test Email Lead</button>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Test API Import</h4>
+                            <button class="btn btn-success" onclick="testApiImport()">Send Test API Lead</button>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div id="test-results" class="alert" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load widget script -->
+    <script src="{{url_for('static', filename='js/lead-widget.js')}}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // API Examples
+        const examples = {
+            email: {
+                title: 'Email Import Example',
+                content: `
+<h4>Request:</h4>
+<div class="code-block">
+POST /api/leads/import/email
+Content-Type: application/json
+
+{
+    "from": "customer@example.com",
+    "subject": "Beach vacation inquiry",
+    "body": "Hi, I'm looking for a beach vacation to Turkey for 2 people in July. My budget is around $3000. Please send me some options. Best regards, John Smith",
+    "received_at": "2025-01-01T12:00:00Z"
+}
+</div>
+
+<h4>Response:</h4>
+<div class="code-block">
+{
+    "success": true,
+    "lead_id": "123",
+    "message": "Lead created from email successfully"
+}
+</div>`
+            },
+            widget: {
+                title: 'Widget Import Example',
+                content: `
+<h4>Request:</h4>
+<div class="code-block">
+POST /api/leads/import/widget
+Content-Type: application/json
+
+{
+    "name": "Anna Petrova",
+    "email": "anna@example.com",
+    "phone": "+7 (999) 123-45-67",
+    "message": "Interested in honeymoon package to Maldives",
+    "widget_id": "contact_form_1",
+    "page_url": "https://crystalbaytours.com/honeymoon",
+    "utm_source": "google",
+    "utm_campaign": "honeymoon_2025"
+}
+</div>
+
+<h4>Response:</h4>
+<div class="code-block">
+{
+    "success": true,
+    "lead_id": "124",
+    "message": "Lead created from widget successfully"
+}
+</div>`
+            },
+            api: {
+                title: 'External API Import Example',
+                content: `
+<h4>Request:</h4>
+<div class="code-block">
+POST /api/leads/import/api
+Content-Type: application/json
+X-API-Key: partner_api_key_123
+
+{
+    "customer": {
+        "name": "Michael Johnson",
+        "email": "mike@example.com",
+        "phone": "+1-555-0123"
+    },
+    "inquiry": {
+        "type": "Family vacation",
+        "message": "Looking for family-friendly resort in Greece",
+        "destination": "Greece",
+        "budget": 5000,
+        "travel_date": "2025-08-15"
+    },
+    "source_info": {
+        "partner_name": "TravelHub API",
+        "reference_id": "TH_REF_789"
+    }
+}
+</div>
+
+<h4>Response:</h4>
+<div class="code-block">
+{
+    "success": true,
+    "lead_id": "125",
+    "message": "Lead created from API successfully",
+    "partner_reference": "TH_REF_789"
+}
+</div>`
+            }
+        };
+
+        function showExample(type) {
+            const section = document.getElementById('examples-section');
+            const title = document.getElementById('example-title');
+            const content = document.getElementById('example-content');
+            
+            title.textContent = examples[type].title;
+            content.innerHTML = examples[type].content;
+            section.style.display = 'block';
+            
+            // Scroll to examples
+            section.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function testEmailImport() {
+            const testData = {
+                from: "test@example.com",
+                subject: "Test email lead",
+                body: "This is a test email lead from the demo page. I'm interested in beach vacation to Turkey.",
+                received_at: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch('/api/leads/import/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                showTestResult(result, response.ok);
+
+            } catch (error) {
+                showTestResult({ error: error.message }, false);
+            }
+        }
+
+        async function testApiImport() {
+            const testData = {
+                customer: {
+                    name: "Test Customer",
+                    email: "test-api@example.com",
+                    phone: "+7 (999) 123-45-67"
+                },
+                inquiry: {
+                    type: "Test inquiry",
+                    message: "This is a test API lead from the demo page",
+                    destination: "Test Destination",
+                    budget: 1000
+                },
+                source_info: {
+                    partner_name: "Demo API Test",
+                    reference_id: "DEMO_" + Date.now()
+                }
+            };
+
+            try {
+                const response = await fetch('/api/leads/import/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                showTestResult(result, response.ok);
+
+            } catch (error) {
+                showTestResult({ error: error.message }, false);
+            }
+        }
+
+        function showTestResult(result, success) {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.className = `alert ${success ? 'alert-success' : 'alert-danger'}`;
+            resultsDiv.innerHTML = `
+                <h5>${success ? 'Success!' : 'Error'}</h5>
+                <pre>${JSON.stringify(result, null, 2)}</pre>
+            `;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Initialize widget with demo API URL
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('crystal-bay-lead-widget')) {
+                // Override the API URL for demo
+                window.CrystalBayWidget.prototype.options = {
+                    ...window.CrystalBayWidget.prototype.options,
+                    apiUrl: '/api/leads/import/widget'
+                };
+                new CrystalBayWidget('crystal-bay-lead-widget');
+            }
+        });
+    </script>
+</body>
+</html>

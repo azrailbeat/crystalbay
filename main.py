@@ -25,6 +25,10 @@ register_api_routes(app)
 from app_api_test import register_test_routes
 register_test_routes(app)
 
+# Import and register lead import routes
+from lead_import_api import lead_import_bp
+app.register_blueprint(lead_import_bp)
+
 def start_bot_process():
     """Start the Telegram bot in a separate process"""
     global bot_process
