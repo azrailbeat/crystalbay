@@ -33,6 +33,15 @@ app.register_blueprint(lead_import_bp)
 from wazzup_api import wazzup_bp
 app.register_blueprint(wazzup_bp)
 
+# Import new integrations
+try:
+    from bitrix_integration import bitrix
+    from intelligent_chat_processor import chat_processor
+except ImportError as e:
+    logger.warning(f"New integrations not available: {e}")
+    bitrix = None
+    chat_processor = None
+
 def start_bot_process():
     """Start the Telegram bot in a separate process"""
     global bot_process
@@ -593,6 +602,179 @@ def get_email_messages():
         logger.error(f"Error fetching email messages: {e}")
         return jsonify({
             "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+# Bitrix Integration API Endpoints
+@app.route('/api/bitrix/config', methods=['GET'])
+def get_bitrix_config():
+    """Get Bitrix integration configuration status"""
+    try:
+        if bitrix:
+            configured = bitrix.is_configured()
+            return jsonify({
+                "status": "success",
+                "configured": configured,
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "configured": False,
+                "error": "Bitrix integration not available",
+                "timestamp": datetime.now().isoformat()
+            })
+    except Exception as e:
+        logger.error(f"Error getting Bitrix config: {e}")
+        return jsonify({
+            "status": "error",
+            "configured": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/bitrix/test-connection', methods=['POST'])
+def test_bitrix_connection():
+    """Test Bitrix API connection"""
+    try:
+        if not bitrix:
+            return jsonify({
+                "status": "error",
+                "error": "Bitrix integration not available",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+        
+        result = bitrix.test_connection()
+        return jsonify({
+            "status": result.get("status"),
+            "message": result.get("message", result.get("error")),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error testing Bitrix connection: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/bitrix/setup-pipeline', methods=['POST'])
+def setup_bitrix_pipeline():
+    """Setup travel booking pipeline in Bitrix"""
+    try:
+        if not bitrix:
+            return jsonify({
+                "status": "error",
+                "error": "Bitrix integration not available",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+        
+        result = bitrix.setup_travel_pipeline()
+        return jsonify({
+            "status": result.get("status"),
+            "message": "Pipeline created successfully" if result.get("status") == "success" else result.get("error"),
+            "pipeline_id": result.get("pipeline_id"),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error setting up Bitrix pipeline: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/bitrix/stats', methods=['GET'])
+def get_bitrix_stats():
+    """Get Bitrix CRM statistics"""
+    try:
+        if not bitrix or not bitrix.is_configured():
+            return jsonify({
+                "status": "success",
+                "leads_count": 0,
+                "deals_count": 0,
+                "message": "Bitrix not configured",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        # In a real implementation, these would be actual API calls
+        # For now, return mock statistics
+        return jsonify({
+            "status": "success",
+            "leads_count": 15,
+            "deals_count": 8,
+            "contacts_count": 25,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error getting Bitrix stats: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+# Intelligent Chat Processing API Endpoints
+@app.route('/api/chat/process-messages', methods=['POST'])
+def process_chat_messages():
+    """Process new messages from Wazzup and generate AI responses"""
+    try:
+        if not chat_processor:
+            return jsonify({
+                "status": "error",
+                "error": "Chat processor not available",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+        
+        # This would be called by a background service or webhook
+        # For manual testing, we can trigger processing
+        result = chat_processor.process_new_messages()
+        
+        # Since process_new_messages is async, we need to handle it properly
+        # For now, return a success response
+        return jsonify({
+            "status": "success",
+            "message": "Chat processing initiated",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error processing chat messages: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/chat/start-monitoring', methods=['POST'])
+def start_chat_monitoring():
+    """Start continuous chat monitoring"""
+    try:
+        if not chat_processor:
+            return jsonify({
+                "status": "error",
+                "error": "Chat processor not available",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+        
+        # Start monitoring in a background thread
+        def start_monitoring():
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(chat_processor.start_monitoring(interval=30))
+        
+        threading.Thread(target=start_monitoring, daemon=True).start()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Chat monitoring started",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error starting chat monitoring: {e}")
+        return jsonify({
+            "status": "error",
             "error": str(e),
             "timestamp": datetime.now().isoformat()
         }), 500

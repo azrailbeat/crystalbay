@@ -72,6 +72,11 @@
         color: white;
     }
     
+    .integration-logo.bitrix {
+        background-color: #2FC6F6;
+        color: white;
+    }
+    
     .integration-name {
         font-weight: 600;
         font-size: 1.2rem;
@@ -465,6 +470,72 @@
         </div>
     </div>
 
+    <!-- Bitrix24 Integration -->
+    <div class="integration-card">
+        <div class="integration-header">
+            <div class="integration-title">
+                <div class="integration-logo bitrix">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h2 class="integration-name">Bitrix24</h2>
+            </div>
+            <span id="bitrix-status" class="integration-status disconnected">Проверка...</span>
+        </div>
+        <div class="integration-body">
+            <div class="integration-description">
+                Bitrix24 CRM интеграция для управления клиентами, сделками и автоматизации бизнес-процессов туристического агентства.
+            </div>
+            
+            <div id="bitrix-settings" class="integration-settings">
+                <div class="settings-row">
+                    <div class="settings-label">Webhook URL</div>
+                    <div class="api-key-field">
+                        <input type="text" id="bitrix-webhook-url" class="form-control" placeholder="https://your-portal.bitrix24.ru/rest/1/webhook-key/">
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-label">Портал</div>
+                    <div class="api-key-field">
+                        <input type="text" id="bitrix-domain" class="form-control" placeholder="your-portal.bitrix24.ru">
+                    </div>
+                </div>
+                <div id="bitrix-connected-info" class="d-none">
+                    <div class="settings-row">
+                        <div class="settings-label">Лидов создано</div>
+                        <div class="settings-value" id="bitrix-leads-count">--</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">Сделок в работе</div>
+                        <div class="settings-value" id="bitrix-deals-count">--</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">Статус синхронизации</div>
+                        <div class="settings-value text-success">Активна</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button id="bitrix-test-btn" class="btn btn-outline-secondary me-2" disabled>
+                        <i class="bi bi-plug me-2"></i> Проверить подключение
+                    </button>
+                    <button id="bitrix-setup-pipeline-btn" class="btn btn-outline-success me-2" disabled>
+                        <i class="bi bi-diagram-3 me-2"></i> Создать воронку
+                    </button>
+                </div>
+                <div>
+                    <button id="bitrix-save-btn" class="btn btn-primary me-2">
+                        <i class="bi bi-check-circle me-2"></i> Сохранить
+                    </button>
+                    <button id="bitrix-open-btn" class="btn btn-outline-primary" disabled>
+                        <i class="bi bi-box-arrow-up-right me-2"></i> Открыть CRM
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SendGrid Integration (Disconnected) -->
     <div class="integration-card">
         <div class="integration-header">
@@ -529,8 +600,9 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Wazzup integration
+        // Initialize integrations
         initializeWazzupIntegration();
+        initializeBitrixIntegration();
         
         // Toggle API key visibility
         const toggleButtons = document.querySelectorAll('.api-key-action');
@@ -745,6 +817,135 @@
         }, 5000);
     }
 
+    // Bitrix Integration Functions
+    function initializeBitrixIntegration() {
+        // Load integration status
+        loadBitrixStatus();
+        
+        // Bind event handlers
+        document.getElementById('bitrix-save-btn').addEventListener('click', saveBitrixConfig);
+        document.getElementById('bitrix-test-btn').addEventListener('click', testBitrixConnection);
+        document.getElementById('bitrix-setup-pipeline-btn').addEventListener('click', setupBitrixPipeline);
+        document.getElementById('bitrix-open-btn').addEventListener('click', openBitrixCRM);
+    }
+
+    async function loadBitrixStatus() {
+        try {
+            const response = await fetch('/api/bitrix/config');
+            const data = await response.json();
+            
+            const statusElement = document.getElementById('bitrix-status');
+            const connectedInfo = document.getElementById('bitrix-connected-info');
+            const testBtn = document.getElementById('bitrix-test-btn');
+            const pipelineBtn = document.getElementById('bitrix-setup-pipeline-btn');
+            const openBtn = document.getElementById('bitrix-open-btn');
+            
+            if (data.configured) {
+                statusElement.textContent = 'Подключено';
+                statusElement.className = 'integration-status connected';
+                connectedInfo.classList.remove('d-none');
+                testBtn.disabled = false;
+                pipelineBtn.disabled = false;
+                openBtn.disabled = false;
+                
+                // Load statistics
+                loadBitrixStats();
+            } else {
+                statusElement.textContent = 'Не настроено';
+                statusElement.className = 'integration-status disconnected';
+            }
+        } catch (error) {
+            console.error('Error loading Bitrix status:', error);
+            document.getElementById('bitrix-status').textContent = 'Ошибка';
+            document.getElementById('bitrix-status').className = 'integration-status error';
+        }
+    }
+
+    async function loadBitrixStats() {
+        try {
+            const response = await fetch('/api/bitrix/stats');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('bitrix-leads-count').textContent = data.leads_count || 0;
+                document.getElementById('bitrix-deals-count').textContent = data.deals_count || 0;
+            }
+        } catch (error) {
+            console.error('Error loading Bitrix stats:', error);
+        }
+    }
+
+    async function saveBitrixConfig() {
+        const webhookUrl = document.getElementById('bitrix-webhook-url').value;
+        const domain = document.getElementById('bitrix-domain').value;
+        
+        if (!webhookUrl && !domain) {
+            showAlert('Пожалуйста, введите Webhook URL или домен Bitrix24', 'warning');
+            return;
+        }
+        
+        showAlert('Для завершения настройки предоставьте данные Bitrix24 через переменные окружения BITRIX_WEBHOOK_URL или BITRIX_DOMAIN + BITRIX_ACCESS_TOKEN', 'info');
+    }
+
+    async function testBitrixConnection() {
+        const btn = document.getElementById('bitrix-test-btn');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверка...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/bitrix/test-connection', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showAlert('Подключение к Bitrix24 успешно!', 'success');
+                loadBitrixStatus(); // Refresh status
+            } else {
+                showAlert('Ошибка подключения: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Ошибка тестирования подключения: ' + error.message, 'danger');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function setupBitrixPipeline() {
+        const btn = document.getElementById('bitrix-setup-pipeline-btn');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Создание...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/bitrix/setup-pipeline', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showAlert('Воронка для туристических бронирований создана в Bitrix24!', 'success');
+            } else {
+                showAlert('Ошибка создания воронки: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Ошибка создания воронки: ' + error.message, 'danger');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function openBitrixCRM() {
+        const domain = document.getElementById('bitrix-domain').value || 'your-portal.bitrix24.ru';
+        const url = `https://${domain}/crm/`;
+        window.open(url, '_blank');
+    }
+
     // Refresh unread count every 30 seconds if Wazzup is connected
     setInterval(() => {
         const status = document.getElementById('wazzup-status');
@@ -752,5 +953,13 @@
             loadWazzupUnreadCount();
         }
     }, 30000);
+
+    // Auto-refresh Bitrix stats every 5 minutes
+    setInterval(() => {
+        const status = document.getElementById('bitrix-status');
+        if (status && status.textContent === 'Подключено') {
+            loadBitrixStats();
+        }
+    }, 300000);
 </script>
 {% endblock %}

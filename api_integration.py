@@ -304,6 +304,73 @@ class APIIntegration:
             logger.error(f"Error checking hotel amenities {hotel_id}: {e}")
             return None
     
+    def search_tours(self, search_params):
+        """Search for tours using provided parameters
+        
+        Args:
+            search_params (dict): Search parameters including destination, budget, etc.
+            
+        Returns:
+            dict: Search results with tours list
+        """
+        try:
+            if self.use_mocks:
+                # Return mock tour data for demonstration
+                mock_tours = [
+                    {
+                        'id': 'tour_001',
+                        'destination': search_params.get('destination', 'Турция'),
+                        'price': 85000,
+                        'dates': '15-25 июня 2025',
+                        'hotel': 'Crystal Resort 5*',
+                        'rating': '4.8/5',
+                        'duration': '10 дней',
+                        'description': 'Отличный семейный отдых с all inclusive'
+                    },
+                    {
+                        'id': 'tour_002', 
+                        'destination': search_params.get('destination', 'Египет'),
+                        'price': 65000,
+                        'dates': '20-30 июня 2025',
+                        'hotel': 'Pharaoh Beach Resort 4*',
+                        'rating': '4.5/5',
+                        'duration': '10 дней',
+                        'description': 'Красное море, кораллы, экскурсии'
+                    }
+                ]
+                
+                return {
+                    'status': 'success',
+                    'tours': mock_tours,
+                    'count': len(mock_tours)
+                }
+            
+            # Real API implementation
+            url = f"{self.samo_api_base_url}/tours/search"
+            response = self._make_samo_request(url, method='POST', data=search_params)
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                return {
+                    'status': 'success',
+                    'tours': data.get('tours', []),
+                    'count': len(data.get('tours', []))
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'error': f'API returned status {response.status_code}' if response else 'Request failed',
+                    'tours': []
+                }
+                
+        except Exception as e:
+            logger.error(f"Error searching tours: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'tours': []
+            }
+    
     def create_booking(self, booking_data):
         """Create a new booking in the SAMO system.
         
