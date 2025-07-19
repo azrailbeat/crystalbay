@@ -31,14 +31,211 @@ class WazzupIntegration:
         """Initialize Wazzup integration with API credentials"""
         self.api_key = os.environ.get('WAZZUP_API_KEY')
         self.api_secret = os.environ.get('WAZZUP_API_SECRET')
+        self.client_api_key = os.environ.get('WAZZUP_CLIENT_API_KEY')  # Ключ клиента для миграции
         self.base_url = 'https://api.wazzup24.com/v3'
         self.webhook_secret = os.environ.get('WAZZUP_WEBHOOK_SECRET')
         self.crm_base_url = os.environ.get('REPLIT_APP_URL', 'https://your-app.replit.app')
         self.lead_service = LeadService()
+        self.migration_done = False
         
     def is_configured(self):
         """Check if Wazzup integration is properly configured"""
         return bool(self.api_key and self.api_secret)
+    
+    def migrate_to_api_v3(self, webhooks_uri: str = None) -> bool:
+        """
+        Migrate client from API v2 to v3 using official migration endpoint
+        """
+        if not self.client_api_key:
+            logger.error("Client API key not configured for migration")
+            return False
+            
+        if not webhooks_uri:
+            webhooks_uri = f"{self.crm_base_url}/api/wazzup/webhook"
+            
+        migration_data = {
+            "clientApiKey": self.client_api_key,
+            "webhooksUri": webhooks_uri,
+            "subscriptions": {
+                "messagesAndStatuses": True,
+                "contactsAndDealsCreation": True
+            }
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/migration",
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {self.api_key}'
+                },
+                json=migration_data
+            )
+            
+            response.raise_for_status()
+            self.migration_done = True
+            logger.info("Successfully migrated to Wazzup API v3")
+            return True
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Migration to API v3 failed: {e}")
+            return False
+    
+    def get_chat_history(self, contact_id: str, channel_id: str = None, limit: int = 50) -> List[Dict]:
+        """
+        Get chat history from Wazzup24 for specific contact
+        Returns formatted chat messages for display in deal cards
+        """
+        try:
+            params = {
+                'contactId': contact_id,
+                'limit': limit,
+                'order': 'desc'  # Most recent first
+            }
+            
+            if channel_id:
+                params['channelId'] = channel_id
+            
+            result = self._make_request('GET', '/messages', params=params)
+            
+            if result and 'messages' in result:
+                # Format messages for frontend display
+                formatted_messages = []
+                for msg in result['messages']:
+                    formatted_msg = {
+                        'id': msg.get('id'),
+                        'timestamp': msg.get('timestamp'),
+                        'direction': 'incoming' if msg.get('fromContact') else 'outgoing',
+                        'content': self._extract_message_content(msg),
+                        'type': msg.get('type', 'text'),
+                        'channel': msg.get('channelType', 'unknown'),
+                        'status': msg.get('status', 'sent'),
+                        'sender_name': msg.get('fromContact', {}).get('name', 'Неизвестно'),
+                        'operator_name': msg.get('operator', {}).get('name') if not msg.get('fromContact') else None
+                    }
+                    formatted_messages.append(formatted_msg)
+                
+                logger.info(f"Retrieved {len(formatted_messages)} messages for contact {contact_id}")
+                return formatted_messages
+            else:
+                logger.warning(f"No messages found for contact {contact_id}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Failed to get chat history for contact {contact_id}: {e}")
+            return []
+    
+    def _extract_message_content(self, message: Dict) -> str:
+        """Extract readable content from Wazzup message"""
+        try:
+            if message.get('type') == 'text':
+                return message.get('text', '')
+            elif message.get('type') == 'image':
+                return f"[Изображение] {message.get('caption', '')}"
+            elif message.get('type') == 'document':
+                filename = message.get('document', {}).get('filename', 'файл')
+                return f"[Документ: {filename}]"
+            elif message.get('type') == 'voice':
+                return "[Голосовое сообщение]"
+            elif message.get('type') == 'location':
+                return "[Местоположение]"
+            else:
+                return message.get('text', '[Сообщение]')
+        except:
+            return '[Сообщение]'
+    
+    def get_contact_channels(self, contact_id: str) -> List[Dict]:
+        """Get all channels/chats for a contact"""
+        try:
+            result = self._make_request('GET', f'/contacts/{contact_id}/channels')
+            
+            if result and 'channels' in result:
+                channels = []
+                for channel in result['channels']:
+                    channels.append({
+                        'id': channel.get('id'),
+                        'type': channel.get('type'),
+                        'name': channel.get('name'),
+                        'active': channel.get('active', False),
+                        'last_message_time': channel.get('lastMessageTime')
+                    })
+                return channels
+            else:
+                return []
+                
+        except Exception as e:
+            logger.error(f"Failed to get channels for contact {contact_id}: {e}")
+            return []
+    
+    def send_message_to_contact(self, contact_id: str, channel_id: str, message: str, message_type: str = 'text') -> bool:
+        """Send message to contact through Wazzup24"""
+        try:
+            message_data = {
+                'contactId': contact_id,
+                'channelId': channel_id,
+                'type': message_type,
+                'text': message
+            }
+            
+            result = self._make_request('POST', '/messages', message_data)
+            
+            if result and result.get('id'):
+                logger.info(f"Message sent successfully to contact {contact_id}")
+                return True
+            else:
+                logger.error(f"Failed to send message to contact {contact_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to send message: {e}")
+            return False
+    
+    def find_contact_by_phone(self, phone: str) -> Optional[str]:
+        """Find contact by phone number in Wazzup24"""
+        try:
+            # Clean phone number
+            clean_phone = ''.join(filter(str.isdigit, phone))
+            
+            params = {
+                'phone': clean_phone,
+                'limit': 1
+            }
+            
+            result = self._make_request('GET', '/contacts', params=params)
+            
+            if result and 'contacts' in result and result['contacts']:
+                contact = result['contacts'][0]
+                logger.info(f"Found contact by phone {phone}: {contact.get('id')}")
+                return contact.get('id')
+            else:
+                logger.info(f"No contact found for phone {phone}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to find contact by phone {phone}: {e}")
+            return None
+    
+    def find_contact_by_email(self, email: str) -> Optional[str]:
+        """Find contact by email in Wazzup24"""
+        try:
+            params = {
+                'email': email,
+                'limit': 1
+            }
+            
+            result = self._make_request('GET', '/contacts', params=params)
+            
+            if result and 'contacts' in result and result['contacts']:
+                contact = result['contacts'][0]
+                logger.info(f"Found contact by email {email}: {contact.get('id')}")
+                return contact.get('id')
+            else:
+                logger.info(f"No contact found for email {email}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to find contact by email {email}: {e}")
+            return None
     
     def _make_request(self, method: str, endpoint: str, data: dict = None, params: dict = None) -> Optional[dict]:
         """Make authenticated request to Wazzup API"""

@@ -775,6 +775,136 @@ def api_get_processing_results():
             "message": f"Ошибка получения результатов: {str(e)}"
         }), 500
 
+@app.route('/api/leads/<lead_id>/wazzup-chat', methods=['GET'])
+def api_get_wazzup_chat(lead_id):
+    """Получить историю чата из Wazzup24 для лида"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        
+        wazzup = WazzupIntegration()
+        if not wazzup.is_configured():
+            return jsonify({
+                "success": False,
+                "message": "Wazzup24 не настроен"
+            }), 503
+        
+        # Получаем данные лида
+        lead = lead_service.get_lead_by_id(int(lead_id))
+        if not lead:
+            return jsonify({
+                "success": False,
+                "message": "Лид не найден"
+            }), 404
+        
+        # Ищем связанный контакт в Wazzup по телефону или email
+        contact_id = None
+        if lead.phone:
+            contact_id = wazzup.find_contact_by_phone(lead.phone)
+        elif lead.email:
+            contact_id = wazzup.find_contact_by_email(lead.email)
+        
+        if not contact_id:
+            return jsonify({
+                "success": True,
+                "chat_history": [],
+                "message": "Контакт не найден в Wazzup24"
+            })
+        
+        # Получаем каналы для контакта
+        channels = wazzup.get_contact_channels(contact_id)
+        
+        # Получаем историю чата
+        channel_id = request.args.get('channel_id')
+        limit = int(request.args.get('limit', 50))
+        
+        chat_history = wazzup.get_chat_history(contact_id, channel_id, limit)
+        
+        return jsonify({
+            "success": True,
+            "contact_id": contact_id,
+            "channels": channels,
+            "chat_history": chat_history,
+            "total_messages": len(chat_history)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting Wazzup chat for lead {lead_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка получения чата: {str(e)}"
+        }), 500
+
+@app.route('/api/leads/<lead_id>/wazzup-send', methods=['POST'])
+def api_send_wazzup_message(lead_id):
+    """Отправить сообщение через Wazzup24"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        
+        data = request.json
+        message = data.get('message', '').strip()
+        channel_id = data.get('channel_id')
+        
+        if not message:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не может быть пустым"
+            }), 400
+        
+        if not channel_id:
+            return jsonify({
+                "success": False,
+                "message": "Не указан канал для отправки"
+            }), 400
+        
+        wazzup = WazzupIntegration()
+        if not wazzup.is_configured():
+            return jsonify({
+                "success": False,
+                "message": "Wazzup24 не настроен"
+            }), 503
+        
+        # Получаем данные лида
+        lead = lead_service.get_lead_by_id(int(lead_id))
+        if not lead:
+            return jsonify({
+                "success": False,
+                "message": "Лид не найден"
+            }), 404
+        
+        # Ищем контакт
+        contact_id = None
+        if lead.phone:
+            contact_id = wazzup.find_contact_by_phone(lead.phone)
+        elif lead.email:
+            contact_id = wazzup.find_contact_by_email(lead.email)
+        
+        if not contact_id:
+            return jsonify({
+                "success": False,
+                "message": "Контакт не найден в Wazzup24"
+            }), 404
+        
+        # Отправляем сообщение
+        success = wazzup.send_message_to_contact(contact_id, channel_id, message)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Сообщение отправлено"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Ошибка отправки сообщения"
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Error sending Wazzup message for lead {lead_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка отправки: {str(e)}"
+        }), 500
+
 # API Endpoints for the Web Interface
 @app.route('/api/bot/status', methods=['GET'])
 def get_bot_status():

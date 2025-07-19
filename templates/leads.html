@@ -829,7 +829,10 @@
                 
                 <hr>
                 
-                <h6>История коммуникаций</h6>
+                <!-- Wazzup24 Chat History -->
+                <div id="wazzup-chat-container"></div>
+                
+                <h6>История коммуникаций CRM</h6>
                 <div class="comment-list">
                     <div class="comment-item">
                         <div class="comment-header">
@@ -918,6 +921,11 @@
                         // Показываем модальное окно
                         const modal = new bootstrap.Modal(viewLeadModal);
                         modal.show();
+                        
+                        // Инициализируем Wazzup чат при открытии модального окна
+                        viewLeadModal.addEventListener('shown.bs.modal', function() {
+                            initializeWazzupChat(leadId);
+                        }, { once: true });
                     } else {
                         console.error('viewLeadModal element not found');
                     }
@@ -2328,6 +2336,54 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Функция инициализации виджета Wazzup чата
+    function initializeWazzupChat(leadId) {
+        console.log('Initializing Wazzup chat for lead:', leadId);
+        
+        // Проверяем существование контейнера
+        const container = document.getElementById('wazzup-chat-container');
+        if (!container) {
+            console.error('Wazzup chat container not found');
+            return;
+        }
+        
+        // Очищаем контейнер перед инициализацией
+        container.innerHTML = '';
+        
+        // Проверяем доступность конструктора
+        if (typeof window.initWazzupChat === 'function') {
+            try {
+                // Создаем уникальный ID для контейнера чата
+                const chatContainerId = `wazzup-chat-${leadId}`;
+                container.innerHTML = `<div id="${chatContainerId}"></div>`;
+                
+                // Инициализируем виджет
+                const chatWidget = window.initWazzupChat(chatContainerId, leadId);
+                console.log('Wazzup chat widget initialized successfully');
+                
+                return chatWidget;
+            } catch (error) {
+                console.error('Error initializing Wazzup chat widget:', error);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Ошибка загрузки истории чата Wazzup24
+                    </div>
+                `;
+            }
+        } else {
+            console.error('Wazzup chat constructor not available');
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Компонент истории чата Wazzup24 недоступен
+                </div>
+            `;
+        }
+    }
+</script>
 
 {% endblock %}
 
