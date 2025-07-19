@@ -177,8 +177,19 @@ def wazzup_integration():
 
 @app.route('/settings')
 def settings():
-    """Render the settings page"""
-    return render_template('settings.html', active_page='settings')
+    """Render the unified settings page"""
+    from settings_manager import settings_manager
+    
+    # Получаем все настройки и статус интеграций
+    all_settings = settings_manager.get_all_settings()
+    integration_status = settings_manager.get_integration_status()
+    validation_errors = settings_manager.validate_settings()
+    
+    return render_template('settings.html', 
+                         active_page='settings',
+                         settings=all_settings,
+                         integration_status=integration_status,
+                         validation_errors=validation_errors)
 
 @app.route('/bot_logs')
 def bot_logs():
@@ -197,6 +208,99 @@ def bot_logs():
         logs = f"Error reading log file: {str(e)}"
         
     return render_template('logs.html', logs=logs)
+
+# Settings API endpoints
+@app.route('/api/settings', methods=['GET'])
+def api_get_settings():
+    """Получить все настройки"""
+    from settings_manager import settings_manager
+    return jsonify({
+        "settings": settings_manager.get_all_settings(),
+        "status": settings_manager.get_integration_status(),
+        "errors": settings_manager.validate_settings()
+    })
+
+@app.route('/api/settings', methods=['POST'])
+def api_update_settings():
+    """Обновить настройки"""
+    from settings_manager import settings_manager
+    
+    try:
+        updates = request.json
+        success = settings_manager.update_settings(updates)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Настройки обновлены успешно",
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Ошибка обновления настроек"
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка: {str(e)}"
+        }), 500
+
+@app.route('/api/settings/export', methods=['POST'])
+def api_export_settings():
+    """Экспортировать настройки"""
+    from settings_manager import settings_manager
+    
+    try:
+        export_path = settings_manager.export_settings()
+        return jsonify({
+            "success": True,
+            "export_path": export_path,
+            "message": "Настройки экспортированы успешно"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка экспорта: {str(e)}"
+        }), 500
+
+@app.route('/api/settings/backup', methods=['POST'])
+def api_backup_settings():
+    """Создать резервную копию настроек"""
+    from settings_manager import settings_manager
+    
+    try:
+        backup_path = settings_manager.backup_settings()
+        return jsonify({
+            "success": True,
+            "backup_path": backup_path,
+            "message": "Резервная копия создана успешно"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка создания резервной копии: {str(e)}"
+        }), 500
+
+@app.route('/api/settings/validate', methods=['POST'])
+def api_validate_settings():
+    """Валидировать настройки"""
+    from settings_manager import settings_manager
+    
+    try:
+        errors = settings_manager.validate_settings()
+        return jsonify({
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "message": "Настройки корректны" if len(errors) == 0 else "Найдены ошибки в настройках"
+        })
+    except Exception as e:
+        return jsonify({
+            "valid": False,
+            "errors": {"system": [f"Ошибка валидации: {str(e)}"]},
+            "message": f"Ошибка валидации: {str(e)}"
+        }), 500
 
 # API Endpoints for the Web Interface
 @app.route('/api/bot/status', methods=['GET'])

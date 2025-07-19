@@ -6,6 +6,12 @@
 <style>
     .settings-card {
         height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .settings-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     }
     
     .settings-icon {
@@ -19,21 +25,22 @@
         border-radius: 20px;
         font-size: 0.8rem;
         display: inline-block;
+        font-weight: 500;
     }
     
-    .status-connected {
+    .status-active {
         background-color: rgba(52, 199, 89, 0.2);
         color: #34c759;
     }
     
-    .status-not-connected {
-        background-color: rgba(255, 59, 48, 0.2);
-        color: #ff3b30;
-    }
-    
-    .status-partial {
+    .status-inactive {
         background-color: rgba(255, 149, 0, 0.2);
         color: #ff9500;
+    }
+    
+    .status-disabled {
+        background-color: rgba(255, 59, 48, 0.2);
+        color: #ff3b30;
     }
     
     .setting-group {
@@ -117,6 +124,67 @@
         right: 20px;
         z-index: 1050;
     }
+    
+    .settings-form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .settings-form-group label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-color);
+    }
+    
+    .settings-form-group .form-text {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+    }
+    
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 28px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 28px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: var(--primary-color);
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(22px);
+    }
 </style>
 {% endblock %}
 
@@ -125,16 +193,95 @@
 <div class="container mb-4">
     <div class="row align-items-center">
         <div class="col-md-8">
-            <h1 class="display-5">Настройки</h1>
-            <p class="lead text-secondary">Управление API-интеграциями и настройками системы</p>
+            <h1 class="display-5">Настройки системы</h1>
+            <p class="lead text-secondary">Централизованное управление всеми настройками Crystal Bay Travel</p>
         </div>
         <div class="col-md-4 text-md-end">
-            <button type="button" class="btn btn-primary" id="save-all-settings">
-                <i class="bi bi-save me-2"></i> Сохранить все настройки
-            </button>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" id="validate-settings">
+                    <i class="bi bi-check-circle me-2"></i> Валидация
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="export-settings">
+                    <i class="bi bi-download me-2"></i> Экспорт
+                </button>
+                <button type="button" class="btn btn-outline-warning" id="backup-settings">
+                    <i class="bi bi-shield-check me-2"></i> Резервное копирование
+                </button>
+                <button type="button" class="btn btn-primary" id="save-all-settings">
+                    <i class="bi bi-save me-2"></i> Сохранить все
+                </button>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- System Status Overview -->
+<div class="container mb-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0 d-flex align-items-center">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Общий статус системы
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h2 mb-1" id="total-integrations">{{ integration_status|length }}</div>
+                        <div class="text-secondary">Всего интеграций</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h2 mb-1 text-success" id="active-integrations">
+                            {{ integration_status.values()|selectattr('status', 'equalto', 'active')|list|length }}
+                        </div>
+                        <div class="text-secondary">Активных</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h2 mb-1 text-warning" id="inactive-integrations">
+                            {{ integration_status.values()|selectattr('status', 'equalto', 'inactive')|list|length }}
+                        </div>
+                        <div class="text-secondary">Неактивных</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="h2 mb-1 text-danger" id="error-count">
+                            {{ validation_errors|length }}
+                        </div>
+                        <div class="text-secondary">Ошибок</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Errors -->
+{% if validation_errors %}
+<div class="container mb-4">
+    <div class="alert alert-warning">
+        <h6 class="alert-heading d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Обнаружены ошибки конфигурации
+        </h6>
+        {% for integration, errors in validation_errors.items() %}
+            <div class="mb-2">
+                <strong>{{ integration }}:</strong>
+                <ul class="mb-0 ps-3">
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Settings Tabs -->
 <div class="container">
@@ -145,13 +292,18 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="business-tab" data-bs-toggle="tab" data-bs-target="#business-content" type="button" role="tab" aria-controls="business-content" aria-selected="false">
+                <i class="bi bi-building me-2"></i> Бизнес
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-content" type="button" role="tab" aria-controls="notifications-content" aria-selected="false">
                 <i class="bi bi-bell me-2"></i> Уведомления
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-content" type="button" role="tab" aria-controls="users-content" aria-selected="false">
-                <i class="bi bi-people me-2"></i> Пользователи
+            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-content" type="button" role="tab" aria-controls="security-content" aria-selected="false">
+                <i class="bi bi-shield-lock me-2"></i> Безопасность
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -165,18 +317,21 @@
         <!-- Integrations Tab -->
         <div class="tab-pane fade show active" id="integrations-content" role="tabpanel" aria-labelledby="integrations-tab">
             <div class="row g-4 mb-4">
-                <!-- SAMO API Integration -->
+                <!-- Crystal Bay SAMO API Integration -->
                 <div class="col-md-6 col-lg-4">
                     <div class="card integration-card">
                         <div class="card-body text-center">
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title">SAMO API</h5>
-                                <span class="connection-status status-connected" id="samo-status">Подключено</span>
+                                <h5 class="card-title">Crystal Bay SAMO API</h5>
+                                <span class="connection-status status-{{ integration_status.get('samo_api', {}).get('status', 'disabled') }}" id="samo-status">
+                                    {% set status = integration_status.get('samo_api', {}).get('status', 'disabled') %}
+                                    {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
+                                </span>
                             </div>
                             <div class="mb-3">
-                                <i class="bi bi-database settings-icon"></i>
+                                <i class="bi bi-tsunami settings-icon"></i>
                             </div>
-                            <p class="card-text text-secondary mb-4">Интеграция с системой бронирования туров SAMO</p>
+                            <p class="card-text text-secondary mb-4">Интеграция с системой бронирования Crystal Bay (SAMO API)</p>
                             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#samo-modal">
                                 <i class="bi bi-pencil me-2"></i> Настроить
                             </button>
@@ -190,12 +345,15 @@
                         <div class="card-body text-center">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <h5 class="card-title">Telegram Bot</h5>
-                                <span class="connection-status status-connected" id="telegram-status">Подключено</span>
+                                <span class="connection-status status-{{ integration_status.get('telegram_bot', {}).get('status', 'disabled') }}" id="telegram-status">
+                                    {% set status = integration_status.get('telegram_bot', {}).get('status', 'disabled') %}
+                                    {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
+                                </span>
                             </div>
                             <div class="mb-3">
                                 <i class="bi bi-telegram settings-icon"></i>
                             </div>
-                            <p class="card-text text-secondary mb-4">Интеграция с Telegram для обработки запросов клиентов</p>
+                            <p class="card-text text-secondary mb-4">Автоматизированный бот для обработки запросов клиентов</p>
                             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#telegram-modal">
                                 <i class="bi bi-pencil me-2"></i> Настроить
                             </button>
@@ -246,14 +404,61 @@
                     <div class="card integration-card">
                         <div class="card-body text-center">
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title">OpenAI</h5>
-                                <span class="connection-status status-connected" id="openai-status">Подключено</span>
+                                <h5 class="card-title">OpenAI GPT</h5>
+                                <span class="connection-status status-{{ integration_status.get('openai', {}).get('status', 'disabled') }}" id="openai-status">
+                                    {% set status = integration_status.get('openai', {}).get('status', 'disabled') %}
+                                    {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
+                                </span>
                             </div>
                             <div class="mb-3">
                                 <i class="bi bi-cpu settings-icon"></i>
                             </div>
-                            <p class="card-text text-secondary mb-4">Интеграция с OpenAI для обработки запросов на естественном языке</p>
+                            <p class="card-text text-secondary mb-4">AI-powered интеллектуальная обработка запросов (GPT-4o)</p>
                             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#openai-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bitrix24 CRM Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">Bitrix24 CRM</h5>
+                                <span class="connection-status status-{{ integration_status.get('bitrix24', {}).get('status', 'disabled') }}" id="bitrix24-status">
+                                    {% set status = integration_status.get('bitrix24', {}).get('status', 'disabled') %}
+                                    {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-diagram-3 settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">CRM система с 9-этапным пайплайном для управления сделками</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#bitrix24-modal">
+                                <i class="bi bi-pencil me-2"></i> Настроить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Wazzup24 Integration -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card integration-card">
+                        <div class="card-body text-center">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">Wazzup24.ru</h5>
+                                <span class="connection-status status-{{ integration_status.get('wazzup', {}).get('status', 'disabled') }}" id="wazzup-status">
+                                    {% set status = integration_status.get('wazzup', {}).get('status', 'disabled') %}
+                                    {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <i class="bi bi-chat-dots settings-icon"></i>
+                            </div>
+                            <p class="card-text text-secondary mb-4">Интеграция с WhatsApp и мультиканальными коммуникациями</p>
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#wazzup-modal">
                                 <i class="bi bi-pencil me-2"></i> Настроить
                             </button>
                         </div>
@@ -649,6 +854,276 @@
                                 <button type="button" class="btn btn-outline-warning" id="restart-services">
                                     <i class="bi bi-arrow-clockwise me-2"></i> Перезапустить службы
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Business Tab -->
+        <div class="tab-pane fade" id="business-content" role="tabpanel" aria-labelledby="business-tab">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Информация о компании</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="company-name" class="form-label">Название компании</label>
+                                <input type="text" class="form-control" id="company-name" value="{{ settings.business.company_name or 'Crystal Bay Travel' }}">
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="contact-email" class="form-label">Контактный email</label>
+                                <input type="email" class="form-control" id="contact-email" value="{{ settings.business.contact_email or 'info@crystalbay.travel' }}">
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="contact-phone" class="form-label">Контактный телефон</label>
+                                <input type="tel" class="form-control" id="contact-phone" value="{{ settings.business.contact_phone or '+7 (999) 123-45-67' }}">
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="website" class="form-label">Веб-сайт</label>
+                                <input type="url" class="form-control" id="website" value="{{ settings.business.website or 'https://crystalbay.travel' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Рабочие параметры</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="default-currency" class="form-label">Валюта по умолчанию</label>
+                                <select class="form-select" id="default-currency">
+                                    <option value="USD" {{ 'selected' if settings.business.currency == 'USD' else '' }}>USD (Доллар США)</option>
+                                    <option value="EUR" {{ 'selected' if settings.business.currency == 'EUR' else '' }}>EUR (Евро)</option>
+                                    <option value="KZT" {{ 'selected' if settings.business.currency == 'KZT' else '' }}>KZT (Тенге)</option>
+                                    <option value="RUB" {{ 'selected' if settings.business.currency == 'RUB' else '' }}>RUB (Рубль)</option>
+                                </select>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="default-markup" class="form-label">Наценка по умолчанию (%)</label>
+                                <input type="number" class="form-control" id="default-markup" value="{{ settings.business.default_markup or 10 }}" min="0" max="100">
+                                <div class="form-text">Процент наценки на стоимость туров</div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="commission-rate" class="form-label">Комиссия (%)</label>
+                                <input type="number" class="form-control" id="commission-rate" value="{{ settings.business.commission_rate or 5 }}" min="0" max="50">
+                                <div class="form-text">Комиссия с каждого бронирования</div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="timezone" class="form-label">Часовой пояс</label>
+                                <select class="form-select" id="timezone">
+                                    <option value="Asia/Almaty" {{ 'selected' if settings.system.timezone == 'Asia/Almaty' else '' }}>Алматы (UTC+6)</option>
+                                    <option value="Europe/Moscow" {{ 'selected' if settings.system.timezone == 'Europe/Moscow' else '' }}>Москва (UTC+3)</option>
+                                    <option value="Asia/Tashkent" {{ 'selected' if settings.system.timezone == 'Asia/Tashkent' else '' }}>Ташкент (UTC+5)</option>
+                                    <option value="UTC" {{ 'selected' if settings.system.timezone == 'UTC' else '' }}>UTC (Universal)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4 mt-2">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Рабочие часы</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="office-start" class="form-label">Начало работы</label>
+                                    <input type="time" class="form-control" id="office-start" value="{{ settings.business.office_hours.start or '09:00' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="office-end" class="form-label">Конец работы</label>
+                                    <input type="time" class="form-control" id="office-end" value="{{ settings.business.office_hours.end or '18:00' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Рабочие дни</label>
+                                    <div class="d-flex gap-2">
+                                        {% set working_days = settings.business.office_hours.working_days or [1, 2, 3, 4, 5] %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-1" {{ 'checked' if 1 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-1">Пн</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-2" {{ 'checked' if 2 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-2">Вт</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-3" {{ 'checked' if 3 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-3">Ср</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-4" {{ 'checked' if 4 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-4">Чт</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-5" {{ 'checked' if 5 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-5">Пт</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-6" {{ 'checked' if 6 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-6">Сб</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="day-0" {{ 'checked' if 0 in working_days else '' }}>
+                                            <label class="form-check-label" for="day-0">Вс</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Tab -->
+        <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Аутентификация и безопасность</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="session-timeout" class="form-label">Время сессии (секунды)</label>
+                                <input type="number" class="form-control" id="session-timeout" value="{{ settings.security.session_timeout or 3600 }}" min="300" max="86400">
+                                <div class="form-text">Автоматический выход через указанное время неактивности</div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="max-login-attempts" class="form-label">Максимальное количество попыток входа</label>
+                                <input type="number" class="form-control" id="max-login-attempts" value="{{ settings.security.max_login_attempts or 5 }}" min="3" max="10">
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="password-min-length" class="form-label">Минимальная длина пароля</label>
+                                <input type="number" class="form-control" id="password-min-length" value="{{ settings.security.password_min_length or 8 }}" min="6" max="20">
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="require-2fa" {{ 'checked' if settings.security.require_2fa else '' }}>
+                                <label class="form-check-label" for="require-2fa">
+                                    Требовать двухфакторную аутентификацию
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">API и лимиты</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="api-rate-limit" class="form-label">Лимит API запросов (в минуту)</label>
+                                <input type="number" class="form-control" id="api-rate-limit" value="{{ settings.security.api_rate_limit or 100 }}" min="10" max="1000">
+                                <div class="form-text">Максимальное количество запросов к API в минуту</div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="log-level" class="form-label">Уровень логирования</label>
+                                <select class="form-select" id="log-level">
+                                    <option value="DEBUG" {{ 'selected' if settings.security.log_level == 'DEBUG' else '' }}>DEBUG</option>
+                                    <option value="INFO" {{ 'selected' if settings.security.log_level == 'INFO' else '' }}>INFO</option>
+                                    <option value="WARNING" {{ 'selected' if settings.security.log_level == 'WARNING' else '' }}>WARNING</option>
+                                    <option value="ERROR" {{ 'selected' if settings.security.log_level == 'ERROR' else '' }}>ERROR</option>
+                                </select>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="retention-days" class="form-label">Хранение логов (дни)</label>
+                                <input type="number" class="form-control" id="retention-days" value="{{ settings.analytics.retention_days or 90 }}" min="7" max="365">
+                                <div class="form-text">Логи старше указанного периода будут автоматически удалены</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Tab -->
+        <div class="tab-pane fade" id="system-content" role="tabpanel" aria-labelledby="system-tab">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Основные настройки</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="system-name" class="form-label">Название системы</label>
+                                <input type="text" class="form-control" id="system-name" value="{{ settings.system.name or 'Crystal Bay Travel' }}">
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="system-version" class="form-label">Версия</label>
+                                <input type="text" class="form-control" id="system-version" value="{{ settings.system.version or '1.0.0' }}" readonly>
+                                <div class="form-text">Версия системы (только для чтения)</div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="system-language" class="form-label">Язык системы</label>
+                                <select class="form-select" id="system-language">
+                                    <option value="ru" {{ 'selected' if settings.system.language == 'ru' else '' }}>Русский</option>
+                                    <option value="en" {{ 'selected' if settings.system.language == 'en' else '' }}>English</option>
+                                    <option value="kz" {{ 'selected' if settings.system.language == 'kz' else '' }}>Қазақша</option>
+                                </select>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="debug-mode" {{ 'checked' if settings.system.debug_mode else '' }}>
+                                <label class="form-check-label" for="debug-mode">
+                                    Режим отладки
+                                </label>
+                                <div class="form-text">Включает подробное логирование для разработчиков</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Интерфейс</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-form-group">
+                                <label for="ui-theme" class="form-label">Тема интерфейса</label>
+                                <select class="form-select" id="ui-theme">
+                                    <option value="light" {{ 'selected' if settings.ui.theme == 'light' else '' }}>Светлая</option>
+                                    <option value="dark" {{ 'selected' if settings.ui.theme == 'dark' else '' }}>Темная</option>
+                                    <option value="auto" {{ 'selected' if settings.ui.theme == 'auto' else '' }}>Автоматически</option>
+                                </select>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="items-per-page" class="form-label">Элементов на страницу</label>
+                                <select class="form-select" id="items-per-page">
+                                    <option value="10" {{ 'selected' if settings.ui.items_per_page == 10 else '' }}>10</option>
+                                    <option value="20" {{ 'selected' if settings.ui.items_per_page == 20 else '' }}>20</option>
+                                    <option value="50" {{ 'selected' if settings.ui.items_per_page == 50 else '' }}>50</option>
+                                    <option value="100" {{ 'selected' if settings.ui.items_per_page == 100 else '' }}>100</option>
+                                </select>
+                            </div>
+                            <div class="settings-form-group">
+                                <label for="refresh-interval" class="form-label">Интервал автообновления (секунды)</label>
+                                <input type="number" class="form-control" id="refresh-interval" value="{{ settings.ui.refresh_interval or 30 }}" min="5" max="300">
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="auto-refresh" {{ 'checked' if settings.ui.auto_refresh else '' }}>
+                                <label class="form-check-label" for="auto-refresh">
+                                    Автообновление данных
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="compact-mode" {{ 'checked' if settings.ui.compact_mode else '' }}>
+                                <label class="form-check-label" for="compact-mode">
+                                    Компактный режим
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -1271,9 +1746,256 @@
         });
     });
     
-    // Save all settings
+    // Export settings
+    document.getElementById('export-settings').addEventListener('click', function() {
+        exportSettings();
+    });
+    
+    // Backup settings
+    document.getElementById('backup-settings').addEventListener('click', function() {
+        backupSettings();
+    });
+    
+    // Validate settings
+    document.getElementById('validate-settings').addEventListener('click', function() {
+        validateSettings();
+    });
+    
+    // Save all settings with real API call
     function saveAllSettings() {
-        showToast('Все настройки успешно сохранены', 'success');
+        const button = document.getElementById('save-all-settings');
+        const originalText = button.innerHTML;
+        
+        // Show loading state
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Сохранение...';
+        button.disabled = true;
+        
+        // Collect all settings from the form
+        const settings = collectAllSettings();
+        
+        // Send to API
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            if (data.success) {
+                showToast('Все настройки успешно сохранены', 'success');
+                updateSystemStatus(); // Refresh status indicators
+            } else {
+                showToast(data.message || 'Ошибка сохранения настроек', 'error');
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            console.error('Error:', error);
+            showToast('Ошибка соединения с сервером', 'error');
+        });
+    }
+    
+    // Export settings
+    function exportSettings() {
+        const button = document.getElementById('export-settings');
+        const originalText = button.innerHTML;
+        
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Экспорт...';
+        button.disabled = true;
+        
+        fetch('/api/settings/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            if (data.success) {
+                showToast(`Настройки экспортированы в файл: ${data.export_path}`, 'success');
+            } else {
+                showToast(data.message || 'Ошибка экспорта настроек', 'error');
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            console.error('Error:', error);
+            showToast('Ошибка экспорта настроек', 'error');
+        });
+    }
+    
+    // Backup settings
+    function backupSettings() {
+        const button = document.getElementById('backup-settings');
+        const originalText = button.innerHTML;
+        
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Создание...';
+        button.disabled = true;
+        
+        fetch('/api/settings/backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            if (data.success) {
+                showToast(`Резервная копия создана: ${data.backup_path}`, 'success');
+            } else {
+                showToast(data.message || 'Ошибка создания резервной копии', 'error');
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            console.error('Error:', error);
+            showToast('Ошибка создания резервной копии', 'error');
+        });
+    }
+    
+    // Validate settings
+    function validateSettings() {
+        const button = document.getElementById('validate-settings');
+        const originalText = button.innerHTML;
+        
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Проверка...';
+        button.disabled = true;
+        
+        fetch('/api/settings/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            if (data.valid) {
+                showToast('Все настройки корректны', 'success');
+            } else {
+                let errorMessage = 'Найдены ошибки в настройках:\n';
+                for (const [section, errors] of Object.entries(data.errors)) {
+                    errorMessage += `\n${section}: ${errors.join(', ')}`;
+                }
+                showToast(errorMessage, 'warning');
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            console.error('Error:', error);
+            showToast('Ошибка валидации настроек', 'error');
+        });
+    }
+    
+    // Collect all settings from the form
+    function collectAllSettings() {
+        const settings = {};
+        
+        // System settings
+        settings['system.name'] = document.getElementById('system-name')?.value;
+        settings['system.language'] = document.getElementById('system-language')?.value;
+        settings['system.timezone'] = document.getElementById('timezone')?.value;
+        settings['system.debug_mode'] = document.getElementById('debug-mode')?.checked;
+        
+        // Business settings
+        settings['business.company_name'] = document.getElementById('company-name')?.value;
+        settings['business.contact_email'] = document.getElementById('contact-email')?.value;
+        settings['business.contact_phone'] = document.getElementById('contact-phone')?.value;
+        settings['business.website'] = document.getElementById('website')?.value;
+        settings['business.currency'] = document.getElementById('default-currency')?.value;
+        settings['business.default_markup'] = parseFloat(document.getElementById('default-markup')?.value);
+        settings['business.commission_rate'] = parseFloat(document.getElementById('commission-rate')?.value);
+        settings['business.office_hours.start'] = document.getElementById('office-start')?.value;
+        settings['business.office_hours.end'] = document.getElementById('office-end')?.value;
+        
+        // Security settings
+        settings['security.session_timeout'] = parseInt(document.getElementById('session-timeout')?.value);
+        settings['security.max_login_attempts'] = parseInt(document.getElementById('max-login-attempts')?.value);
+        settings['security.password_min_length'] = parseInt(document.getElementById('password-min-length')?.value);
+        settings['security.require_2fa'] = document.getElementById('require-2fa')?.checked;
+        settings['security.api_rate_limit'] = parseInt(document.getElementById('api-rate-limit')?.value);
+        settings['security.log_level'] = document.getElementById('log-level')?.value;
+        
+        // UI settings
+        settings['ui.theme'] = document.getElementById('ui-theme')?.value;
+        settings['ui.items_per_page'] = parseInt(document.getElementById('items-per-page')?.value);
+        settings['ui.refresh_interval'] = parseInt(document.getElementById('refresh-interval')?.value);
+        settings['ui.auto_refresh'] = document.getElementById('auto-refresh')?.checked;
+        settings['ui.compact_mode'] = document.getElementById('compact-mode')?.checked;
+        
+        // Analytics settings
+        settings['analytics.retention_days'] = parseInt(document.getElementById('retention-days')?.value);
+        
+        // Integration settings (collect from modals when they're saved)
+        if (document.getElementById('samo-oauth-token')?.value !== '●●●●●●●●●●●●●●●●') {
+            settings['integrations.samo_api.oauth_token'] = document.getElementById('samo-oauth-token')?.value;
+        }
+        if (document.getElementById('telegram-bot-token')?.value !== '●●●●●●●●●●●●●●●●') {
+            settings['integrations.telegram_bot.token'] = document.getElementById('telegram-bot-token')?.value;
+        }
+        if (document.getElementById('openai-api-key')?.value !== '●●●●●●●●●●●●●●●●') {
+            settings['integrations.openai.api_key'] = document.getElementById('openai-api-key')?.value;
+        }
+        
+        // Remove empty/undefined values
+        Object.keys(settings).forEach(key => {
+            if (settings[key] === undefined || settings[key] === null || settings[key] === '') {
+                delete settings[key];
+            }
+        });
+        
+        return settings;
+    }
+    
+    // Update system status indicators
+    function updateSystemStatus() {
+        fetch('/api/settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status) {
+                updateStatusCards(data.status);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating status:', error);
+        });
+    }
+    
+    // Update status cards
+    function updateStatusCards(status) {
+        let activeCount = 0;
+        let inactiveCount = 0;
+        let totalCount = Object.keys(status).length;
+        
+        for (const [integration, info] of Object.entries(status)) {
+            if (info.status === 'active') {
+                activeCount++;
+            } else if (info.status === 'inactive') {
+                inactiveCount++;
+            }
+        }
+        
+        // Update counters
+        document.getElementById('total-integrations').textContent = totalCount;
+        document.getElementById('active-integrations').textContent = activeCount;
+        document.getElementById('inactive-integrations').textContent = inactiveCount;
     }
     
     // Simulate action with loading
@@ -1363,5 +2085,42 @@
             showToast('Логи обновлены', 'success');
         }, 1000);
     }
+    
+    // Show toast notifications
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+        toast.role = 'alert';
+        toast.ariaLive = 'assertive';
+        toast.ariaAtomic = 'true';
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        document.querySelector('.toast-container').appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Remove toast element after hiding
+        toast.addEventListener('hidden.bs.toast', function () {
+            this.remove();
+        });
+    }
+    
+    // Auto-refresh system status every 30 seconds
+    setInterval(function() {
+        if (document.getElementById('auto-refresh')?.checked) {
+            updateSystemStatus();
+        }
+    }, 30000);
+    
+    // Initialize system status on page load
+    updateSystemStatus();
 </script>
 {% endblock %}
