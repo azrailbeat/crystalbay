@@ -215,17 +215,17 @@ class BitrixIntegration:
         if 'result' in result:
             category_id = result['result']
             
-            # Create custom stages for travel bookings
+            # Create custom stages matching Trello workflow
             stages = [
                 {"NAME": "Новый запрос", "SORT": 10, "COLOR": "#39A0ED"},
                 {"NAME": "Консультация", "SORT": 20, "COLOR": "#FFA900"},
                 {"NAME": "Подбор тура", "SORT": 30, "COLOR": "#7C68FC"},
-                {"NAME": "Предложение отправлено", "SORT": 40, "COLOR": "#55D0E0"},
-                {"NAME": "Согласование", "SORT": 50, "COLOR": "#FF6B00"},
-                {"NAME": "Бронирование", "SORT": 60, "COLOR": "#9ACB34"},
-                {"NAME": "Оплата", "SORT": 70, "COLOR": "#339DC7"},
-                {"NAME": "Закрыто успешно", "SORT": 80, "COLOR": "#59DB7A"},
-                {"NAME": "Отказ", "SORT": 90, "COLOR": "#FF5752"}
+                {"NAME": "Коммерческое предложение", "SORT": 40, "COLOR": "#55D0E0"},
+                {"NAME": "Добавление интеграций", "SORT": 50, "COLOR": "#FF6B00"},
+                {"NAME": "Оплатили", "SORT": 60, "COLOR": "#9ACB34"},
+                {"NAME": "Принято заказчиком", "SORT": 70, "COLOR": "#339DC7"},
+                {"NAME": "Подтверждено", "SORT": 80, "COLOR": "#59DB7A"},
+                {"NAME": "Завершено", "SORT": 90, "COLOR": "#27AE60"}
             ]
             
             for stage in stages:

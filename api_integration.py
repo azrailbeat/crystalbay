@@ -24,14 +24,31 @@ class APIIntegration:
     """
     
     def __init__(self):
-        """Initialize API integration with credentials"""
+        """Initialize API integration with SAMO credentials and endpoints from Trello docs"""
         self.samo_oauth_token = os.getenv('SAMO_OAUTH_TOKEN')
-        self.samo_api_base_url = "https://api.samo.travel/v1"
+        # Use Anex Tour Partner API base URL from documentation
+        self.samo_api_base_url = "https://b2b.anextour.com/api/v1/partner"
+        
+        # SAMO API specific endpoints from Trello documentation
+        self.samo_endpoints = {
+            'search_tour': '/samo/SearchTour/PRICES',
+            'tour_details': '/samo/GetTourDetails',
+            'booking_create': '/samo/CreateBooking',
+            'booking_status': '/samo/GetBookingStatus'
+        }
+        
+        # Required SAMO API parameters from documentation
+        self.samo_required_params = {
+            'samo_action': 'api',
+            'type': 'json'
+        }
         
         # Use mocks for development/demo when token not available
         self.use_mocks = not self.samo_oauth_token
         if self.use_mocks:
             logger.warning("SAMO_OAUTH_TOKEN not found, using mock data for demonstrations")
+        else:
+            logger.info(f"SAMO API initialized with Anex Tour Partner API: {self.samo_api_base_url}")
     
     def check_booking(self, booking_reference):
         """Check booking details in the SAMO API.
@@ -345,9 +362,27 @@ class APIIntegration:
                     'count': len(mock_tours)
                 }
             
-            # Real API implementation
-            url = f"{self.samo_api_base_url}/tours/search"
-            response = self._make_samo_request(url, method='POST', data=search_params)
+            # Real API implementation using Anex Tour Partner API endpoints
+            url = f"{self.samo_api_base_url}{self.samo_endpoints['search_tour']}"
+            
+            # Format search parameters according to SAMO API documentation
+            api_params = self.samo_required_params.copy()
+            api_params.update({
+                'action': 'SearchTour',
+                'oauth_token': self.samo_oauth_token,
+                'TOWNFROMINC': search_params.get('departure_city_id', ''),
+                'STATEINC': search_params.get('destination_country_id', ''),
+                'CHECKIN_BEG': search_params.get('checkin_start', ''),
+                'CHECKIN_END': search_params.get('checkin_end', ''),
+                'NIGHTS_FROM': search_params.get('nights_min', 7),
+                'NIGHTS_TILL': search_params.get('nights_max', 14),
+                'ADULT': search_params.get('adults', 2),
+                'CHILD': search_params.get('children', 0),
+                'CURRENCY': search_params.get('currency', 'RUB'),
+                'FILTER': 1  # Apply filters for available tours only
+            })
+            
+            response = self._make_samo_request(url, method='GET', params=api_params)
             
             if response and response.status_code == 200:
                 data = response.json()

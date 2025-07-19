@@ -779,6 +779,56 @@ def start_chat_monitoring():
             "timestamp": datetime.now().isoformat()
         }), 500
 
+# SAMO API Testing Endpoints
+@app.route('/api/samo/test-connection', methods=['POST'])
+def test_samo_connection():
+    """Test SAMO API connection with Anex Tour Partner API"""
+    try:
+        from samo_api_test import SAMOAPITester
+        
+        tester = SAMOAPITester()
+        
+        # Run basic connection test
+        result = tester.test_search_tour_prices()
+        
+        return jsonify({
+            "status": result.get("status"),
+            "message": "SAMO API connection successful" if result.get("status") == "success" else "SAMO API connection failed",
+            "details": result,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error testing SAMO connection: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/samo/search-tours', methods=['POST'])
+def search_tours_api():
+    """Search tours using SAMO API with proper parameters"""
+    try:
+        search_params = request.get_json() or {}
+        
+        # Get API integration instance
+        api = APIIntegration()
+        result = api.search_tours(search_params)
+        
+        return jsonify({
+            "status": result.get("status"),
+            "tours": result.get("tours", []),
+            "count": result.get("count", 0),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error searching tours: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
 # Initialize the app
 if __name__ == '__main__':
     # Start the bot immediately before the app starts

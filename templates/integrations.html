@@ -264,12 +264,24 @@
             
             <div class="integration-settings">
                 <div class="settings-row">
+                    <div class="settings-label">API URL</div>
+                    <div class="settings-value">https://b2b.anextour.com/api/v1/partner</div>
+                </div>
+                <div class="settings-row">
                     <div class="settings-label">OAuth Token</div>
                     <div class="api-key-field">
                         <input type="password" class="form-control api-key-input" value="********************************" readonly>
                         <button class="api-key-action" title="Показать/скрыть">
                             <i class="bi bi-eye"></i>
                         </button>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-label">Поддерживаемые endpoints</div>
+                    <div class="settings-value">
+                        <small class="text-muted">
+                            SearchTour/PRICES, GetTourDetails, CreateBooking, GetBookingStatus
+                        </small>
                     </div>
                 </div>
                 <div class="settings-row">
@@ -511,6 +523,15 @@
                     <div class="settings-row">
                         <div class="settings-label">Статус синхронизации</div>
                         <div class="settings-value text-success">Активна</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-label">Воронка продаж (на основе Trello)</div>
+                        <div class="settings-value">
+                            <small class="text-muted">
+                                Новый запрос → Консультация → Подбор тура → Коммерческое предложение → 
+                                Добавление интеграций → Оплатили → Принято заказчиком → Подтверждено → Завершено
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>

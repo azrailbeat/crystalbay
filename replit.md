@@ -80,9 +80,11 @@ Email/Widget ─────► Lead Import API ───┘                    
 ### 4. External Integrations
 
 **SAMO Travel API (`api_integration.py`)**
-- Booking verification and search functionality
-- Tour information retrieval
-- Flight and accommodation data
+- Integration with Anex Tour Partner API (https://b2b.anextour.com/api/v1/partner)
+- Booking verification and search functionality using SAMO endpoints
+- Tour information retrieval with SearchTour/PRICES, GetTourDetails endpoints
+- Flight and accommodation data via CreateBooking, GetBookingStatus
+- Proper OAuth authentication and parameter formatting per Trello documentation
 - Mock data fallbacks for development
 
 **Email Integration (`email_integration.py`, `email_processor.py`)**
@@ -99,7 +101,8 @@ Email/Widget ─────► Lead Import API ───┘                    
 
 **Bitrix24 CRM Integration (`bitrix_integration.py`)**
 - Complete CRM integration for lead and deal management
-- Custom travel booking pipeline with 9 stages
+- Custom travel booking pipeline matching Trello workflow (9 stages)
+- Pipeline stages: Новый запрос → Консультация → Подбор тура → Коммерческое предложение → Добавление интеграций → Оплатили → Принято заказчиком → Подтверждено → Завершено
 - Contact and activity management
 - Webhook and OAuth authentication support
 
