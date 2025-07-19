@@ -302,6 +302,339 @@ def api_validate_settings():
             "message": f"Ошибка валидации: {str(e)}"
         }), 500
 
+# Messages API endpoints
+@app.route('/api/messages', methods=['GET'])
+def api_get_messages():
+    """Получить все сообщения"""
+    try:
+        from message_processor import message_manager
+        
+        # Создаем примеры сообщений если их еще нет
+        messages_data = message_manager.storage.get_all_messages()
+        if not messages_data:
+            message_manager.create_sample_messages()
+            messages_data = message_manager.storage.get_all_messages()
+        
+        # Подготавливаем статистику
+        stats = {
+            "new": len([m for m in messages_data if m.get("status") == "unread"]),
+            "processed": len([m for m in messages_data if m.get("ai_processed")]),
+            "attention": len([m for m in messages_data if m.get("priority") in ["high", "urgent"]]),
+            "total": len(messages_data)
+        }
+        
+        # Подготавливаем сообщения для фронтенда
+        messages_list = []
+        for msg in messages_data:
+            preview = msg.get("content", "")[:100] + "..." if len(msg.get("content", "")) > 100 else msg.get("content", "")
+            
+            messages_list.append({
+                "id": msg.get("id"),
+                "customer_name": msg.get("customer_name"),
+                "customer_phone": msg.get("customer_phone"),
+                "customer_email": msg.get("customer_email"),
+                "source": msg.get("source"),
+                "preview": preview,
+                "timestamp": msg.get("timestamp"),
+                "status": msg.get("status"),
+                "priority": msg.get("priority"),
+                "ai_processed": msg.get("ai_processed", False)
+            })
+        
+        return jsonify({
+            "success": True,
+            "messages": messages_list,
+            "stats": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting messages: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка загрузки сообщений: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/history', methods=['GET'])
+def api_get_message_history(message_id):
+    """Получить историю чата для сообщения"""
+    try:
+        from message_processor import message_manager
+        
+        # Получаем сообщение
+        message = message_manager.storage.get_message_by_id(message_id)
+        if not message:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не найдено"
+            }), 404
+        
+        # Получаем историю чата
+        chat_history = message_manager.storage.get_chat_history(message_id)
+        
+        # Если истории нет, создаем начальное сообщение
+        if not chat_history:
+            from message_processor import ChatMessage
+            from datetime import datetime
+            
+            initial_message = ChatMessage(
+                id=f"chat_{message_id}_1",
+                message_id=message_id,
+                content=message.get("content", ""),
+                type="incoming",
+                timestamp=datetime.fromisoformat(message.get("timestamp"))
+            )
+            message_manager.storage.save_chat_message(initial_message)
+            chat_history = message_manager.storage.get_chat_history(message_id)
+        
+        # Получаем ИИ предложения если есть
+        ai_suggestions = message.get("ai_suggestions", [])
+        
+        return jsonify({
+            "success": True,
+            "history": chat_history,
+            "ai_suggestions": ai_suggestions
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting message history for {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка загрузки истории: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/reply', methods=['POST'])
+def api_reply_to_message(message_id):
+    """Ответить на сообщение клиента"""
+    try:
+        from message_processor import message_manager, ChatMessage
+        from datetime import datetime
+        import uuid
+        
+        data = request.json
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не может быть пустым"
+            }), 400
+        
+        # Создаем исходящее сообщение
+        reply_message = ChatMessage(
+            id=str(uuid.uuid4()),
+            message_id=message_id,
+            content=content,
+            type="outgoing",
+            timestamp=datetime.now(),
+            ai_generated=data.get('ai_processed', False)
+        )
+        
+        # Сохраняем ответ
+        success = message_manager.storage.save_chat_message(reply_message)
+        
+        if success:
+            # Обновляем статус сообщения
+            message = message_manager.storage.get_message_by_id(message_id)
+            if message:
+                from message_processor import CustomerMessage, MessageStatus, MessageSource, Priority
+                from datetime import datetime
+                
+                updated_message = CustomerMessage(
+                    id=message["id"],
+                    customer_name=message["customer_name"],
+                    customer_phone=message.get("customer_phone"),
+                    customer_email=message.get("customer_email"),
+                    source=MessageSource(message["source"]),
+                    content=message["content"],
+                    timestamp=datetime.fromisoformat(message["timestamp"]),
+                    status=MessageStatus.REPLIED,
+                    priority=Priority(message["priority"]),
+                    ai_processed=message.get("ai_processed", False),
+                    ai_confidence=message.get("ai_confidence", 0.0),
+                    ai_suggestions=message.get("ai_suggestions", []),
+                    metadata=message.get("metadata", {})
+                )
+                message_manager.storage.save_message(updated_message)
+            
+            return jsonify({
+                "success": True,
+                "message": "Ответ отправлен"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Ошибка отправки ответа"
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error replying to message {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка отправки ответа: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/ai-response', methods=['POST'])
+def api_generate_ai_response(message_id):
+    """Сгенерировать ИИ ответ для сообщения"""
+    try:
+        from message_processor import message_manager, CustomerMessage, MessageSource, MessageStatus, Priority
+        from datetime import datetime
+        
+        # Получаем сообщение
+        message_data = message_manager.storage.get_message_by_id(message_id)
+        if not message_data:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не найдено"
+            }), 404
+        
+        # Конвертируем в объект CustomerMessage
+        message = CustomerMessage(
+            id=message_data["id"],
+            customer_name=message_data["customer_name"],
+            customer_phone=message_data.get("customer_phone"),
+            customer_email=message_data.get("customer_email"),
+            source=MessageSource(message_data["source"]),
+            content=message_data["content"],
+            timestamp=datetime.fromisoformat(message_data["timestamp"]),
+            status=MessageStatus(message_data["status"]),
+            priority=Priority(message_data["priority"]),
+            ai_processed=message_data.get("ai_processed", False),
+            ai_confidence=message_data.get("ai_confidence", 0.0),
+            ai_suggestions=message_data.get("ai_suggestions", []),
+            metadata=message_data.get("metadata", {})
+        )
+        
+        # Получаем контекст чата
+        chat_history_data = message_manager.storage.get_chat_history(message_id)
+        context = []
+        for chat_msg_data in chat_history_data:
+            from message_processor import ChatMessage
+            context.append(ChatMessage(
+                id=chat_msg_data["id"],
+                message_id=message_id,
+                content=chat_msg_data["content"],
+                type=chat_msg_data["type"],
+                timestamp=datetime.fromisoformat(chat_msg_data["timestamp"]),
+                ai_generated=chat_msg_data.get("ai_generated", False)
+            ))
+        
+        # Генерируем ответ
+        ai_response = message_manager.ai_processor.generate_response(message, context)
+        
+        return jsonify({
+            "success": True,
+            "response": ai_response
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating AI response for {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка генерации ИИ ответа: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/mark-read', methods=['POST'])
+def api_mark_message_read(message_id):
+    """Отметить сообщение как прочитанное"""
+    try:
+        from message_processor import message_manager, CustomerMessage, MessageSource, MessageStatus, Priority
+        from datetime import datetime
+        
+        message_data = message_manager.storage.get_message_by_id(message_id)
+        if not message_data:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не найдено"
+            }), 404
+        
+        # Обновляем статус
+        updated_message = CustomerMessage(
+            id=message_data["id"],
+            customer_name=message_data["customer_name"],
+            customer_phone=message_data.get("customer_phone"),
+            customer_email=message_data.get("customer_email"),
+            source=MessageSource(message_data["source"]),
+            content=message_data["content"],
+            timestamp=datetime.fromisoformat(message_data["timestamp"]),
+            status=MessageStatus.READ,
+            priority=Priority(message_data["priority"]),
+            ai_processed=message_data.get("ai_processed", False),
+            ai_confidence=message_data.get("ai_confidence", 0.0),
+            ai_suggestions=message_data.get("ai_suggestions", []),
+            metadata=message_data.get("metadata", {})
+        )
+        
+        success = message_manager.storage.save_message(updated_message)
+        
+        return jsonify({
+            "success": success,
+            "message": "Сообщение отмечено как прочитанное" if success else "Ошибка обновления"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error marking message as read {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка обновления статуса: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/create-lead', methods=['POST'])
+def api_create_lead_from_message(message_id):
+    """Создать лид в Bitrix24 из сообщения"""
+    try:
+        from message_processor import message_manager
+        from bitrix_integration import bitrix_client
+        
+        message_data = message_manager.storage.get_message_by_id(message_id)
+        if not message_data:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не найдено"
+            }), 404
+        
+        # Подготавливаем данные для создания лида
+        lead_data = {
+            "TITLE": f"Обращение от {message_data.get('customer_name', 'Клиент')}",
+            "SOURCE_ID": "WEB",  # Источник - веб
+            "SOURCE_DESCRIPTION": f"Канал: {message_data.get('source', 'unknown')}",
+            "COMMENTS": message_data.get('content', ''),
+            "NAME": message_data.get('customer_name', ''),
+            "PHONE": [{"VALUE": message_data.get('customer_phone', ''), "VALUE_TYPE": "WORK"}] if message_data.get('customer_phone') else [],
+            "EMAIL": [{"VALUE": message_data.get('customer_email', ''), "VALUE_TYPE": "WORK"}] if message_data.get('customer_email') else []
+        }
+        
+        # Добавляем метаданные если есть
+        metadata = message_data.get('metadata', {})
+        if metadata.get('destination'):
+            lead_data["COMMENTS"] += f"\nНаправление: {metadata['destination']}"
+        if metadata.get('budget'):
+            lead_data["COMMENTS"] += f"\nБюджет: {metadata['budget']}"
+        if metadata.get('pax'):
+            lead_data["COMMENTS"] += f"\nКоличество человек: {metadata['pax']}"
+        
+        # Создаем лид в Bitrix24
+        lead_id = bitrix_client.create_lead(lead_data)
+        
+        if lead_id:
+            return jsonify({
+                "success": True,
+                "message": f"Лид создан в Bitrix24",
+                "lead_id": lead_id
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Ошибка создания лида в Bitrix24"
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Error creating lead from message {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка создания лида: {str(e)}"
+        }), 500
+
 # API Endpoints for the Web Interface
 @app.route('/api/bot/status', methods=['GET'])
 def get_bot_status():

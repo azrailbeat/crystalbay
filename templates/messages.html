@@ -1,566 +1,813 @@
 {% extends "layout.html" %}
-
-{% block title %}Crystal Bay Travel - Сообщения{% endblock %}
-
-{% block page_title %}Сообщения{% endblock %}
+{% block title %}Обращения клиентов{% endblock %}
 
 {% block head %}
 <style>
-    .messages-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
+    :root {
+        --primary-color: #007bff;
+        --secondary-color: #6c757d;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+        --light-color: #f8f9fa;
+        --dark-color: #343a40;
+        --text-color: #212529;
+        --border-color: #dee2e6;
+        --bg-color: #ffffff;
     }
-    
-    .messages-filters {
-        display: flex;
-        gap: 0.75rem;
-    }
-    
+
     .message-list {
-        background-color: var(--card-background);
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        overflow: hidden;
+        height: 600px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
     }
-    
+
     .message-item {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid var(--light-border);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
         cursor: pointer;
-        transition: background-color 0.2s ease;
+        transition: background-color 0.2s;
     }
-    
+
     .message-item:hover {
-        background-color: var(--light-accent);
+        background-color: var(--light-color);
     }
-    
+
     .message-item.unread {
-        background-color: rgba(0, 113, 227, 0.05);
+        background-color: rgba(0, 123, 255, 0.05);
+        border-left: 4px solid var(--primary-color);
     }
-    
-    .message-item.unread:hover {
-        background-color: rgba(0, 113, 227, 0.1);
-    }
-    
+
     .message-item.selected {
-        background-color: rgba(0, 113, 227, 0.1);
+        background-color: rgba(0, 123, 255, 0.1);
     }
-    
-    .message-sender {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-    }
-    
-    .message-sender-name {
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    
-    .message-time {
-        color: var(--secondary-color);
-        font-size: 0.85rem;
-    }
-    
-    .message-subject {
-        font-weight: 500;
-        margin-bottom: 0.3rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
+
     .message-preview {
-        color: var(--secondary-color);
         font-size: 0.9rem;
-        white-space: nowrap;
+        color: var(--secondary-color);
+        margin-top: 0.5rem;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
     }
-    
-    .message-item.unread .message-sender-name,
-    .message-item.unread .message-subject {
-        font-weight: 700;
-    }
-    
-    .message-detail {
-        background-color: var(--card-background);
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-    }
-    
-    .message-detail-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--light-border);
-    }
-    
-    .message-detail-subject {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: var(--text-color);
-    }
-    
+
     .message-meta {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: var(--secondary-color);
-        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
     }
-    
-    .message-from {
+
+    .message-source {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .source-telegram {
+        background-color: rgba(0, 136, 204, 0.1);
+        color: #0088cc;
+    }
+
+    .source-wazzup {
+        background-color: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .source-email {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .source-website {
+        background-color: rgba(168, 85, 247, 0.1);
+        color: #a855f7;
+    }
+
+    .chat-container {
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: white;
+    }
+
+    .chat-header {
+        padding: 1rem;
+        background: var(--light-color);
+        border-bottom: 1px solid var(--border-color);
+        border-radius: 8px 8px 0 0;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .chat-message {
+        max-width: 70%;
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        position: relative;
+    }
+
+    .chat-message.incoming {
+        align-self: flex-start;
+        background: var(--light-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .chat-message.outgoing {
+        align-self: flex-end;
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .chat-message.ai-processing {
+        align-self: flex-end;
+        background: var(--warning-color);
+        color: var(--dark-color);
+        border-left: 4px solid var(--info-color);
+    }
+
+    .message-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 0.25rem;
+    }
+
+    .chat-input {
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background: white;
+        border-radius: 0 0 8px 8px;
+    }
+
+    .ai-suggestions {
+        background: rgba(23, 162, 184, 0.1);
+        border: 1px solid var(--info-color);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .suggestion-chip {
+        display: inline-block;
+        background: var(--info-color);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        margin: 0.25rem 0.25rem 0 0;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .suggestion-chip:hover {
+        background: #138496;
+    }
+
+    .priority-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .priority-high {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .priority-medium {
+        background-color: var(--warning-color);
+        color: var(--dark-color);
+    }
+
+    .priority-low {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, var(--primary-color), #0056b3);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .ai-status {
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        margin-bottom: 1rem;
     }
-    
-    .message-avatar {
-        width: 32px;
-        height: 32px;
+
+    .status-indicator {
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        background-color: var(--light-accent);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--primary-color);
+        animation: pulse 2s infinite;
     }
-    
-    .message-sender-info .message-sender-name {
-        margin-bottom: 0.1rem;
+
+    .status-active {
+        background-color: var(--success-color);
     }
-    
-    .message-sender-info .message-sender-email {
-        font-size: 0.8rem;
+
+    .status-processing {
+        background-color: var(--warning-color);
     }
-    
-    .message-date {
+
+    .status-error {
+        background-color: var(--danger-color);
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+
+    .filter-tabs {
+        margin-bottom: 1rem;
+    }
+
+    .filter-tab {
+        background: none;
+        border: 1px solid var(--border-color);
+        color: var(--secondary-color);
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-tab.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
         color: var(--secondary-color);
     }
-    
-    .message-detail-content {
-        padding: 1.5rem;
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
     }
-    
-    .message-body {
-        line-height: 1.6;
-        margin-bottom: 1.5rem;
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
     }
-    
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
     .message-actions {
         display: flex;
         gap: 0.5rem;
-    }
-    
-    .message-reply {
-        background-color: var(--card-background);
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
         margin-top: 1rem;
-        padding: 1.5rem;
     }
-    
-    .message-reply-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    
-    .message-reply-title {
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    
-    .lead-tag {
-        display: inline-block;
+
+    .action-btn {
         padding: 0.25rem 0.5rem;
+        border: 1px solid var(--border-color);
+        background: white;
+        color: var(--secondary-color);
         border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        margin-right: 0.5rem;
-    }
-    
-    .lead-tag.new {
-        background-color: rgba(0, 113, 227, 0.1);
-        color: var(--primary-color);
-    }
-    
-    .lead-tag.contacted {
-        background-color: rgba(52, 199, 89, 0.1);
-        color: var(--success-color);
-    }
-    
-    .lead-tag.qualified {
-        background-color: rgba(255, 149, 0, 0.1);
-        color: var(--warning-color);
-    }
-    
-    .lead-tag.converted {
-        background-color: rgba(175, 82, 222, 0.1);
-        color: var(--purple-color);
-    }
-    
-    .message-folder {
-        background-color: var(--card-background);
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        margin-bottom: 1rem;
-    }
-    
-    .folder-item {
-        padding: 0.75rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--text-color);
+        font-size: 0.8rem;
         cursor: pointer;
-        border-bottom: 1px solid var(--light-border);
+        transition: all 0.2s;
     }
-    
-    .folder-item:last-child {
-        border-bottom: none;
+
+    .action-btn:hover {
+        background: var(--light-color);
     }
-    
-    .folder-item:hover {
-        background-color: var(--light-accent);
-    }
-    
-    .folder-item.active {
-        background-color: rgba(0, 113, 227, 0.1);
-        font-weight: 500;
-        color: var(--primary-color);
-    }
-    
-    .folder-icon {
-        color: var(--secondary-color);
-        width: 20px;
-        text-align: center;
-    }
-    
-    .folder-item.active .folder-icon {
-        color: var(--primary-color);
-    }
-    
-    .folder-name {
-        flex-grow: 1;
-    }
-    
-    .folder-count {
-        background-color: var(--light-accent);
-        border-radius: 20px;
-        padding: 0.15rem 0.5rem;
-        font-size: 0.75rem;
-        color: var(--secondary-color);
-    }
-    
-    .folder-item.active .folder-count {
-        background-color: rgba(0, 113, 227, 0.2);
-        color: var(--primary-color);
-    }
-    
-    .no-messages {
-        padding: 3rem;
-        text-align: center;
-        color: var(--secondary-color);
-    }
-    
-    .no-messages-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        color: var(--light-border);
-    }
-    
-    .no-message-selected {
-        padding: 3rem;
-        text-align: center;
-        color: var(--secondary-color);
-    }
-    
-    .no-message-selected-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        color: var(--light-border);
+
+    .action-btn.primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
     }
 </style>
 {% endblock %}
 
+{% block page_title %}Обращения клиентов{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-4">
-    <!-- Messages Header -->
-    <div class="messages-header">
-        <div class="messages-filters">
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Поиск сообщений...">
-                <button class="btn btn-outline-secondary" type="button">
-                    <i class="bi bi-search"></i>
-                </button>
-            </div>
-            
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-funnel"></i> Фильтр
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">Все сообщения</a></li>
-                    <li><a class="dropdown-item" href="#">Непрочитанные</a></li>
-                    <li><a class="dropdown-item" href="#">Прочитанные</a></li>
-                    <li><a class="dropdown-item" href="#">С вложениями</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#">Отмеченные флагом</a></li>
-                </ul>
-            </div>
-        </div>
-        
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal">
-            <i class="bi bi-envelope-plus me-1"></i> Написать
+<div class="container-fluid">
+    <!-- AI Status Header -->
+    <div class="ai-status">
+        <div class="status-indicator status-active" id="ai-status-indicator"></div>
+        <span id="ai-status-text">ИИ агенты активны - обрабатывают сообщения</span>
+        <button class="btn btn-sm btn-outline-primary ms-auto" id="refresh-messages">
+            <i class="bi bi-arrow-clockwise"></i> Обновить
         </button>
     </div>
-    
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-row">
+                    <span>Новые сообщения</span>
+                    <strong id="new-count">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, var(--success-color), #1e7e34);">
+                <div class="stats-row">
+                    <span>Обработано ИИ</span>
+                    <strong id="processed-count">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, var(--warning-color), #d39e00);">
+                <div class="stats-row">
+                    <span>Требует внимания</span>
+                    <strong id="attention-count">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, var(--info-color), #117a8b);">
+                <div class="stats-row">
+                    <span>Всего сегодня</span>
+                    <strong id="total-count">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
-        <!-- Folders Sidebar -->
-        <div class="col-md-3 col-lg-2">
-            <div class="message-folder">
-                <div class="folder-item active">
-                    <div class="folder-icon"><i class="bi bi-inbox"></i></div>
-                    <div class="folder-name">Входящие</div>
-                    <div class="folder-count">28</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-envelope-paper"></i></div>
-                    <div class="folder-name">Черновики</div>
-                    <div class="folder-count">3</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-send"></i></div>
-                    <div class="folder-name">Отправленные</div>
-                    <div class="folder-count">15</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-flag"></i></div>
-                    <div class="folder-name">Помеченные</div>
-                    <div class="folder-count">5</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-archive"></i></div>
-                    <div class="folder-name">Архив</div>
-                    <div class="folder-count">42</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-trash"></i></div>
-                    <div class="folder-name">Корзина</div>
-                    <div class="folder-count">8</div>
-                </div>
-            </div>
-            
-            <div class="message-folder">
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-tag"></i></div>
-                    <div class="folder-name">Запросы</div>
-                    <div class="folder-count">15</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-tag"></i></div>
-                    <div class="folder-name">Бронирования</div>
-                    <div class="folder-count">12</div>
-                </div>
-                <div class="folder-item">
-                    <div class="folder-icon"><i class="bi bi-tag"></i></div>
-                    <div class="folder-name">Жалобы</div>
-                    <div class="folder-count">1</div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Message List -->
-        <div class="col-md-4 col-lg-3">
-            <div class="message-list">
-                <div class="message-item unread" data-id="1">
-                    <div class="message-sender">
-                        <div class="message-sender-name">Иван Иванов</div>
-                        <div class="message-time">15:42</div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Обращения клиентов</h5>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">Все</button>
+                        <button class="filter-tab" data-filter="unread">Новые</button>
+                        <button class="filter-tab" data-filter="ai">ИИ</button>
                     </div>
-                    <div class="message-subject">Запрос о туре в Турцию</div>
-                    <div class="message-preview">Здравствуйте! Интересуют туры в Турцию на июнь 2025 года для семьи из 2 взрослых и 1 ребенка...</div>
                 </div>
-                
-                <div class="message-item" data-id="2">
-                    <div class="message-sender">
-                        <div class="message-sender-name">Елена Петрова</div>
-                        <div class="message-time">Вчера</div>
+                <div class="card-body p-0">
+                    <div class="message-list" id="message-list">
+                        <!-- Messages will be loaded here -->
+                        <div class="empty-state">
+                            <i class="bi bi-chat-dots"></i>
+                            <p>Загружаем сообщения...</p>
+                        </div>
                     </div>
-                    <div class="message-subject">Вопрос по визе</div>
-                    <div class="message-preview">Добрый день! Подскажите, пожалуйста, какие документы необходимы для получения визы в Таиланд...</div>
-                </div>
-                
-                <div class="message-item" data-id="3">
-                    <div class="message-sender">
-                        <div class="message-sender-name">Александр Сидоров</div>
-                        <div class="message-time">3 мая</div>
-                    </div>
-                    <div class="message-subject">Спасибо за отличный отдых!</div>
-                    <div class="message-preview">Здравствуйте! Хочу выразить огромную благодарность за организацию нашего отдыха в Египте...</div>
-                </div>
-                
-                <div class="message-item unread" data-id="4">
-                    <div class="message-sender">
-                        <div class="message-sender-name">Марина Козлова</div>
-                        <div class="message-time">2 мая</div>
-                    </div>
-                    <div class="message-subject">Запрос о горящих турах</div>
-                    <div class="message-preview">Добрый день! Интересуют горящие предложения на начало мая. Есть ли что-то интересное?...</div>
-                </div>
-                
-                <div class="message-item" data-id="5">
-                    <div class="message-sender">
-                        <div class="message-sender-name">Сергей Новиков</div>
-                        <div class="message-time">1 мая</div>
-                    </div>
-                    <div class="message-subject">Вопрос по оплате</div>
-                    <div class="message-preview">Здравствуйте! Хотел бы уточнить, какие способы оплаты вы принимаете? Можно ли оплатить частями?...</div>
                 </div>
             </div>
         </div>
-        
-        <!-- Message Detail -->
-        <div class="col-md-5 col-lg-7">
-            <div class="message-detail">
-                <div class="message-detail-header">
-                    <div class="message-detail-subject">Запрос о туре в Турцию</div>
-                    <div class="message-meta">
-                        <div class="message-from">
-                            <div class="message-avatar">ИИ</div>
-                            <div class="message-sender-info">
-                                <div class="message-sender-name">Иван Иванов</div>
-                                <div class="message-sender-email">ivan@example.com</div>
-                            </div>
-                        </div>
-                        <div class="message-date">4 мая 2025, 15:42</div>
-                    </div>
-                </div>
-                
-                <div class="message-detail-content">
-                    <div class="message-body">
-                        <p>Здравствуйте!</p>
-                        
-                        <p>Интересуют туры в Турцию на июнь 2025 года для семьи из 2 взрослых и 1 ребенка.</p>
-                        
-                        <p>Предпочтительно отель 5* с системой "всё включено".</p>
-                        
-                        <p>Мой телефон для связи: +7 999 123-45-67</p>
-                        
-                        <p>С уважением,<br>Иван</p>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between">
-                        <div class="lead-details">
-                            <span class="lead-tag new">Новый лид</span>
-                            <span class="lead-tag">Тур в Турцию</span>
-                        </div>
-                        
-                        <div class="message-actions">
-                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-archive"></i></button>
-                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-flag"></i></button>
-                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            <button class="btn btn-sm btn-primary"><i class="bi bi-reply me-1"></i> Ответить</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Reply Form -->
-            <div class="message-reply">
-                <div class="message-reply-header">
-                    <div class="message-reply-title">Ответ на сообщение</div>
-                </div>
-                
-                <form id="replyForm">
-                    <div class="mb-3">
-                        <label for="replySubject" class="form-label">Тема</label>
-                        <input type="text" class="form-control" id="replySubject" value="Re: Запрос о туре в Турцию">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="replyMessage" class="form-label">Сообщение</label>
-                        <textarea class="form-control" id="replyMessage" rows="6"></textarea>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-light"><i class="bi bi-paperclip"></i> Прикрепить</button>
+
+        <!-- Chat Interface -->
+        <div class="col-md-8">
+            <div class="chat-container" id="chat-container">
+                <div class="chat-header">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <button type="button" class="btn btn-light me-2"><i class="bi bi-save"></i> Сохранить черновик</button>
-                            <button type="button" class="btn btn-primary"><i class="bi bi-send me-1"></i> Отправить</button>
+                            <h6 class="mb-1" id="chat-title">Выберите обращение</h6>
+                            <small class="text-secondary" id="chat-subtitle">Для начала диалога выберите сообщение слева</small>
+                        </div>
+                        <div class="message-actions" id="chat-actions" style="display: none;">
+                            <button class="action-btn" id="mark-read">
+                                <i class="bi bi-check2"></i> Прочитано
+                            </button>
+                            <button class="action-btn" id="assign-agent">
+                                <i class="bi bi-person-plus"></i> Назначить
+                            </button>
+                            <button class="action-btn primary" id="create-lead">
+                                <i class="bi bi-plus-circle"></i> Создать лид
+                            </button>
                         </div>
                     </div>
-                </form>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <div class="empty-state">
+                        <i class="bi bi-chat-square-text"></i>
+                        <p>Выберите обращение для просмотра диалога</p>
+                    </div>
+                </div>
+
+                <div class="chat-input" id="chat-input-container" style="display: none;">
+                    <div class="ai-suggestions" id="ai-suggestions" style="display: none;">
+                        <small><strong>ИИ предлагает:</strong></small>
+                        <div id="suggestion-chips"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <textarea class="form-control" id="message-input" rows="3" 
+                                placeholder="Введите ответ клиенту..."></textarea>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" id="send-message" type="button">
+                                <i class="bi bi-send"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-robot"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" id="ai-generate">
+                                    <i class="bi bi-magic"></i> Сгенерировать ответ ИИ
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" id="ai-translate">
+                                    <i class="bi bi-translate"></i> Перевести
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" id="ai-improve">
+                                    <i class="bi bi-arrow-up"></i> Улучшить текст
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Compose Modal -->
-<div class="modal fade" id="composeModal" tabindex="-1" aria-labelledby="composeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="composeModalLabel">Новое сообщение</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            
-            <div class="modal-body">
-                <form id="composeForm">
-                    <div class="mb-3">
-                        <label for="composeTo" class="form-label">Получатель</label>
-                        <input type="email" class="form-control" id="composeTo" placeholder="email@example.com">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="composeSubject" class="form-label">Тема</label>
-                        <input type="text" class="form-control" id="composeSubject">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="composeMessage" class="form-label">Сообщение</label>
-                        <textarea class="form-control" id="composeMessage" rows="10"></textarea>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light"><i class="bi bi-paperclip"></i> Прикрепить</button>
-                <button type="button" class="btn btn-light"><i class="bi bi-save"></i> Сохранить черновик</button>
-                <button type="button" class="btn btn-primary"><i class="bi bi-send me-1"></i> Отправить</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle message list item click
-        const messageItems = document.querySelectorAll('.message-item');
-        
-        messageItems.forEach(item => {
-            item.addEventListener('click', function() {
-                // Remove selected class from all items
-                messageItems.forEach(i => i.classList.remove('selected'));
-                
-                // Add selected class to clicked item
-                this.classList.add('selected');
-                
-                // Remove unread class (mark as read)
-                this.classList.remove('unread');
-                
-                // In a real app, you would load the message content here
-                // For demo purposes, we're just showing the static content
+document.addEventListener('DOMContentLoaded', function() {
+    let currentMessageId = null;
+    let messages = [];
+    
+    // Initialize
+    loadMessages();
+    setupEventListeners();
+    startAutoRefresh();
+    
+    function setupEventListeners() {
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                filterMessages(this.dataset.filter);
             });
         });
-    });
+        
+        // Refresh button
+        document.getElementById('refresh-messages').addEventListener('click', loadMessages);
+        
+        // Send message
+        document.getElementById('send-message').addEventListener('click', sendMessage);
+        
+        // AI functions
+        document.getElementById('ai-generate').addEventListener('click', generateAIResponse);
+        document.getElementById('ai-translate').addEventListener('click', translateMessage);
+        document.getElementById('ai-improve').addEventListener('click', improveMessage);
+        
+        // Message actions
+        document.getElementById('mark-read').addEventListener('click', markAsRead);
+        document.getElementById('assign-agent').addEventListener('click', assignAgent);
+        document.getElementById('create-lead').addEventListener('click', createLead);
+        
+        // Enter key to send message
+        document.getElementById('message-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                sendMessage();
+            }
+        });
+    }
+    
+    function loadMessages() {
+        showLoading();
+        
+        fetch('/api/messages')
+        .then(response => response.json())
+        .then(data => {
+            messages = data.messages || [];
+            renderMessageList();
+            updateStats(data.stats || {});
+        })
+        .catch(error => {
+            console.error('Error loading messages:', error);
+            showError('Ошибка загрузки сообщений');
+        });
+    }
+    
+    function renderMessageList() {
+        const messageList = document.getElementById('message-list');
+        
+        if (messages.length === 0) {
+            messageList.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-chat-dots"></i>
+                    <p>Нет новых сообщений</p>
+                </div>
+            `;
+            return;
+        }
+        
+        messageList.innerHTML = messages.map(message => `
+            <div class="message-item ${message.status === 'unread' ? 'unread' : ''}" 
+                 onclick="selectMessage('${message.id}')">
+                <div class="message-meta">
+                    <div>
+                        <strong>${message.customer_name}</strong>
+                        <span class="message-source source-${message.source}">${getSourceLabel(message.source)}</span>
+                        ${message.priority ? `<span class="priority-badge priority-${message.priority}">${getPriorityLabel(message.priority)}</span>` : ''}
+                    </div>
+                    <small class="text-secondary">${formatTime(message.timestamp)}</small>
+                </div>
+                <div class="message-preview">${message.preview}</div>
+                ${message.ai_processed ? '<small class="text-info"><i class="bi bi-robot"></i> Обработано ИИ</small>' : ''}
+            </div>
+        `).join('');
+    }
+    
+    function selectMessage(messageId) {
+        currentMessageId = messageId;
+        const message = messages.find(m => m.id === messageId);
+        
+        if (!message) return;
+        
+        // Update UI
+        document.querySelectorAll('.message-item').forEach(item => item.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+        
+        // Load chat history
+        loadChatHistory(messageId);
+        
+        // Show chat interface
+        document.getElementById('chat-input-container').style.display = 'block';
+        document.getElementById('chat-actions').style.display = 'flex';
+        
+        // Update header
+        document.getElementById('chat-title').textContent = message.customer_name;
+        document.getElementById('chat-subtitle').textContent = `${getSourceLabel(message.source)} • ${message.customer_phone || message.customer_email || ''}`;
+    }
+    
+    function loadChatHistory(messageId) {
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.innerHTML = '<div class="text-center p-3"><div class="loading-spinner"></div></div>';
+        
+        fetch(`/api/messages/${messageId}/history`)
+        .then(response => response.json())
+        .then(data => {
+            renderChatHistory(data.history || []);
+            if (data.ai_suggestions) {
+                showAISuggestions(data.ai_suggestions);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading chat history:', error);
+            chatMessages.innerHTML = '<div class="text-danger text-center p-3">Ошибка загрузки истории</div>';
+        });
+    }
+    
+    function renderChatHistory(history) {
+        const chatMessages = document.getElementById('chat-messages');
+        
+        chatMessages.innerHTML = history.map(msg => `
+            <div class="chat-message ${msg.type} ${msg.ai_generated ? 'ai-processing' : ''}">
+                <div>${msg.content}</div>
+                <div class="message-time">
+                    ${formatTime(msg.timestamp)}
+                    ${msg.ai_generated ? '<i class="bi bi-robot" title="Сгенерировано ИИ"></i>' : ''}
+                </div>
+            </div>
+        `).join('');
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const content = messageInput.value.trim();
+        
+        if (!content || !currentMessageId) return;
+        
+        const sendBtn = document.getElementById('send-message');
+        sendBtn.innerHTML = '<div class="loading-spinner"></div>';
+        sendBtn.disabled = true;
+        
+        fetch(`/api/messages/${currentMessageId}/reply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: content,
+                ai_processed: false
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageInput.value = '';
+                loadChatHistory(currentMessageId);
+                showToast('Сообщение отправлено', 'success');
+            } else {
+                showToast(data.message || 'Ошибка отправки', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            showToast('Ошибка отправки сообщения', 'error');
+        })
+        .finally(() => {
+            sendBtn.innerHTML = '<i class="bi bi-send"></i>';
+            sendBtn.disabled = false;
+        });
+    }
+    
+    function generateAIResponse() {
+        if (!currentMessageId) return;
+        
+        const aiBtn = document.getElementById('ai-generate');
+        aiBtn.innerHTML = '<div class="loading-spinner"></div> Генерирую...';
+        
+        fetch(`/api/messages/${currentMessageId}/ai-response`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('message-input').value = data.response;
+                showToast('ИИ сгенерировал ответ', 'success');
+            } else {
+                showToast(data.message || 'Ошибка генерации', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error generating AI response:', error);
+            showToast('Ошибка генерации ответа ИИ', 'error');
+        })
+        .finally(() => {
+            aiBtn.innerHTML = '<i class="bi bi-magic"></i> Сгенерировать ответ ИИ';
+        });
+    }
+    
+    function showAISuggestions(suggestions) {
+        const suggestionsContainer = document.getElementById('ai-suggestions');
+        const chipsContainer = document.getElementById('suggestion-chips');
+        
+        if (suggestions && suggestions.length > 0) {
+            chipsContainer.innerHTML = suggestions.map(suggestion => 
+                `<span class="suggestion-chip" onclick="applySuggestion('${suggestion}')">${suggestion}</span>`
+            ).join('');
+            suggestionsContainer.style.display = 'block';
+        } else {
+            suggestionsContainer.style.display = 'none';
+        }
+    }
+    
+    function applySuggestion(suggestion) {
+        document.getElementById('message-input').value = suggestion;
+    }
+    
+    function updateStats(stats) {
+        document.getElementById('new-count').textContent = stats.new || 0;
+        document.getElementById('processed-count').textContent = stats.processed || 0;
+        document.getElementById('attention-count').textContent = stats.attention || 0;
+        document.getElementById('total-count').textContent = stats.total || 0;
+    }
+    
+    function filterMessages(filter) {
+        const filteredMessages = messages.filter(message => {
+            switch(filter) {
+                case 'unread': return message.status === 'unread';
+                case 'ai': return message.ai_processed;
+                default: return true;
+            }
+        });
+        
+        const originalMessages = messages;
+        messages = filteredMessages;
+        renderMessageList();
+        messages = originalMessages;
+    }
+    
+    function markAsRead() {
+        if (!currentMessageId) return;
+        
+        fetch(`/api/messages/${currentMessageId}/mark-read`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadMessages();
+                showToast('Отмечено как прочитанное', 'success');
+            }
+        });
+    }
+    
+    function createLead() {
+        if (!currentMessageId) return;
+        
+        fetch(`/api/messages/${currentMessageId}/create-lead`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Лид создан в Bitrix24: ${data.lead_id}`, 'success');
+            } else {
+                showToast(data.message || 'Ошибка создания лида', 'error');
+            }
+        });
+    }
+    
+    function startAutoRefresh() {
+        setInterval(() => {
+            loadMessages();
+        }, 30000); // Refresh every 30 seconds
+    }
+    
+    // Utility functions
+    function getSourceLabel(source) {
+        const labels = {
+            'telegram': 'Telegram',
+            'wazzup': 'Wazzup24',
+            'email': 'Email',
+            'website': 'Веб-сайт'
+        };
+        return labels[source] || source;
+    }
+    
+    function getPriorityLabel(priority) {
+        const labels = {
+            'high': 'Высокий',
+            'medium': 'Средний', 
+            'low': 'Низкий'
+        };
+        return labels[priority] || priority;
+    }
+    
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Сейчас';
+        if (diffMins < 60) return `${diffMins} мин назад`;
+        if (diffHours < 24) return `${diffHours} ч назад`;
+        if (diffDays < 7) return `${diffDays} дн назад`;
+        
+        return date.toLocaleDateString('ru-RU');
+    }
+    
+    function showLoading() {
+        document.getElementById('message-list').innerHTML = `
+            <div class="empty-state">
+                <div class="loading-spinner"></div>
+                <p>Загружаем сообщения...</p>
+            </div>
+        `;
+    }
+    
+    function showError(message) {
+        document.getElementById('message-list').innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-exclamation-triangle text-danger"></i>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+    
+    function showToast(message, type = 'info') {
+        // Toast implementation (you can use Bootstrap toast or custom)
+        console.log(`${type.toUpperCase()}: ${message}`);
+    }
+});
 </script>
 {% endblock %}
