@@ -72,6 +72,32 @@ class SettingsManager:
                     "max_tokens": 1500,
                     "language": "ru"
                 },
+                "wazzup24": {
+                    "enabled": True,
+                    "api_key": os.getenv("WAZZUP_API_KEY", ""),
+                    "api_secret": os.getenv("WAZZUP_API_SECRET", ""),
+                    "base_url": "https://api.wazzup24.com/v3",
+                    "client_api_key": os.getenv("WAZZUP_CLIENT_KEY", ""),
+                    "webhook_url": "",
+                    "auto_create_contacts": True,
+                    "auto_create_deals": True
+                },
+                "bitrix24": {
+                    "enabled": False,
+                    "webhook_url": os.getenv("BITRIX_WEBHOOK_URL", ""),
+                    "access_token": os.getenv("BITRIX_ACCESS_TOKEN", ""),
+                    "domain": os.getenv("BITRIX_DOMAIN", ""),
+                    "pipeline_id": "",
+                    "auto_sync": True,
+                    "lead_source": "Crystal Bay CRM"
+                },
+                "sendgrid": {
+                    "enabled": False,
+                    "api_key": os.getenv("SENDGRID_API_KEY", ""),
+                    "from_email": os.getenv("SENDGRID_FROM_EMAIL", ""),
+                    "template_id": "",
+                    "auto_notify": True
+                },
                 "supabase": {
                     "enabled": True,
                     "url": os.getenv("SUPABASE_URL", ""),
@@ -204,15 +230,228 @@ class SettingsManager:
             return False
     
     def _save_settings(self):
-        """Сохраняет настройки в файл"""
+        """Сохраняет настройки в файл с обработкой ошибок"""
         try:
-            with open(self.settings_file, 'w', encoding='utf-8') as f:
-                json.dump(self._settings, f, ensure_ascii=False, indent=2)
-            logger.info("Настройки сохранены")
+            # Создаем резервную копию перед сохранением
+            self._create_backup()
+            
+            # Добавляем метку времени последнего изменения
+            self._settings['_metadata'] = {
+                'last_updated': datetime.now().isoformat(),
+                'version': self._settings.get('system', {}).get('version', '1.0.0')
+            }
+            
+            # Атомарное сохранение через временный файл
+            temp_file = self.settings_file + '.tmp'
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(self._settings, f, indent=2, ensure_ascii=False)
+            
+            # Заменяем основной файл после успешной записи
+            os.replace(temp_file, self.settings_file)
+            
+            logger.info("Настройки сохранены успешно")
             return True
         except Exception as e:
             logger.error(f"Ошибка сохранения настроек: {e}")
+            # Удаляем временный файл если он есть
+            if os.path.exists(self.settings_file + '.tmp'):
+                os.remove(self.settings_file + '.tmp')
             return False
+    
+    def _create_backup(self):
+        """Создает резервную копию настроек"""
+        try:
+            if not os.path.exists(self.backup_dir):
+                os.makedirs(self.backup_dir)
+            
+            if os.path.exists(self.settings_file):
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = os.path.join(self.backup_dir, f"settings_{timestamp}.json")
+                
+                import shutil
+                shutil.copy2(self.settings_file, backup_path)
+                logger.info(f"Создана резервная копия: {backup_path}")
+                
+                # Удаляем старые резервные копии (оставляем последние 10)
+                self._cleanup_old_backups()
+                
+        except Exception as e:
+            logger.error(f"Ошибка создания резервной копии: {e}")
+    
+    def _cleanup_old_backups(self):
+        """Удаляет старые резервные копии, оставляя только последние 10"""
+        try:
+            if not os.path.exists(self.backup_dir):
+                return
+                
+            backup_files = []
+            for filename in os.listdir(self.backup_dir):
+                if filename.startswith("settings_") and filename.endswith(".json"):
+                    filepath = os.path.join(self.backup_dir, filename)
+                    backup_files.append((filepath, os.path.getctime(filepath)))
+            
+            # Сортируем по времени создания
+            backup_files.sort(key=lambda x: x[1], reverse=True)
+            
+            # Удаляем файлы старше 10-го
+            for filepath, _ in backup_files[10:]:
+                os.remove(filepath)
+                logger.info(f"Удалена старая резервная копия: {filepath}")
+                
+        except Exception as e:
+            logger.error(f"Ошибка очистки резервных копий: {e}")
+    
+    def update_setting(self, path: str, value: Any) -> bool:
+        """
+        Обновляет конкретную настройку по пути
+        path: строка вида 'integrations.samo_api.enabled'
+        """
+        try:
+            keys = path.split('.')
+            current = self._settings
+            
+            # Навигируем до родительского объекта
+            for key in keys[:-1]:
+                if key not in current:
+                    current[key] = {}
+                current = current[key]
+            
+            # Устанавливаем значение
+            old_value = current.get(keys[-1])
+            current[keys[-1]] = value
+            
+            # Сохраняем изменения
+            if self._save_settings():
+                logger.info(f"Настройка {path} изменена: {old_value} -> {value}")
+                return True
+            else:
+                # Откатываем изменение при ошибке сохранения
+                current[keys[-1]] = old_value
+                return False
+                
+        except Exception as e:
+            logger.error(f"Ошибка обновления настройки {path}: {e}")
+            return False
+    
+    def update_multiple_settings(self, updates: Dict[str, Any]) -> Dict[str, bool]:
+        """
+        Обновляет несколько настроек одновременно
+        Возвращает результат для каждой настройки
+        """
+        results = {}
+        rollback_needed = False
+        original_settings = json.loads(json.dumps(self._settings))  # Deep copy
+        
+        try:
+            # Применяем все изменения
+            for path, value in updates.items():
+                keys = path.split('.')
+                current = self._settings
+                
+                # Навигируем до родительского объекта
+                for key in keys[:-1]:
+                    if key not in current:
+                        current[key] = {}
+                    current = current[key]
+                
+                # Устанавливаем значение
+                current[keys[-1]] = value
+                results[path] = True
+            
+            # Сохраняем все изменения одновременно
+            if self._save_settings():
+                logger.info(f"Обновлено настроек: {len(updates)}")
+                return results
+            else:
+                rollback_needed = True
+                
+        except Exception as e:
+            logger.error(f"Ошибка массового обновления настроек: {e}")
+            rollback_needed = True
+        
+        if rollback_needed:
+            # Откатываем все изменения
+            self._settings = original_settings
+            return {path: False for path in updates.keys()}
+        
+        return results
+    
+    def validate_integration_config(self, integration: str) -> Dict[str, Any]:
+        """
+        Проверяет конфигурацию интеграции
+        Возвращает статус и список ошибок
+        """
+        try:
+            config = self.get_setting(f'integrations.{integration}')
+            if not config:
+                return {
+                    'status': 'error',
+                    'message': f'Конфигурация {integration} не найдена',
+                    'errors': ['Configuration not found']
+                }
+            
+            errors = []
+            warnings = []
+            
+            # Проверяем обязательные поля для каждой интеграции
+            if integration == 'samo_api':
+                if not config.get('oauth_token'):
+                    errors.append('OAuth токен не указан')
+                if not config.get('endpoint'):
+                    errors.append('Endpoint API не указан')
+            
+            elif integration == 'telegram_bot':
+                if not config.get('token'):
+                    errors.append('Токен бота не указан')
+            
+            elif integration == 'openai':
+                if not config.get('api_key'):
+                    errors.append('API ключ OpenAI не указан')
+                if config.get('temperature', 0) > 1.0:
+                    warnings.append('Температура больше 1.0 может давать непредсказуемые результаты')
+            
+            elif integration == 'wazzup24':
+                if not config.get('api_key'):
+                    errors.append('API ключ Wazzup24 не указан')
+                if not config.get('api_secret'):
+                    errors.append('API секрет Wazzup24 не указан')
+            
+            elif integration == 'bitrix24':
+                if not config.get('webhook_url') and not config.get('access_token'):
+                    errors.append('Не указан webhook URL или токен доступа')
+            
+            elif integration == 'sendgrid':
+                if not config.get('api_key'):
+                    errors.append('API ключ SendGrid не указан')
+                if not config.get('from_email'):
+                    errors.append('Email отправителя не указан')
+            
+            # Определяем общий статус
+            if errors:
+                status = 'error'
+                message = f'Найдено ошибок: {len(errors)}'
+            elif warnings:
+                status = 'warning'
+                message = f'Найдено предупреждений: {len(warnings)}'
+            else:
+                status = 'success'
+                message = 'Конфигурация корректна'
+            
+            return {
+                'status': status,
+                'message': message,
+                'errors': errors,
+                'warnings': warnings,
+                'enabled': config.get('enabled', False)
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка валидации {integration}: {e}")
+            return {
+                'status': 'error',
+                'message': f'Ошибка валидации: {str(e)}',
+                'errors': [str(e)]
+            }
     
     def export_settings(self, export_path: Optional[str] = None) -> str:
         """Экспортирует настройки в JSON файл"""
@@ -369,6 +608,296 @@ class SettingsManager:
         self._settings = self._get_default_settings()
         self._save_settings()
         logger.info("Настройки сброшены к значениям по умолчанию")
+
+    def _test_samo_api(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует подключение к SAMO API"""
+        try:
+            import requests
+            
+            endpoint = config.get('endpoint')
+            token = config.get('oauth_token')
+            
+            if not endpoint or not token:
+                return {
+                    'status': 'error',
+                    'message': 'Не указан endpoint или токен'
+                }
+            
+            # Простой тест подключения
+            test_data = {
+                'samo_action': 'api',
+                'version': '1.0',
+                'type': 'json',
+                'oauth_token': token
+            }
+            
+            response = requests.post(endpoint, data=test_data, timeout=10)
+            
+            if response.status_code == 200:
+                return {
+                    'status': 'success',
+                    'message': 'Подключение к SAMO API работает'
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
+    
+    def _test_telegram_bot(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует Telegram Bot API"""
+        try:
+            import requests
+            
+            token = config.get('token')
+            if not token:
+                return {
+                    'status': 'error',
+                    'message': 'Токен не указан'
+                }
+            
+            url = f"https://api.telegram.org/bot{token}/getMe"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ok'):
+                    bot_info = data.get('result', {})
+                    return {
+                        'status': 'success',
+                        'message': f'Бот {bot_info.get("first_name", "Unknown")} активен'
+                    }
+                else:
+                    return {
+                        'status': 'error',
+                        'message': f'Ошибка API: {data.get("description", "Unknown error")}'
+                    }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
+    
+    def _test_openai(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует OpenAI API"""
+        try:
+            from openai import OpenAI
+            
+            api_key = config.get('api_key')
+            if not api_key:
+                return {
+                    'status': 'error',
+                    'message': 'API ключ не указан'
+                }
+            
+            client = OpenAI(api_key=api_key)
+            
+            # Простой тест с минимальным запросом
+            response = client.chat.completions.create(
+                model=config.get('model', 'gpt-4o'),
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=5
+            )
+            
+            if response.choices:
+                return {
+                    'status': 'success',
+                    'message': 'OpenAI API работает корректно'
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': 'Неожиданный ответ от API'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка OpenAI API: {str(e)}'
+            }
+    
+    def _test_wazzup24(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует Wazzup24 API"""
+        try:
+            import requests
+            import base64
+            
+            api_key = config.get('api_key')
+            api_secret = config.get('api_secret')
+            base_url = config.get('base_url', 'https://api.wazzup24.com/v3')
+            
+            if not api_key or not api_secret:
+                return {
+                    'status': 'error',
+                    'message': 'API ключ или секрет не указаны'
+                }
+            
+            # Создаем Basic Auth header
+            credentials = f"{api_key}:{api_secret}"
+            encoded_credentials = base64.b64encode(credentials.encode()).decode()
+            
+            headers = {
+                'Authorization': f'Basic {encoded_credentials}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Тестовый запрос на получение профиля
+            url = f"{base_url}/profile"
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                return {
+                    'status': 'success',
+                    'message': 'Wazzup24 API работает корректно'
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
+    
+    def _test_bitrix24(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует Bitrix24 API"""
+        try:
+            import requests
+            
+            webhook_url = config.get('webhook_url')
+            access_token = config.get('access_token')
+            domain = config.get('domain')
+            
+            if not webhook_url and not (access_token and domain):
+                return {
+                    'status': 'error',
+                    'message': 'Не указан webhook URL или токен доступа'
+                }
+            
+            # Формируем URL для тестового запроса
+            if webhook_url:
+                url = f"{webhook_url}/profile"
+            else:
+                url = f"https://{domain}/rest/{access_token}/profile"
+            
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'result' in data:
+                    return {
+                        'status': 'success',
+                        'message': 'Bitrix24 API работает корректно'
+                    }
+                else:
+                    return {
+                        'status': 'warning',
+                        'message': 'API отвечает, но данные могут быть некорректны'
+                    }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
+    
+    def _test_sendgrid(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует SendGrid API"""
+        try:
+            import requests
+            
+            api_key = config.get('api_key')
+            if not api_key:
+                return {
+                    'status': 'error',
+                    'message': 'API ключ не указан'
+                }
+            
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Тестовый запрос на получение данных аккаунта
+            url = "https://api.sendgrid.com/v3/user/account"
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                return {
+                    'status': 'success',
+                    'message': 'SendGrid API работает корректно'
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
+    
+    def _test_supabase(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Тестирует Supabase подключение"""
+        try:
+            import requests
+            
+            url = config.get('url')
+            key = config.get('key')
+            
+            if not url or not key:
+                return {
+                    'status': 'error',
+                    'message': 'URL или ключ не указаны'
+                }
+            
+            headers = {
+                'apikey': key,
+                'Content-Type': 'application/json'
+            }
+            
+            # Тестовый запрос на проверку подключения
+            test_url = f"{url}/rest/v1/"
+            response = requests.get(test_url, headers=headers, timeout=10)
+            
+            if response.status_code in [200, 404]:  # 404 тоже OK, значит подключение работает
+                return {
+                    'status': 'success',
+                    'message': 'Supabase подключение работает'
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': f'Ошибка HTTP: {response.status_code}'
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Ошибка подключения: {str(e)}'
+            }
 
 # Глобальный экземпляр менеджера настроек
 settings_manager = SettingsManager()

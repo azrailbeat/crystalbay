@@ -1,0 +1,661 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Tours - Объединенные Настройки{% endblock %}
+
+{% block head %}
+<style>
+    .settings-section {
+        margin-bottom: 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .settings-header {
+        background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+        color: white;
+        padding: 1.5rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .settings-body {
+        background: white;
+        padding: 2rem;
+    }
+    
+    .integration-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .integration-card {
+        border: 2px solid #f0f0f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .integration-card.enabled {
+        border-color: #34C759;
+        background: rgba(52, 199, 89, 0.05);
+    }
+    
+    .integration-card.error {
+        border-color: #FF3B30;
+        background: rgba(255, 59, 48, 0.05);
+    }
+    
+    .integration-card.warning {
+        border-color: #FF9500;
+        background: rgba(255, 149, 0, 0.05);
+    }
+    
+    .integration-status {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ccc;
+    }
+    
+    .integration-status.active {
+        background: #34C759;
+        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3);
+    }
+    
+    .integration-status.error {
+        background: #FF3B30;
+        box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.3);
+    }
+    
+    .integration-status.warning {
+        background: #FF9500;
+        box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.3);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 2px solid #f0f0f0;
+        padding: 0.75rem;
+        transition: border-color 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #007AFF;
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+    
+    .btn-test {
+        background: #007AFF;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        margin-left: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-test:hover {
+        background: #0056CC;
+        transform: translateY(-1px);
+    }
+    
+    .save-status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        z-index: 1050;
+        display: none;
+    }
+    
+    .save-status.success {
+        background: #34C759;
+        color: white;
+    }
+    
+    .save-status.error {
+        background: #FF3B30;
+        color: white;
+    }
+    
+    .validation-feedback {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .validation-feedback.success {
+        color: #34C759;
+    }
+    
+    .validation-feedback.error {
+        color: #FF3B30;
+    }
+    
+    .validation-feedback.warning {
+        color: #FF9500;
+    }
+    
+    .tab-content {
+        padding-top: 2rem;
+    }
+    
+    .nav-pills .nav-link {
+        border-radius: 25px;
+        margin-right: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-pills .nav-link.active {
+        background: #007AFF;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2">Настройки и Интеграции</h1>
+                    <p class="text-muted">Единая панель управления всеми настройками системы Crystal Bay Travel</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-secondary" onclick="exportSettings()">
+                        <i class="bi bi-download"></i> Экспорт настроек
+                    </button>
+                    <button class="btn btn-success ms-2" onclick="saveAllSettings()">
+                        <i class="bi bi-save"></i> Сохранить все
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Статус сохранения -->
+            <div id="saveStatus" class="save-status"></div>
+            
+            <!-- Навигация по разделам -->
+            <ul class="nav nav-pills mb-4" id="settingsTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="pill" href="#integrations">
+                        <i class="bi bi-link-45deg"></i> Интеграции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="pill" href="#system">
+                        <i class="bi bi-gear"></i> Система
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="pill" href="#business">
+                        <i class="bi bi-building"></i> Бизнес
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="pill" href="#notifications">
+                        <i class="bi bi-bell"></i> Уведомления
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <!-- Интеграции -->
+                <div class="tab-pane fade show active" id="integrations">
+                    <div class="integration-grid" id="integrationsGrid">
+                        <!-- Карточки интеграций будут загружены динамически -->
+                    </div>
+                </div>
+                
+                <!-- Системные настройки -->
+                <div class="tab-pane fade" id="system">
+                    <div class="settings-section">
+                        <div class="settings-header">
+                            <h3><i class="bi bi-gear me-2"></i>Системные настройки</h3>
+                        </div>
+                        <div class="settings-body" id="systemSettings">
+                            <!-- Системные настройки будут загружены динамически -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Бизнес настройки -->
+                <div class="tab-pane fade" id="business">
+                    <div class="settings-section">
+                        <div class="settings-header">
+                            <h3><i class="bi bi-building me-2"></i>Настройки бизнеса</h3>
+                        </div>
+                        <div class="settings-body" id="businessSettings">
+                            <!-- Бизнес настройки будут загружены динамически -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Уведомления -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="settings-section">
+                        <div class="settings-header">
+                            <h3><i class="bi bi-bell me-2"></i>Настройки уведомлений</h3>
+                        </div>
+                        <div class="settings-body" id="notificationSettings">
+                            <!-- Настройки уведомлений будут загружены динамически -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let settingsData = {};
+let pendingChanges = {};
+
+// Загрузка настроек при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllSettings();
+    initializeAutoSave();
+});
+
+async function loadAllSettings() {
+    try {
+        const response = await fetch('/api/settings/all');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            settingsData = data.settings;
+            renderIntegrations();
+            renderSystemSettings();
+            renderBusinessSettings();
+            renderNotificationSettings();
+        } else {
+            showError('Ошибка загрузки настроек: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showError('Ошибка загрузки настроек');
+    }
+}
+
+function renderIntegrations() {
+    const grid = document.getElementById('integrationsGrid');
+    const integrations = settingsData.integrations || {};
+    
+    const integrationConfigs = {
+        samo_api: {
+            title: 'SAMO API (Crystal Bay)',
+            icon: 'bi-airplane',
+            description: 'Интеграция с системой бронирования туров',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'endpoint', type: 'url', label: 'API Endpoint' },
+                { key: 'oauth_token', type: 'password', label: 'OAuth Token' },
+                { key: 'timeout', type: 'number', label: 'Таймаут (сек)' },
+                { key: 'max_retries', type: 'number', label: 'Повторных попыток' }
+            ]
+        },
+        telegram_bot: {
+            title: 'Telegram Bot',
+            icon: 'bi-telegram',
+            description: 'Telegram бот для клиентов',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'token', type: 'password', label: 'Bot Token' },
+                { key: 'welcome_message', type: 'textarea', label: 'Приветственное сообщение' },
+                { key: 'auto_respond', type: 'checkbox', label: 'Автоответы' },
+                { key: 'response_timeout', type: 'number', label: 'Таймаут ответа (сек)' }
+            ]
+        },
+        openai: {
+            title: 'OpenAI',
+            icon: 'bi-robot',
+            description: 'AI для обработки сообщений',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'api_key', type: 'password', label: 'API Key' },
+                { key: 'model', type: 'select', label: 'Модель', options: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
+                { key: 'temperature', type: 'number', label: 'Temperature', min: 0, max: 2, step: 0.1 },
+                { key: 'max_tokens', type: 'number', label: 'Максимум токенов' }
+            ]
+        },
+        wazzup24: {
+            title: 'Wazzup24',
+            icon: 'bi-chat-dots',
+            description: 'Интеграция с Wazzup24 CRM',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'api_key', type: 'password', label: 'API Key' },
+                { key: 'api_secret', type: 'password', label: 'API Secret' },
+                { key: 'base_url', type: 'url', label: 'Base URL' },
+                { key: 'auto_create_contacts', type: 'checkbox', label: 'Автосоздание контактов' },
+                { key: 'auto_create_deals', type: 'checkbox', label: 'Автосоздание сделок' }
+            ]
+        },
+        bitrix24: {
+            title: 'Bitrix24',
+            icon: 'bi-kanban',
+            description: 'CRM интеграция с Bitrix24',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'webhook_url', type: 'url', label: 'Webhook URL' },
+                { key: 'access_token', type: 'password', label: 'Access Token' },
+                { key: 'domain', type: 'text', label: 'Домен Bitrix24' },
+                { key: 'pipeline_id', type: 'text', label: 'ID воронки' },
+                { key: 'auto_sync', type: 'checkbox', label: 'Автосинхронизация' }
+            ]
+        },
+        sendgrid: {
+            title: 'SendGrid',
+            icon: 'bi-envelope',
+            description: 'Email уведомления через SendGrid',
+            fields: [
+                { key: 'enabled', type: 'checkbox', label: 'Включено' },
+                { key: 'api_key', type: 'password', label: 'API Key' },
+                { key: 'from_email', type: 'email', label: 'Email отправителя' },
+                { key: 'template_id', type: 'text', label: 'ID шаблона' },
+                { key: 'auto_notify', type: 'checkbox', label: 'Автоуведомления' }
+            ]
+        }
+    };
+    
+    grid.innerHTML = '';
+    
+    Object.keys(integrationConfigs).forEach(key => {
+        const config = integrationConfigs[key];
+        const integration = integrations[key] || {};
+        
+        const card = createIntegrationCard(key, config, integration);
+        grid.appendChild(card);
+    });
+}
+
+function createIntegrationCard(key, config, integration) {
+    const enabled = integration.enabled || false;
+    const status = getIntegrationStatus(key, integration);
+    
+    const card = document.createElement('div');
+    card.className = `integration-card ${enabled ? 'enabled' : ''} ${status.type}`;
+    
+    card.innerHTML = `
+        <div class="integration-status ${status.type}"></div>
+        <div class="d-flex align-items-center mb-3">
+            <i class="${config.icon} me-3" style="font-size: 2rem; color: #007AFF;"></i>
+            <div>
+                <h5 class="mb-0">${config.title}</h5>
+                <small class="text-muted">${config.description}</small>
+            </div>
+        </div>
+        
+        <div class="integration-fields">
+            ${config.fields.map(field => createField(key, field, integration[field.key])).join('')}
+        </div>
+        
+        <div class="mt-3 d-flex justify-content-between align-items-center">
+            <div class="validation-feedback ${status.type}" id="validation-${key}">
+                ${status.message}
+            </div>
+            <button class="btn btn-test btn-sm" onclick="testIntegration('${key}')">
+                <i class="bi bi-check-circle"></i> Тест
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+function createField(integrationKey, field, value) {
+    const fieldId = `${integrationKey}_${field.key}`;
+    
+    switch (field.type) {
+        case 'checkbox':
+            return `
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="${fieldId}" 
+                           ${value ? 'checked' : ''} onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.checked)">
+                    <label class="form-check-label" for="${fieldId}">${field.label}</label>
+                </div>
+            `;
+        
+        case 'select':
+            const options = field.options.map(opt => 
+                `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`
+            ).join('');
+            return `
+                <div class="form-group">
+                    <label class="form-label" for="${fieldId}">${field.label}</label>
+                    <select class="form-control" id="${fieldId}" onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.value)">
+                        ${options}
+                    </select>
+                </div>
+            `;
+        
+        case 'textarea':
+            return `
+                <div class="form-group">
+                    <label class="form-label" for="${fieldId}">${field.label}</label>
+                    <textarea class="form-control" id="${fieldId}" rows="3" 
+                              onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.value)">${value || ''}</textarea>
+                </div>
+            `;
+        
+        case 'password':
+            const maskedValue = value ? '•'.repeat(Math.min(value.length, 20)) : '';
+            return `
+                <div class="form-group">
+                    <label class="form-label" for="${fieldId}">${field.label}</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="${fieldId}" value="${maskedValue}" 
+                               onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.value)">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('${fieldId}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        
+        default:
+            return `
+                <div class="form-group">
+                    <label class="form-label" for="${fieldId}">${field.label}</label>
+                    <input type="${field.type}" class="form-control" id="${fieldId}" value="${value || ''}"
+                           ${field.min ? `min="${field.min}"` : ''}
+                           ${field.max ? `max="${field.max}"` : ''}
+                           ${field.step ? `step="${field.step}"` : ''}
+                           onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.value)">
+                </div>
+            `;
+    }
+}
+
+function getIntegrationStatus(key, integration) {
+    if (!integration.enabled) {
+        return { type: 'inactive', message: 'Отключено' };
+    }
+    
+    // Простая проверка обязательных полей
+    const requiredFields = {
+        samo_api: ['oauth_token', 'endpoint'],
+        telegram_bot: ['token'],
+        openai: ['api_key'],
+        wazzup24: ['api_key', 'api_secret'],
+        bitrix24: ['webhook_url'],
+        sendgrid: ['api_key', 'from_email']
+    };
+    
+    const required = requiredFields[key] || [];
+    const missing = required.filter(field => !integration[field]);
+    
+    if (missing.length > 0) {
+        return { type: 'error', message: `Не указано: ${missing.join(', ')}` };
+    }
+    
+    return { type: 'active', message: 'Настроено' };
+}
+
+function updateSetting(path, value) {
+    pendingChanges[path] = value;
+    
+    // Автосохранение через 2 секунды после последнего изменения
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(() => {
+        saveChanges();
+    }, 2000);
+    
+    showSaveStatus('Изменения будут сохранены...', 'warning');
+}
+
+async function saveChanges() {
+    if (Object.keys(pendingChanges).length === 0) return;
+    
+    try {
+        const response = await fetch('/api/settings/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ updates: pendingChanges })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showSaveStatus('Настройки сохранены', 'success');
+            pendingChanges = {};
+            
+            // Обновляем статусы интеграций
+            setTimeout(() => {
+                loadAllSettings();
+            }, 1000);
+        } else {
+            showSaveStatus('Ошибка сохранения: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showSaveStatus('Ошибка сохранения настроек', 'error');
+    }
+}
+
+async function testIntegration(integrationKey) {
+    try {
+        const response = await fetch(`/api/settings/test/${integrationKey}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        const feedbackElement = document.getElementById(`validation-${integrationKey}`);
+        
+        if (feedbackElement) {
+            feedbackElement.className = `validation-feedback ${data.status}`;
+            feedbackElement.textContent = data.message;
+        }
+        
+        if (data.status === 'success') {
+            showSaveStatus(`${integrationKey} - тест пройден`, 'success');
+        } else {
+            showSaveStatus(`${integrationKey} - ошибка теста`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error testing integration:', error);
+        showSaveStatus('Ошибка тестирования', 'error');
+    }
+}
+
+function showSaveStatus(message, type) {
+    const statusElement = document.getElementById('saveStatus');
+    statusElement.className = `save-status ${type}`;
+    statusElement.textContent = message;
+    statusElement.style.display = 'block';
+    
+    setTimeout(() => {
+        statusElement.style.display = 'none';
+    }, 3000);
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function initializeAutoSave() {
+    // Автосохранение каждые 30 секунд если есть изменения
+    setInterval(() => {
+        if (Object.keys(pendingChanges).length > 0) {
+            saveChanges();
+        }
+    }, 30000);
+}
+
+async function saveAllSettings() {
+    await saveChanges();
+}
+
+async function exportSettings() {
+    try {
+        const response = await fetch('/api/settings/export');
+        const blob = await response.blob();
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `crystal_bay_settings_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showSaveStatus('Настройки экспортированы', 'success');
+    } catch (error) {
+        console.error('Error exporting settings:', error);
+        showSaveStatus('Ошибка экспорта', 'error');
+    }
+}
+
+function showError(message) {
+    showSaveStatus(message, 'error');
+}
+
+// Заглушки для других разделов (будут дополнены)
+function renderSystemSettings() {
+    document.getElementById('systemSettings').innerHTML = '<p>Системные настройки загружаются...</p>';
+}
+
+function renderBusinessSettings() {
+    document.getElementById('businessSettings').innerHTML = '<p>Бизнес настройки загружаются...</p>';
+}
+
+function renderNotificationSettings() {
+    document.getElementById('notificationSettings').innerHTML = '<p>Настройки уведомлений загружаются...</p>';
+}
+</script>
+{% endblock %}

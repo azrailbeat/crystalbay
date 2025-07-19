@@ -177,19 +177,17 @@ def wazzup_integration():
 
 @app.route('/settings')
 def settings():
-    """Render the unified settings page"""
-    from settings_manager import settings_manager
-    
-    # Получаем все настройки и статус интеграций
-    all_settings = settings_manager.get_all_settings()
-    integration_status = settings_manager.get_integration_status()
-    validation_errors = settings_manager.validate_settings()
-    
-    return render_template('settings.html', 
-                         active_page='settings',
-                         settings=all_settings,
-                         integration_status=integration_status,
-                         validation_errors=validation_errors)
+    """Перенаправление на новый единый интерфейс настроек"""
+    return redirect(url_for('unified_settings'))
+
+@app.route('/unified-settings')
+def unified_settings():
+    """Единый интерфейс управления настройками и интеграциями"""
+    try:
+        return render_template('unified_settings.html', active_page='settings')
+    except Exception as e:
+        logger.error(f"Error loading unified settings page: {e}")
+        return render_template('error.html', error=str(e)), 500
 
 @app.route('/bot_logs')
 def bot_logs():
@@ -210,9 +208,27 @@ def bot_logs():
     return render_template('logs.html', logs=logs)
 
 # Settings API endpoints
+@app.route('/api/settings/all', methods=['GET'])
+def api_get_all_settings():
+    """Получить все настройки для нового интерфейса"""
+    try:
+        from settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        return jsonify({
+            "status": "success",
+            "settings": settings_manager._settings,
+            "message": "Настройки загружены успешно"
+        })
+    except Exception as e:
+        logger.error(f"Error getting all settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route('/api/settings', methods=['GET'])
 def api_get_settings():
-    """Получить все настройки"""
+    """Получить все настройки (legacy endpoint)"""
     from settings_manager import settings_manager
     return jsonify({
         "settings": settings_manager.get_all_settings(),
@@ -300,6 +316,81 @@ def api_validate_settings():
             "valid": False,
             "errors": {"system": [f"Ошибка валидации: {str(e)}"]},
             "message": f"Ошибка валидации: {str(e)}"
+        }), 500
+
+@app.route('/api/settings/update', methods=['POST'])
+def api_update_settings_new():
+    """Обновить настройки - новый API для единого интерфейса"""
+    try:
+        from settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"status": "error", "message": "No data provided"}), 400
+        
+        updates = data.get('updates', {})
+        if not updates:
+            return jsonify({"status": "error", "message": "No updates provided"}), 400
+        
+        results = settings_manager.update_multiple_settings(updates)
+        
+        # Проверяем результаты
+        failed_updates = {k: v for k, v in results.items() if not v}
+        
+        if not failed_updates:
+            return jsonify({
+                "status": "success",
+                "message": f"Обновлено настроек: {len(updates)}",
+                "results": results
+            })
+        else:
+            return jsonify({
+                "status": "partial",
+                "message": f"Обновлено: {len(updates) - len(failed_updates)}, ошибок: {len(failed_updates)}",
+                "results": results,
+                "failed": failed_updates
+            }), 207
+    
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/settings/test/<integration>', methods=['POST'])
+def api_test_integration(integration):
+    """Тестировать интеграцию"""
+    try:
+        from settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        result = settings_manager.test_integration(integration)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        logger.error(f"Error testing integration {integration}: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/settings/validate/<integration>', methods=['GET'])
+def api_validate_integration(integration):
+    """Валидировать конфигурацию интеграции"""
+    try:
+        from settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        result = settings_manager.validate_integration_config(integration)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        logger.error(f"Error validating integration {integration}: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
         }), 500
 
 # Messages API endpoints
