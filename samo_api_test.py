@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SAMO API Test Suite based on Trello documentation
-Testing Anex Tour Partner API endpoints with proper authentication
+SAMO API Test Suite for Crystal Bay Travel System
+Testing official SAMO API endpoints with Crystal Bay booking system
 """
 
 import os
@@ -11,24 +11,55 @@ from datetime import datetime, timedelta
 from api_integration import APIIntegration
 
 class SAMOAPITester:
-    """Test SAMO API endpoints using curl-equivalent requests"""
+    """Test Crystal Bay SAMO API endpoints using official SAMO documentation format"""
     
     def __init__(self):
         self.api = APIIntegration()
-        self.base_url = "https://b2b.anextour.com/api/v1/partner"
+        # Use Crystal Bay SAMO API endpoint
+        self.base_url = "https://booking-kz.crystalbay.com/export/default.php"
         self.oauth_token = os.getenv('SAMO_OAUTH_TOKEN')
         
+    def test_basic_connectivity(self):
+        """Test basic API connectivity with minimal parameters"""
+        print("Testing basic SAMO API connectivity...")
+        
+        params = {
+            'samo_action': 'api',
+            'version': '1.0',
+            'type': 'json',
+            'action': 'SearchTour_TOWNFROMS',  # Simple endpoint to get town list
+            'oauth_token': self.oauth_token
+        }
+        
+        try:
+            response = requests.get(self.base_url, params=params, timeout=30)
+            print(f"Response Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print("✅ Basic connectivity successful!")
+                print(f"Response: {json.dumps(data, indent=2)[:200]}...")
+                return {"status": "success", "data": data}
+            else:
+                print(f"❌ Connectivity failed: {response.status_code}")
+                print(f"Response: {response.text[:500]}...")
+                return {"status": "error", "code": response.status_code, "message": response.text}
+        
+        except Exception as e:
+            print(f"❌ Connection error: {e}")
+            return {"status": "error", "message": str(e)}
+    
     def test_search_tour_prices(self):
         """
-        Test SearchTour/PRICES endpoint as documented in Trello
-        Equivalent curl command:
+        Test SearchTour_PRICES endpoint with Crystal Bay SAMO API
+        Based on official SAMO API documentation format:
         
-        curl -X GET "https://b2b.anextour.com/api/v1/partner/samo/SearchTour/PRICES" \
-        -H "Authorization: Bearer $SAMO_OAUTH_TOKEN" \
+        curl -X GET "https://booking-kz.crystalbay.com/export/default.php" \
         -G \
         -d "samo_action=api" \
+        -d "version=1.0" \
         -d "type=json" \
-        -d "action=SearchTour" \
+        -d "action=SearchTour_PRICES" \
         -d "oauth_token=$SAMO_OAUTH_TOKEN" \
         -d "TOWNFROMINC=1" \
         -d "STATEINC=12" \
@@ -38,31 +69,31 @@ class SAMOAPITester:
         -d "NIGHTS_TILL=14" \
         -d "ADULT=2" \
         -d "CHILD=0" \
-        -d "CURRENCY=RUB" \
+        -d "CURRENCY=USD" \
         -d "FILTER=1"
         """
         
-        url = f"{self.base_url}/samo/SearchTour/PRICES"
+        url = self.base_url
         
         params = {
             'samo_action': 'api',
+            'version': '1.0',
             'type': 'json',
-            'action': 'SearchTour',
+            'action': 'SearchTour_PRICES',
             'oauth_token': self.oauth_token,
-            'TOWNFROMINC': '1',  # Moscow departure
-            'STATEINC': '12',    # Turkey destination
+            'TOWNFROMINC': '1',  # Almaty departure (from Crystal Bay system)
+            'STATEINC': '12',    # Vietnam destination (from Crystal Bay system)
             'CHECKIN_BEG': '20250615',
             'CHECKIN_END': '20250625', 
             'NIGHTS_FROM': '7',
             'NIGHTS_TILL': '14',
             'ADULT': '2',
             'CHILD': '0',
-            'CURRENCY': 'RUB',
+            'CURRENCY': 'USD',   # Crystal Bay uses USD
             'FILTER': '1'
         }
         
         headers = {
-            'Authorization': f'Bearer {self.oauth_token}',
             'Accept': 'application/json',
             'User-Agent': 'Crystal Bay Travel Bot/1.0'
         }
@@ -199,8 +230,12 @@ class SAMOAPITester:
             print("⚠️  SAMO_OAUTH_TOKEN not configured - tests will use mock data")
             return
         
-        # Test 1: Search for tours
-        print("\n1. Testing SearchTour endpoint...")
+        # Test 1: Basic connectivity
+        print("\n1. Testing basic API connectivity...")
+        connectivity_result = self.test_basic_connectivity()
+        
+        # Test 2: Search for tours
+        print("\n2. Testing SearchTour endpoint...")
         search_result = self.test_search_tour_prices()
         
         # Test 2: Get tour details (if search was successful)

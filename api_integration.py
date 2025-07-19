@@ -24,22 +24,28 @@ class APIIntegration:
     """
     
     def __init__(self):
-        """Initialize API integration with SAMO credentials and endpoints from Trello docs"""
+        """Initialize API integration with SAMO credentials and endpoints from SAMO documentation"""
         self.samo_oauth_token = os.getenv('SAMO_OAUTH_TOKEN')
-        # Use Anex Tour Partner API base URL from documentation
-        self.samo_api_base_url = "https://b2b.anextour.com/api/v1/partner"
         
-        # SAMO API specific endpoints from Trello documentation
+        # SAMO API configuration from official documentation
+        # Format: http://{HTTP_HOST}{WWWROOT}/export/default.php?samo_action=api&version=1.0
+        self.samo_api_host = "booking-kz.crystalbay.com"  # From user's Crystal Bay system
+        self.samo_api_base_url = f"https://{self.samo_api_host}/export/default.php"
+        
+        # SAMO API specific endpoints from official documentation
         self.samo_endpoints = {
-            'search_tour': '/samo/SearchTour/PRICES',
-            'tour_details': '/samo/GetTourDetails',
-            'booking_create': '/samo/CreateBooking',
-            'booking_status': '/samo/GetBookingStatus'
+            'search_tour': 'SearchTour_PRICES',
+            'search_hotels': 'SearchTour_HOTELS', 
+            'tour_details': 'SearchTour_TOURS',
+            'currencies': 'SearchTour_CURRENCIES',
+            'states': 'SearchTour_STATES',
+            'townfroms': 'SearchTour_TOWNFROMS'
         }
         
         # Required SAMO API parameters from documentation
         self.samo_required_params = {
             'samo_action': 'api',
+            'version': '1.0',
             'type': 'json'
         }
         
@@ -48,7 +54,7 @@ class APIIntegration:
         if self.use_mocks:
             logger.warning("SAMO_OAUTH_TOKEN not found, using mock data for demonstrations")
         else:
-            logger.info(f"SAMO API initialized with Anex Tour Partner API: {self.samo_api_base_url}")
+            logger.info(f"SAMO API initialized with Crystal Bay system: {self.samo_api_base_url}")
     
     def check_booking(self, booking_reference):
         """Check booking details in the SAMO API.
@@ -362,13 +368,11 @@ class APIIntegration:
                     'count': len(mock_tours)
                 }
             
-            # Real API implementation using Anex Tour Partner API endpoints
-            url = f"{self.samo_api_base_url}{self.samo_endpoints['search_tour']}"
-            
-            # Format search parameters according to SAMO API documentation
+            # Real API implementation using Crystal Bay SAMO API
+            # Format search parameters according to official SAMO API documentation
             api_params = self.samo_required_params.copy()
             api_params.update({
-                'action': 'SearchTour',
+                'action': self.samo_endpoints['search_tour'],  # SearchTour_PRICES
                 'oauth_token': self.samo_oauth_token,
                 'TOWNFROMINC': search_params.get('departure_city_id', ''),
                 'STATEINC': search_params.get('destination_country_id', ''),
@@ -382,7 +386,10 @@ class APIIntegration:
                 'FILTER': 1  # Apply filters for available tours only
             })
             
-            response = self._make_samo_request(url, method='GET', params=api_params)
+            logger.info(f"Making Crystal Bay SAMO API request to: {self.samo_api_base_url}")
+            logger.info(f"Parameters: {json.dumps(api_params, indent=2)}")
+            
+            response = requests.get(self.samo_api_base_url, params=api_params, timeout=30)
             
             if response and response.status_code == 200:
                 data = response.json()
