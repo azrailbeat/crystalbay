@@ -328,9 +328,17 @@
     <div class="ai-status">
         <div class="status-indicator status-active" id="ai-status-indicator"></div>
         <span id="ai-status-text">ИИ агенты активны - обрабатывают сообщения</span>
-        <button class="btn btn-sm btn-outline-primary ms-auto" id="refresh-messages">
-            <i class="bi bi-arrow-clockwise"></i> Обновить
-        </button>
+        <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-sm btn-outline-success" id="bulk-process">
+                <i class="bi bi-cpu"></i> Обработать все
+            </button>
+            <button class="btn btn-sm btn-outline-info" id="view-stats">
+                <i class="bi bi-bar-chart"></i> Статистика
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="refresh-messages">
+                <i class="bi bi-arrow-clockwise"></i> Обновить
+            </button>
+        </div>
     </div>
 
     <!-- Statistics Cards -->
@@ -695,11 +703,40 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('message-input').value = suggestion;
     }
     
-    function updateStats(stats) {
-        document.getElementById('new-count').textContent = stats.new || 0;
-        document.getElementById('processed-count').textContent = stats.processed || 0;
-        document.getElementById('attention-count').textContent = stats.attention || 0;
-        document.getElementById('total-count').textContent = stats.total || 0;
+    function updateStats(stats = null) {
+        if (stats) {
+            // Use provided stats
+            document.getElementById('new-count').textContent = stats.new || 0;
+            document.getElementById('processed-count').textContent = stats.processed || 0;
+            document.getElementById('attention-count').textContent = stats.attention || 0;
+            document.getElementById('total-count').textContent = stats.total || 0;
+        } else {
+            // Load stats from API
+            fetch('/api/messages/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const apiStats = data.stats;
+                        document.getElementById('new-count').textContent = apiStats.total_messages - apiStats.processed_messages;
+                        document.getElementById('processed-count').textContent = apiStats.processed_messages;
+                        document.getElementById('attention-count').textContent = apiStats.high_priority_messages;
+                        document.getElementById('total-count').textContent = apiStats.recent_messages_24h;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stats:', error);
+                    // Fallback to local calculation
+                    const newCount = messages.filter(m => m.status === 'unread').length;
+                    const processedCount = messages.filter(m => m.ai_processed).length;
+                    const attentionCount = messages.filter(m => m.priority === 'high' || m.priority === 'urgent').length;
+                    const totalCount = messages.length;
+
+                    document.getElementById('new-count').textContent = newCount;
+                    document.getElementById('processed-count').textContent = processedCount;
+                    document.getElementById('attention-count').textContent = attentionCount;
+                    document.getElementById('total-count').textContent = totalCount;
+                });
+        }
     }
     
     function filterMessages(filter) {
@@ -808,6 +845,200 @@ document.addEventListener('DOMContentLoaded', function() {
         // Toast implementation (you can use Bootstrap toast or custom)
         console.log(`${type.toUpperCase()}: ${message}`);
     }
+    
+    function bulkProcessMessages() {
+        const button = document.getElementById('bulk-process');
+        const originalText = button.innerHTML;
+        
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обрабатываю...';
+        button.disabled = true;
+        
+        fetch('/api/messages/bulk-process', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    updateStats(); // Refresh stats after processing
+                    loadMessages(); // Refresh message list
+                } else {
+                    showToast(data.message || 'Ошибка массовой обработки', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error in bulk processing:', error);
+                showToast('Ошибка массовой обработки', 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    }
+    
+    function viewDetailedStats() {
+        fetch('/api/messages/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatsModal(data.stats);
+                } else {
+                    showToast('Ошибка загрузки статистики', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading detailed stats:', error);
+                showToast('Ошибка загрузки статистики', 'error');
+            });
+    }
+    
+    function showStatsModal(stats) {
+        const modal = `
+            <div class="modal fade" id="statsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Детальная статистика обработки</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${stats.processing_rate}%</h5>
+                                            <p class="card-text">Процент обработанных сообщений</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${stats.total_messages}</h5>
+                                            <p class="card-text">Всего сообщений</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h6>Статистика по источникам:</h6>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Источник</th>
+                                            <th>Всего</th>
+                                            <th>Обработано</th>
+                                            <th>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Object.entries(stats.sources_breakdown || {}).map(([source, data]) => `
+                                            <tr>
+                                                <td>${getSourceLabel(source)}</td>
+                                                <td>${data.total}</td>
+                                                <td>${data.processed}</td>
+                                                <td>${data.total > 0 ? Math.round(data.processed / data.total * 100) : 0}%</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <h6>Типы запросов:</h6>
+                            <div class="row">
+                                ${Object.entries(stats.request_types || {}).map(([type, count]) => `
+                                    <div class="col-md-4 mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span>${type}</span>
+                                            <span class="badge bg-secondary">${count}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                            <button type="button" class="btn btn-primary" onclick="downloadResults()">Скачать отчет</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if present
+        const existingModal = document.getElementById('statsModal');
+        if (existingModal) existingModal.remove();
+        
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modal);
+        
+        // Show modal
+        const modalInstance = new bootstrap.Modal(document.getElementById('statsModal'));
+        modalInstance.show();
+    }
+    
+    function downloadResults() {
+        fetch('/api/messages/processing-results')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const blob = new Blob([JSON.stringify(data.results, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `processing-results-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('Отчет скачан', 'success');
+                } else {
+                    showToast('Ошибка скачивания отчета', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error downloading results:', error);
+                showToast('Ошибка скачивания отчета', 'error');
+            });
+    }
+    
+    // Event listeners
+    document.getElementById('refresh-messages').addEventListener('click', loadMessages);
+    document.getElementById('bulk-process').addEventListener('click', bulkProcessMessages);
+    document.getElementById('view-stats').addEventListener('click', viewDetailedStats);
+    
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.getAttribute('data-filter');
+            filterMessages(filter);
+        });
+    });
+    
+    // Message actions
+    document.getElementById('mark-read').addEventListener('click', markAsRead);
+    document.getElementById('assign-agent').addEventListener('click', () => {
+        showToast('Функция назначения агента в разработке', 'info');
+    });
+    document.getElementById('create-lead').addEventListener('click', createLead);
+    
+    // Chat input
+    document.getElementById('send-message').addEventListener('click', sendMessage);
+    document.getElementById('ai-generate').addEventListener('click', generateAIResponse);
+    document.getElementById('ai-translate').addEventListener('click', () => {
+        showToast('Функция перевода в разработке', 'info');
+    });
+    document.getElementById('ai-improve').addEventListener('click', () => {
+        showToast('Функция улучшения текста в разработке', 'info');
+    });
+    
+    // Load initial data
+    loadMessages();
+    updateStats();
+    startAutoRefresh();
 });
 </script>
 {% endblock %}

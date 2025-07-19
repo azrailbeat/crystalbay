@@ -635,6 +635,146 @@ def api_create_lead_from_message(message_id):
             "message": f"Ошибка создания лида: {str(e)}"
         }), 500
 
+@app.route('/api/messages/stats', methods=['GET'])
+def api_get_message_stats():
+    """Получить статистику обработки сообщений"""
+    try:
+        from message_processor import message_manager
+        
+        stats = message_manager.get_processing_stats()
+        
+        return jsonify({
+            "success": True,
+            "stats": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting message stats: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка получения статистики: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/<message_id>/process', methods=['POST'])
+def api_process_message(message_id):
+    """Обработать сообщение через ИИ и сохранить результат"""
+    try:
+        from message_processor import message_manager, CustomerMessage, MessageSource, MessageStatus, Priority
+        from datetime import datetime
+        
+        # Получаем сообщение
+        message_data = message_manager.storage.get_message_by_id(message_id)
+        if not message_data:
+            return jsonify({
+                "success": False,
+                "message": "Сообщение не найдено"
+            }), 404
+        
+        # Создаем объект сообщения
+        message = CustomerMessage(
+            id=message_data["id"],
+            customer_name=message_data["customer_name"],
+            customer_phone=message_data.get("customer_phone"),
+            customer_email=message_data.get("customer_email"),
+            source=MessageSource(message_data["source"]),
+            content=message_data["content"],
+            timestamp=datetime.fromisoformat(message_data["timestamp"]),
+            status=MessageStatus(message_data["status"]),
+            priority=Priority(message_data["priority"]),
+            ai_processed=message_data.get("ai_processed", False)
+        )
+        
+        # Обрабатываем через ИИ
+        ai_result = message_manager.ai_processor.analyze_message(message)
+        
+        # Сохраняем результат
+        success = message_manager.save_processing_result(message_id, ai_result)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Сообщение обработано и результат сохранен",
+                "ai_result": ai_result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Ошибка сохранения результата обработки"
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error processing message {message_id}: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка обработки сообщения: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/bulk-process', methods=['POST'])
+def api_bulk_process_messages():
+    """Массовая обработка необработанных сообщений"""
+    try:
+        from message_processor import message_manager
+        
+        # Обрабатываем все необработанные сообщения
+        message_manager.process_unprocessed_messages()
+        
+        # Получаем обновленную статистику
+        stats = message_manager.get_processing_stats()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Обработано сообщений: {stats.get('processed_messages', 0)}",
+            "stats": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in bulk processing: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка массовой обработки: {str(e)}"
+        }), 500
+
+@app.route('/api/messages/processing-results', methods=['GET'])
+def api_get_processing_results():
+    """Получить журнал результатов обработки"""
+    try:
+        results_file = "data/processing_results.json"
+        
+        if not os.path.exists(results_file):
+            return jsonify({
+                "success": True,
+                "results": [],
+                "total": 0
+            })
+        
+        with open(results_file, 'r', encoding='utf-8') as f:
+            results = json.load(f)
+        
+        # Параметры пагинации
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 50))
+        
+        start = (page - 1) * per_page
+        end = start + per_page
+        
+        paginated_results = results[start:end]
+        
+        return jsonify({
+            "success": True,
+            "results": paginated_results,
+            "total": len(results),
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (len(results) + per_page - 1) // per_page
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting processing results: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Ошибка получения результатов: {str(e)}"
+        }), 500
+
 # API Endpoints for the Web Interface
 @app.route('/api/bot/status', methods=['GET'])
 def get_bot_status():

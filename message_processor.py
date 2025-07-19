@@ -433,7 +433,192 @@ class MessageManager:
             ai_generated=True
         ))
         
+        # Обрабатываем все новые сообщения через ИИ
+        self.process_unprocessed_messages()
+        
         logger.info("Sample messages created successfully")
+
+    def process_unprocessed_messages(self):
+        """Обработка всех необработанных сообщений через ИИ"""
+        try:
+            messages_data = self.storage.get_all_messages()
+            unprocessed = [msg for msg in messages_data if not msg.get("ai_processed", False)]
+            
+            for msg_data in unprocessed:
+                try:
+                    # Создаем объект сообщения
+                    message = CustomerMessage(
+                        id=msg_data["id"],
+                        customer_name=msg_data["customer_name"],
+                        customer_phone=msg_data.get("customer_phone"),
+                        customer_email=msg_data.get("customer_email"),
+                        source=MessageSource(msg_data["source"]),
+                        content=msg_data["content"],
+                        timestamp=datetime.fromisoformat(msg_data["timestamp"]),
+                        status=MessageStatus(msg_data["status"]),
+                        priority=Priority(msg_data["priority"]),
+                        ai_processed=False
+                    )
+                    
+                    # Обрабатываем через ИИ
+                    ai_result = self.ai_processor.analyze_message(message)
+                    
+                    # Обновляем сообщение с результатами ИИ
+                    message.ai_processed = True
+                    message.ai_confidence = ai_result.get("confidence", 0.0)
+                    message.ai_suggestions = ai_result.get("suggested_responses", [])
+                    message.priority = Priority(ai_result.get("priority", "medium"))
+                    message.metadata = message.metadata or {}
+                    message.metadata.update({
+                        "ai_analysis": {
+                            "request_type": ai_result.get("request_type"),
+                            "keywords": ai_result.get("keywords", []),
+                            "extracted_info": ai_result.get("extracted_info", {}),
+                            "requires_escalation": ai_result.get("requires_escalation", False),
+                            "notes": ai_result.get("notes", ""),
+                            "processed_at": datetime.now().isoformat()
+                        }
+                    })
+                    
+                    # Сохраняем обновленное сообщение
+                    self.storage.save_message(message)
+                    
+                    logger.info(f"Processed message {message.id} with AI confidence {message.ai_confidence}")
+                    
+                except Exception as e:
+                    logger.error(f"Error processing message {msg_data.get('id', 'unknown')}: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error in bulk AI processing: {e}")
+
+    def save_processing_result(self, message_id: str, result: Dict[str, Any]) -> bool:
+        """Сохранение результата обработки сообщения"""
+        try:
+            # Получаем сообщение
+            message_data = self.storage.get_message_by_id(message_id)
+            if not message_data:
+                return False
+            
+            # Создаем объект сообщения
+            message = CustomerMessage(
+                id=message_data["id"],
+                customer_name=message_data["customer_name"],
+                customer_phone=message_data.get("customer_phone"),
+                customer_email=message_data.get("customer_email"),
+                source=MessageSource(message_data["source"]),
+                content=message_data["content"],
+                timestamp=datetime.fromisoformat(message_data["timestamp"]),
+                status=MessageStatus(message_data["status"]),
+                priority=Priority(message_data["priority"]),
+                ai_processed=True,
+                ai_confidence=result.get("confidence", 0.0),
+                ai_suggestions=result.get("suggested_responses", []),
+                metadata=message_data.get("metadata", {})
+            )
+            
+            # Добавляем результат анализа в метаданные
+            message.metadata["ai_analysis"] = {
+                "request_type": result.get("request_type"),
+                "keywords": result.get("keywords", []),
+                "extracted_info": result.get("extracted_info", {}),
+                "requires_escalation": result.get("requires_escalation", False),
+                "notes": result.get("notes", ""),
+                "processed_at": datetime.now().isoformat()
+            }
+            
+            # Обновляем приоритет если нужно
+            if result.get("priority"):
+                message.priority = Priority(result["priority"])
+            
+            # Сохраняем
+            success = self.storage.save_message(message)
+            
+            if success:
+                # Также сохраняем в отдельный файл результатов
+                self._save_to_results_log(message_id, result)
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error saving processing result for {message_id}: {e}")
+            return False
+
+    def _save_to_results_log(self, message_id: str, result: Dict[str, Any]):
+        """Сохранение в лог результатов обработки"""
+        try:
+            results_file = "data/processing_results.json"
+            
+            # Загружаем существующие результаты
+            results = []
+            if os.path.exists(results_file):
+                with open(results_file, 'r', encoding='utf-8') as f:
+                    results = json.load(f)
+            
+            # Добавляем новый результат
+            result_entry = {
+                "message_id": message_id,
+                "timestamp": datetime.now().isoformat(),
+                "result": result
+            }
+            
+            results.append(result_entry)
+            
+            # Сохраняем (оставляем только последние 1000 записей)
+            results = results[-1000:]
+            
+            with open(results_file, 'w', encoding='utf-8') as f:
+                json.dump(results, f, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Error saving to results log: {e}")
+
+    def get_processing_stats(self) -> Dict[str, Any]:
+        """Получение статистики обработки"""
+        try:
+            messages_data = self.storage.get_all_messages()
+            
+            total_messages = len(messages_data)
+            processed_messages = len([m for m in messages_data if m.get("ai_processed", False)])
+            high_priority = len([m for m in messages_data if m.get("priority") in ["high", "urgent"]])
+            recent_messages = len([
+                m for m in messages_data 
+                if datetime.fromisoformat(m["timestamp"]) > datetime.now() - timedelta(hours=24)
+            ])
+            
+            # Анализ по источникам
+            sources_stats = {}
+            for msg in messages_data:
+                source = msg.get("source", "unknown")
+                if source not in sources_stats:
+                    sources_stats[source] = {"total": 0, "processed": 0}
+                sources_stats[source]["total"] += 1
+                if msg.get("ai_processed", False):
+                    sources_stats[source]["processed"] += 1
+            
+            # Анализ по типам запросов
+            request_types = {}
+            for msg in messages_data:
+                ai_analysis = msg.get("metadata", {}).get("ai_analysis", {})
+                request_type = ai_analysis.get("request_type", "unknown")
+                if request_type not in request_types:
+                    request_types[request_type] = 0
+                request_types[request_type] += 1
+            
+            return {
+                "total_messages": total_messages,
+                "processed_messages": processed_messages,
+                "processing_rate": round((processed_messages / total_messages * 100) if total_messages > 0 else 0, 1),
+                "high_priority_messages": high_priority,
+                "recent_messages_24h": recent_messages,
+                "sources_breakdown": sources_stats,
+                "request_types": request_types,
+                "last_updated": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting processing stats: {e}")
+            return {}
 
 # Создаем глобальный экземпляр менеджера
 message_manager = MessageManager()
