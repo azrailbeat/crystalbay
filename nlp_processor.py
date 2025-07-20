@@ -68,6 +68,22 @@ async def process_message(message: str, user_context: Dict[str, Any]) -> str:
         logger.error(f"Error processing message with OpenAI: {e}")
         return "Извините, я не могу обработать ваш запрос в данный момент. Пожалуйста, попробуйте позже или воспользуйтесь функцией поиска туров."
 
+class NLPProcessor:
+    """Natural Language Processing class for Crystal Bay Travel"""
+    
+    def __init__(self):
+        self.api_key = OPENAI_API_KEY
+        if not self.api_key:
+            logger.warning("OpenAI API key not found")
+        
+    async def process_message(self, message: str, user_context: Dict[str, Any] = None) -> str:
+        """Process user message and return response"""
+        return await process_message(message, user_context or {})
+    
+    async def analyze_query_intent(self, query: str) -> Dict[str, Any]:
+        """Analyze query intent"""
+        return await analyze_query_intent(query)
+
 async def analyze_query_intent(query: str) -> Dict[str, Any]:
     """
     Analyze the user's query to determine their intent and extract relevant entities.

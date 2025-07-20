@@ -243,6 +243,105 @@ def api_get_settings():
         "errors": settings_manager.validate_settings()
     })
 
+@app.route('/api/health', methods=['GET'])
+def api_health():
+    """Health check endpoint"""
+    try:
+        # Проверяем основные компоненты системы
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "checks": {
+                "database": "unknown",
+                "api": "healthy",
+                "integrations": {}
+            }
+        }
+        
+        # Проверяем доступность основных интеграций
+        from unified_settings_manager import real_settings_manager
+        integrations = real_settings_manager.get_all_settings().get('integrations', {})
+        
+        for name, config in integrations.items():
+            status_info = real_settings_manager.get_integration_status(name)
+            health_status["checks"]["integrations"][name] = status_info['status']
+        
+        return jsonify(health_status)
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/settings/test/<integration_name>', methods=['POST'])
+def api_test_integration(integration_name):
+    """Test specific integration"""
+    try:
+        from unified_settings_manager import real_settings_manager
+        
+        # Test the specific integration
+        if integration_name == 'samo_api':
+            from api_integration import APIIntegration
+            api = APIIntegration()
+            if api.use_mocks:
+                return jsonify({
+                    "status": "error",
+                    "message": "SAMO API OAuth token не настроен - требуется токен для тестирования"
+                })
+            else:
+                # Test real API connection
+                test_result = api.search_tours({"destination": "test"})
+                if test_result:
+                    return jsonify({
+                        "status": "success",
+                        "message": "SAMO API подключение работает"
+                    })
+                else:
+                    return jsonify({
+                        "status": "error", 
+                        "message": "Ошибка подключения к SAMO API"
+                    })
+        
+        elif integration_name == 'telegram_bot':
+            import os
+            token = os.getenv('TELEGRAM_BOT_TOKEN')
+            if token:
+                return jsonify({
+                    "status": "success",
+                    "message": "Telegram Bot токен настроен"
+                })
+            else:
+                return jsonify({
+                    "status": "error",
+                    "message": "Telegram Bot токен не найден"
+                })
+                
+        elif integration_name == 'openai':
+            import os
+            token = os.getenv('OPENAI_API_KEY')
+            if token:
+                return jsonify({
+                    "status": "success", 
+                    "message": "OpenAI API ключ настроен"
+                })
+            else:
+                return jsonify({
+                    "status": "error",
+                    "message": "OpenAI API ключ не найден"
+                })
+        
+        else:
+            status_info = real_settings_manager.get_integration_status(integration_name)
+            return jsonify(status_info)
+            
+    except Exception as e:
+        logger.error(f"Error testing integration {integration_name}: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route('/api/settings', methods=['POST'])
 def api_update_settings():
     """Обновить настройки"""
@@ -373,7 +472,7 @@ def api_update_settings_new():
         }), 500
 
 @app.route('/api/settings/test/<integration>', methods=['POST'])
-def api_test_integration(integration):
+def api_test_integration_legacy(integration):
     """Тестировать интеграцию"""
     try:
         from unified_settings_manager import real_settings_manager

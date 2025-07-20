@@ -69,8 +69,8 @@ class APIIntegration:
             return None
             
         try:
-            # Принудительно использовать моки для тестов
-            if True: # self.use_mocks:
+            # Использовать реальный API, моки только при отсутствии токена
+            if self.use_mocks:
                 # Специальный случай для теста: поддержка CB12345
                 if booking_reference == 'CB12345':
                     # Создаем мок-данные специально для теста
@@ -134,8 +134,7 @@ class APIIntegration:
             list: List of booking information dictionaries
         """
         try:
-            # Принудительно использовать моки для тестов
-            if True: # self.use_mocks:
+            if self.use_mocks:
                 # Filter mock bookings for tests
                 mock_bookings = self._get_mock_bookings()
                 
@@ -221,8 +220,7 @@ class APIIntegration:
             return None
             
         try:
-            # Принудительно использовать моки для тестов
-            if True: # self.use_mocks:
+            if self.use_mocks:
                 # Специальный случай для тестов
                 if flight_number == 'XX9999':
                     # В тесте test_check_flight_mock это должно возвращать None
@@ -265,8 +263,7 @@ class APIIntegration:
             return None
             
         try:
-            # Принудительно использовать моки для тестов
-            if True: # self.use_mocks:
+            if self.use_mocks:
                 # Специальный случай для теста HTL123
                 if hotel_id == 'HTL123':
                     # Создаем специальные данные для теста
