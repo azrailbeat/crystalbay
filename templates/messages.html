@@ -846,6 +846,186 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`${type.toUpperCase()}: ${message}`);
     }
     
+    function translateMessage() {
+        if (!currentMessageId) {
+            showToast('Выберите сообщение для перевода', 'warning');
+            return;
+        }
+        
+        const message = messages.find(m => m.id === currentMessageId);
+        if (!message) {
+            showToast('Сообщение не найдено', 'error');
+            return;
+        }
+        
+        const translateBtn = document.getElementById('ai-translate');
+        const originalText = translateBtn.innerHTML;
+        translateBtn.innerHTML = '<div class="loading-spinner"></div> Переводим...';
+        translateBtn.disabled = true;
+        
+        fetch(`/api/messages/${currentMessageId}/translate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: message.content,
+                target_language: 'ru'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update message display with translation
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    messageContent.innerHTML = `
+                        <div class="original-message mb-2">
+                            <small class="text-muted">Оригинал:</small>
+                            <p>${message.content}</p>
+                        </div>
+                        <div class="translated-message">
+                            <small class="text-success">Перевод:</small>
+                            <p>${data.translation}</p>
+                        </div>
+                    `;
+                }
+                showToast('Сообщение переведено', 'success');
+            } else {
+                showToast(data.message || 'Ошибка перевода', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error translating message:', error);
+            showToast('Ошибка перевода сообщения', 'error');
+        })
+        .finally(() => {
+            translateBtn.innerHTML = originalText;
+            translateBtn.disabled = false;
+        });
+    }
+    
+    function improveMessage() {
+        const messageInput = document.getElementById('message-input');
+        const currentText = messageInput.value.trim();
+        
+        if (!currentText) {
+            showToast('Введите текст сообщения для улучшения', 'warning');
+            return;
+        }
+        
+        const improveBtn = document.getElementById('ai-improve');
+        const originalText = improveBtn.innerHTML;
+        improveBtn.innerHTML = '<div class="loading-spinner"></div> Улучшаем...';
+        improveBtn.disabled = true;
+        
+        fetch('/api/messages/improve-text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: currentText,
+                language: 'ru',
+                style: 'professional'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageInput.value = data.improved_text;
+                showToast('Текст улучшен ИИ', 'success');
+            } else {
+                showToast(data.message || 'Ошибка улучшения текста', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error improving message:', error);
+            showToast('Ошибка улучшения текста', 'error');
+        })
+        .finally(() => {
+            improveBtn.innerHTML = originalText;
+            improveBtn.disabled = false;
+        });
+    }
+    
+    function assignAgent() {
+        if (!currentMessageId) {
+            showToast('Выберите сообщение для назначения', 'warning');
+            return;
+        }
+        
+        // Show agent selection modal
+        const agents = ['Анна Смирнова', 'Игорь Петров', 'Мария Козлова', 'Автоматическое назначение'];
+        const modalHtml = `
+            <div class="modal fade" id="assignAgentModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Назначить агента</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Выберите агента:</label>
+                                <select class="form-select" id="agent-select">
+                                    ${agents.map(agent => `<option value="${agent}">${agent}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="button" class="btn btn-primary" onclick="confirmAgentAssignment()">Назначить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('assignAgentModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to document
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('assignAgentModal'));
+        modal.show();
+    }
+    
+    function confirmAgentAssignment() {
+        const selectedAgent = document.getElementById('agent-select').value;
+        
+        fetch(`/api/messages/${currentMessageId}/assign`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                agent: selectedAgent
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Сообщение назначено: ${selectedAgent}`, 'success');
+                loadMessages(); // Refresh the message list
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('assignAgentModal'));
+                modal.hide();
+            } else {
+                showToast(data.message || 'Ошибка назначения агента', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error assigning agent:', error);
+            showToast('Ошибка назначения агента', 'error');
+        });
+    }
+    
     function bulkProcessMessages() {
         const button = document.getElementById('bulk-process');
         const originalText = button.innerHTML;
@@ -1020,20 +1200,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Message actions
     document.getElementById('mark-read').addEventListener('click', markAsRead);
-    document.getElementById('assign-agent').addEventListener('click', () => {
-        showToast('Функция назначения агента в разработке', 'info');
-    });
+    document.getElementById('assign-agent').addEventListener('click', assignAgent);
     document.getElementById('create-lead').addEventListener('click', createLead);
     
     // Chat input
     document.getElementById('send-message').addEventListener('click', sendMessage);
     document.getElementById('ai-generate').addEventListener('click', generateAIResponse);
-    document.getElementById('ai-translate').addEventListener('click', () => {
-        showToast('Функция перевода в разработке', 'info');
-    });
-    document.getElementById('ai-improve').addEventListener('click', () => {
-        showToast('Функция улучшения текста в разработке', 'info');
-    });
+    document.getElementById('ai-translate').addEventListener('click', translateMessage);
+    document.getElementById('ai-improve').addEventListener('click', improveMessage);
     
     // Load initial data
     loadMessages();
