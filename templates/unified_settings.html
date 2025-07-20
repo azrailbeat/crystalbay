@@ -461,12 +461,13 @@ function createField(integrationKey, field, value) {
             `;
         
         case 'password':
-            const maskedValue = value ? '•'.repeat(Math.min(value.length, 20)) : '';
+            const displayValue = value ? value : '';
             return `
                 <div class="form-group">
                     <label class="form-label" for="${fieldId}">${field.label}</label>
                     <div class="input-group">
-                        <input type="password" class="form-control" id="${fieldId}" value="${maskedValue}" 
+                        <input type="password" class="form-control" id="${fieldId}" value="${displayValue}" 
+                               placeholder="Введите ${field.label.toLowerCase()}"
                                onchange="updateSetting('integrations.${integrationKey}.${field.key}', this.value)">
                         <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('${fieldId}')">
                             <i class="bi bi-eye"></i>
@@ -645,17 +646,186 @@ function showError(message) {
     showSaveStatus(message, 'error');
 }
 
-// Заглушки для других разделов (будут дополнены)
 function renderSystemSettings() {
-    document.getElementById('systemSettings').innerHTML = '<p>Системные настройки загружаются...</p>';
+    const container = document.getElementById('systemSettings');
+    const system = settingsData.system || {};
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label class="form-label">Название системы</label>
+                    <input type="text" class="form-control" value="${system.name || 'Crystal Bay Travel'}" 
+                           onchange="updateSetting('system.name', this.value)">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Версия</label>
+                    <input type="text" class="form-control" value="${system.version || '1.2.0'}" readonly>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Язык интерфейса</label>
+                    <select class="form-control" onchange="updateSetting('system.language', this.value)">
+                        <option value="ru" ${system.language === 'ru' ? 'selected' : ''}>Русский</option>
+                        <option value="en" ${system.language === 'en' ? 'selected' : ''}>English</option>
+                        <option value="kz" ${system.language === 'kz' ? 'selected' : ''}>Қазақша</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Часовой пояс</label>
+                    <select class="form-control" onchange="updateSetting('system.timezone', this.value)">
+                        <option value="Asia/Almaty" ${system.timezone === 'Asia/Almaty' ? 'selected' : ''}>Asia/Almaty</option>
+                        <option value="UTC" ${system.timezone === 'UTC' ? 'selected' : ''}>UTC</option>
+                        <option value="Europe/Moscow" ${system.timezone === 'Europe/Moscow' ? 'selected' : ''}>Europe/Moscow</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label class="form-label">Среда выполнения</label>
+                    <input type="text" class="form-control" value="${system.environment || 'production'}" readonly>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Интервал резервного копирования (часы)</label>
+                    <input type="number" class="form-control" value="${system.backup_interval || 24}" min="1" max="168"
+                           onchange="updateSetting('system.backup_interval', parseInt(this.value))">
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${system.debug_mode ? 'checked' : ''} 
+                           onchange="updateSetting('system.debug_mode', this.checked)">
+                    <label class="form-check-label">Режим отладки</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${system.auto_backup ? 'checked' : ''} 
+                           onchange="updateSetting('system.auto_backup', this.checked)">
+                    <label class="form-check-label">Автоматические резервные копии</label>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderBusinessSettings() {
-    document.getElementById('businessSettings').innerHTML = '<p>Бизнес настройки загружаются...</p>';
+    const container = document.getElementById('businessSettings');
+    const business = settingsData.business || {};
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label class="form-label">Название компании</label>
+                    <input type="text" class="form-control" value="${business.company_name || 'Crystal Bay Travel'}" 
+                           onchange="updateSetting('business.company_name', this.value)">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Телефон компании</label>
+                    <input type="tel" class="form-control" value="${business.company_phone || '+7 (777) 123-45-67'}" 
+                           onchange="updateSetting('business.company_phone', this.value)">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Email компании</label>
+                    <input type="email" class="form-control" value="${business.company_email || 'info@crystalbay.travel'}" 
+                           onchange="updateSetting('business.company_email', this.value)">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Адрес компании</label>
+                    <textarea class="form-control" rows="2" 
+                              onchange="updateSetting('business.company_address', this.value)">${business.company_address || 'Алматы, Казахстан'}</textarea>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label class="form-label">Рабочие часы</label>
+                    <input type="text" class="form-control" value="${business.working_hours || '9:00 - 18:00'}" 
+                           onchange="updateSetting('business.working_hours', this.value)">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Основная валюта</label>
+                    <select class="form-control" onchange="updateSetting('business.currency', this.value)">
+                        <option value="USD" ${business.currency === 'USD' ? 'selected' : ''}>USD</option>
+                        <option value="EUR" ${business.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                        <option value="KZT" ${business.currency === 'KZT' ? 'selected' : ''}>KZT</option>
+                        <option value="RUB" ${business.currency === 'RUB' ? 'selected' : ''}>RUB</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Время ответа на лиды (минуты)</label>
+                    <input type="number" class="form-control" value="${business.lead_response_time || 60}" min="1" max="1440"
+                           onchange="updateSetting('business.lead_response_time', parseInt(this.value))">
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${business.auto_lead_assignment ? 'checked' : ''} 
+                           onchange="updateSetting('business.auto_lead_assignment', this.checked)">
+                    <label class="form-check-label">Автоматическое назначение лидов</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${business.booking_confirmation_required ? 'checked' : ''} 
+                           onchange="updateSetting('business.booking_confirmation_required', this.checked)">
+                    <label class="form-check-label">Требуется подтверждение бронирования</label>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderNotificationSettings() {
-    document.getElementById('notificationSettings').innerHTML = '<p>Настройки уведомлений загружаются...</p>';
+    const container = document.getElementById('notificationSettings');
+    const notifications = settingsData.notifications || {};
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Каналы уведомлений</h5>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.email_notifications ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.email_notifications', this.checked)">
+                    <label class="form-check-label">Email уведомления</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.sms_notifications ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.sms_notifications', this.checked)">
+                    <label class="form-check-label">SMS уведомления</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.telegram_notifications ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.telegram_notifications', this.checked)">
+                    <label class="form-check-label">Telegram уведомления</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h5>Типы уведомлений</h5>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.new_lead_notification ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.new_lead_notification', this.checked)">
+                    <label class="form-check-label">Новые лиды</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.booking_confirmation_notification ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.booking_confirmation_notification', this.checked)">
+                    <label class="form-check-label">Подтверждения бронирования</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.payment_notification ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.payment_notification', this.checked)">
+                    <label class="form-check-label">Уведомления об оплате</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.system_alerts ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.system_alerts', this.checked)">
+                    <label class="form-check-label">Системные уведомления</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.daily_reports ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.daily_reports', this.checked)">
+                    <label class="form-check-label">Ежедневные отчеты</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" ${notifications.weekly_reports ? 'checked' : ''} 
+                           onchange="updateSetting('notifications.weekly_reports', this.checked)">
+                    <label class="form-check-label">Еженедельные отчеты</label>
+                </div>
+            </div>
+        </div>
+    `;
 }
 </script>
 {% endblock %}
