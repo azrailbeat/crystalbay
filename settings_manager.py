@@ -94,8 +94,12 @@ class SettingsManager:
                 "sendgrid": {
                     "enabled": False,
                     "api_key": os.getenv("SENDGRID_API_KEY", ""),
-                    "from_email": os.getenv("SENDGRID_FROM_EMAIL", ""),
-                    "template_id": "",
+                    "from_email": os.getenv("SENDGRID_FROM_EMAIL", "noreply@crystalbay.travel"),
+                    "templates": {
+                        "booking_confirmation": "",
+                        "booking_reminder": "",
+                        "lead_notification": ""
+                    },
                     "auto_notify": True
                 },
                 "supabase": {
@@ -104,86 +108,39 @@ class SettingsManager:
                     "key": os.getenv("SUPABASE_KEY", ""),
                     "auto_sync": True,
                     "sync_interval": 5  # минуты
-                },
-                "sendgrid": {
-                    "enabled": False,
-                    "api_key": os.getenv("SENDGRID_API_KEY", ""),
-                    "from_email": os.getenv("SENDGRID_FROM_EMAIL", "noreply@crystalbay.travel"),
-                    "templates": {
-                        "booking_confirmation": "",
-                        "booking_reminder": "",
-                        "lead_notification": ""
-                    }
-                },
-                "wazzup": {
-                    "enabled": False,
-                    "api_key": os.getenv("WAZZUP_API_KEY", ""),
-                    "api_secret": os.getenv("WAZZUP_API_SECRET", ""),
-                    "webhook_url": "",
-                    "auto_process": True
-                },
-                "bitrix24": {
-                    "enabled": True,
-                    "webhook_url": os.getenv("BITRIX_WEBHOOK_URL", ""),
-                    "access_token": os.getenv("BITRIX_ACCESS_TOKEN", ""),
-                    "pipeline_id": "7",
-                    "auto_create_leads": True,
-                    "sync_contacts": True
-                }
-            },
-            "notifications": {
-                "email_enabled": False,
-                "telegram_enabled": True,
-                "push_enabled": False,
-                "new_lead_notification": True,
-                "booking_confirmation": True,
-                "system_alerts": True,
-                "notification_channels": {
-                    "critical": ["telegram", "email"],
-                    "warning": ["telegram"],
-                    "info": ["system"]
                 }
             },
             "business": {
                 "company_name": "Crystal Bay Travel",
-                "contact_email": "info@crystalbay.travel",
-                "contact_phone": "+7 (999) 123-45-67",
-                "website": "https://crystalbay.travel",
-                "office_hours": {
-                    "start": "09:00",
-                    "end": "18:00",
-                    "timezone": "Asia/Almaty",
-                    "working_days": [1, 2, 3, 4, 5]  # Пн-Пт
-                },
+                "company_phone": "+7 (777) 123-45-67",
+                "company_email": "info@crystalbay.travel",
+                "company_address": "Алматы, Казахстан",
+                "working_hours": "9:00 - 18:00",
+                "timezone": "Asia/Almaty",
                 "currency": "USD",
-                "default_markup": 10,  # %
-                "commission_rate": 5,  # %
+                "language": "ru",
+                "auto_lead_assignment": True,
+                "lead_response_time": 60,  # минуты
+                "booking_confirmation_required": True
             },
-            "ui": {
-                "theme": "light",
-                "sidebar_collapsed": False,
-                "default_page": "dashboard",
-                "items_per_page": 20,
-                "auto_refresh": True,
-                "refresh_interval": 30,  # секунды
-                "show_tooltips": True,
-                "compact_mode": False
+            "notifications": {
+                "email_notifications": True,
+                "sms_notifications": False,
+                "telegram_notifications": True,
+                "new_lead_notification": True,
+                "booking_confirmation_notification": True,
+                "payment_notification": True,
+                "system_alerts": True,
+                "daily_reports": True,
+                "weekly_reports": False
             },
-            "security": {
-                "session_timeout": 3600,  # секунды
-                "max_login_attempts": 5,
-                "password_min_length": 8,
-                "require_2fa": False,
-                "api_rate_limit": 100,  # запросов в минуту
-                "log_level": "INFO"
-            },
-            "analytics": {
-                "track_user_actions": True,
-                "track_api_calls": True,
-                "retention_days": 90,
-                "export_format": "json",
-                "auto_reports": True,
-                "report_frequency": "weekly"
+            "logging": {
+                "level": "INFO",
+                "enable_file_logging": True,
+                "log_file": "crystal_bay.log",
+                "max_log_size": "10MB",
+                "backup_count": 5,
+                "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             },
             "last_updated": datetime.now().isoformat(),
             "created": datetime.now().isoformat()

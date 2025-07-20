@@ -212,11 +212,18 @@ def bot_logs():
 def api_get_all_settings():
     """Получить все настройки для нового интерфейса"""
     try:
-        from settings_manager import SettingsManager
-        settings_manager = SettingsManager()
+        from unified_settings_manager import real_settings_manager
+        settings = real_settings_manager.get_all_settings()
+        
+        # Добавляем статус интеграций для отображения
+        integrations = settings.get('integrations', {})
+        for integration_name in integrations.keys():
+            status_info = real_settings_manager.get_integration_status(integration_name)
+            integrations[integration_name]['status'] = status_info['status']
+        
         return jsonify({
             "status": "success",
-            "settings": settings_manager._settings,
+            "settings": settings,
             "message": "Настройки загружены успешно"
         })
     except Exception as e:
@@ -322,8 +329,7 @@ def api_validate_settings():
 def api_update_settings_new():
     """Обновить настройки - новый API для единого интерфейса"""
     try:
-        from settings_manager import SettingsManager
-        settings_manager = SettingsManager()
+        from unified_settings_manager import real_settings_manager
         data = request.get_json()
         
         if not data:
@@ -333,24 +339,31 @@ def api_update_settings_new():
         if not updates:
             return jsonify({"status": "error", "message": "No updates provided"}), 400
         
-        results = settings_manager.update_multiple_settings(updates)
+        logger.info(f"Обновление настроек: {len(updates)} элементов")
+        results = real_settings_manager.update_multiple_settings(updates)
         
-        # Проверяем результаты
-        failed_updates = {k: v for k, v in results.items() if not v}
+        # Подсчитываем результаты
+        successful = sum(1 for v in results.values() if v)
+        failed = len(results) - successful
         
-        if not failed_updates:
+        if failed == 0:
             return jsonify({
                 "status": "success",
-                "message": f"Обновлено настроек: {len(updates)}",
+                "message": f"Все настройки ({successful}) сохранены успешно",
                 "results": results
             })
-        else:
+        elif successful > 0:
             return jsonify({
                 "status": "partial",
-                "message": f"Обновлено: {len(updates) - len(failed_updates)}, ошибок: {len(failed_updates)}",
-                "results": results,
-                "failed": failed_updates
+                "message": f"Сохранено: {successful}, ошибок: {failed}",
+                "results": results
             }), 207
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Не удалось сохранить ни одну настройку",
+                "results": results
+            }), 500
     
     except Exception as e:
         logger.error(f"Error updating settings: {e}")
@@ -363,9 +376,29 @@ def api_update_settings_new():
 def api_test_integration(integration):
     """Тестировать интеграцию"""
     try:
-        from settings_manager import SettingsManager
-        settings_manager = SettingsManager()
-        result = settings_manager.test_integration(integration)
+        from unified_settings_manager import real_settings_manager
+        config = real_settings_manager.get_setting(f'integrations.{integration}', {})
+        
+        # Вызываем соответствующий тестовый метод из старого менеджера
+        from settings_manager import settings_manager as old_manager
+        
+        test_methods = {
+            'samo_api': old_manager._test_samo_api,
+            'telegram_bot': old_manager._test_telegram_bot,
+            'openai': old_manager._test_openai,
+            'wazzup24': old_manager._test_wazzup24,
+            'bitrix24': old_manager._test_bitrix24,
+            'sendgrid': old_manager._test_sendgrid,
+            'supabase': old_manager._test_supabase
+        }
+        
+        if integration in test_methods:
+            result = test_methods[integration](config)
+        else:
+            result = {
+                "status": "error",
+                "message": f"Тест для интеграции {integration} не реализован"
+            }
         
         return jsonify(result)
     
@@ -380,9 +413,33 @@ def api_test_integration(integration):
 def api_validate_integration(integration):
     """Валидировать конфигурацию интеграции"""
     try:
-        from settings_manager import SettingsManager
-        settings_manager = SettingsManager()
-        result = settings_manager.validate_integration_config(integration)
+        from unified_settings_manager import real_settings_manager
+        status_info = real_settings_manager.get_integration_status(integration)
+        
+        if status_info['status'] == 'active':
+            result = {
+                "status": "success",
+                "message": "Конфигурация корректна",
+                "details": status_info
+            }
+        elif status_info['status'] == 'not_configured':
+            result = {
+                "status": "warning",
+                "message": "Интеграция не настроена - отсутствуют обязательные параметры",
+                "details": status_info
+            }
+        elif status_info['status'] == 'disabled':
+            result = {
+                "status": "info",
+                "message": "Интеграция отключена",
+                "details": status_info
+            }
+        else:
+            result = {
+                "status": "error",
+                "message": "Неизвестный статус интеграции",
+                "details": status_info
+            }
         
         return jsonify(result)
     
