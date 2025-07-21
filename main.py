@@ -33,7 +33,9 @@ def sync_samo_leads():
         days_back = request.json.get('days_back', 7) if request.json else 7
         
         # Синхронизируем заявки
-        synced_count = samo_integration.sync_leads_to_system(lead_service)
+        from models import LeadService
+        lead_service_instance = LeadService()
+        synced_count = samo_integration.sync_leads_to_system(lead_service_instance)
         
         return jsonify({
             'success': True,

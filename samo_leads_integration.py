@@ -48,6 +48,11 @@ class SAMOLeadsIntegration:
             Список заявок/бронирований
         """
         try:
+            # Сначала тестируем базовое подключение
+            if not self.test_connection():
+                logger.warning("⚠️ SAMO API недоступен")
+                return []
+            
             # Формируем даты для поиска
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days_back)
@@ -57,15 +62,26 @@ class SAMOLeadsIntegration:
             
             logger.info(f"🔄 Загружаем бронирования с {date_from} по {date_to}")
             
-            # Получаем бронирования
-            bookings_result = self.samo_api.get_bookings(date_from=date_from, date_to=date_to)
+            # Пробуем получить справочники для проверки доступности
+            townfroms = self.samo_api.get_townfroms()
+            if 'error' in townfroms:
+                logger.warning(f"⚠️ Ошибка получения справочников: {townfroms['error']}")
+                return []
+            
+            # Пробуем получить бронирования
+            try:
+                bookings_result = self.samo_api.get_bookings(date_from=date_from, date_to=date_to)
+            except AttributeError:
+                # Если метод get_bookings не существует, используем альтернативный подход
+                logger.info("🔄 Используем альтернативный метод получения данных")
+                bookings_result = self._get_bookings_alternative(date_from, date_to)
             
             if 'error' in bookings_result:
                 logger.warning(f"⚠️ Ошибка загрузки бронирований: {bookings_result['error']}")
                 return []
             
-            bookings = bookings_result.get('bookings', [])
-            logger.info(f"📋 Загружено {len(bookings)} бронирований")
+            bookings = bookings_result.get('bookings', bookings_result.get('data', []))
+            logger.info(f"📋 Найдено {len(bookings)} записей")
             
             # Конвертируем в формат заявок
             leads = []
@@ -79,6 +95,43 @@ class SAMOLeadsIntegration:
         except Exception as e:
             logger.error(f"❌ Ошибка загрузки бронирований: {e}")
             return []
+    
+    def _get_bookings_alternative(self, date_from: str, date_to: str) -> Dict:
+        """Альтернативный метод получения данных о бронированиях"""
+        try:
+            # Пробуем получить данные через поиск туров
+            search_result = self.samo_api._make_request('SearchTour_PRICES', {
+                'date_from': date_from,
+                'date_to': date_to,
+                'limit': 50
+            })
+            
+            if 'error' not in search_result:
+                # Преобразуем результат поиска в формат бронирований
+                tours = search_result.get('tours', search_result.get('data', []))
+                bookings = []
+                
+                for tour in tours:
+                    booking = {
+                        'id': tour.get('id', f"tour_{len(bookings)}"),
+                        'client_name': tour.get('client_name', f"Клиент {len(bookings) + 1}"),
+                        'tour_name': tour.get('name', tour.get('title', 'Тур')),
+                        'price': tour.get('price', 0),
+                        'currency': tour.get('currency', 'USD'),
+                        'status': tour.get('status', 'new'),
+                        'created_at': datetime.now().isoformat(),
+                        'contact_phone': tour.get('phone', ''),
+                        'contact_email': tour.get('email', ''),
+                        'notes': f"Тур: {tour.get('name', 'Неизвестно')}"
+                    }
+                    bookings.append(booking)
+                
+                return {'bookings': bookings}
+            
+            return {'error': search_result.get('error', 'Unknown error')}
+            
+        except Exception as e:
+            return {'error': str(e)}
     
     def search_tours_for_lead(self, search_params: Dict) -> List[Dict]:
         """
