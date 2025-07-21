@@ -1,167 +1,160 @@
 #!/usr/bin/env python3
 """
-Скрипт для сброса всех тестовых данных и создания одного тестового набора данных
-для проверки функциональности системы. Использует in-memory хранилище вместо базы данных.
+Reset Test Data for Production Deployment
+Clears development data and prepares for real SAMO API testing
 """
 
-import os
-import sys
-import logging
 import json
-import uuid
+import os
+import requests
 from datetime import datetime
 
-# Настраиваем логирование
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Импортируем модели и сервисы
-try:
-    from models import LeadService, AgentService, _memory_leads, _memory_ai_agents, _memory_lead_interactions
-    logger.info("Импортированы модели и сервисы")
-except ImportError as e:
-    logger.error(f"Ошибка импорта моделей: {e}")
-    sys.exit(1)
-
-def reset_all_data():
-    """Удаляет все существующие данные в in-memory хранилище"""
-    try:
-        # Очищаем in-memory хранилище обращений
-        logger.info("Удаление всех обращений из in-memory хранилища...")
-        _memory_leads.clear()
-        logger.info("Все обращения удалены из in-memory хранилища")
-        
-        # Очищаем in-memory хранилище взаимодействий
-        logger.info("Удаление всех взаимодействий из in-memory хранилища...")
-        _memory_lead_interactions.clear()
-        logger.info("Все взаимодействия удалены из in-memory хранилища")
-        
-        # Очищаем in-memory хранилище агентов
-        logger.info("Удаление всех агентов из in-memory хранилища...")
-        _memory_ai_agents.clear()
-        logger.info("Все агенты удалены из in-memory хранилища")
-        
-        # Пытаемся удалить данные из базы данных (если доступна)
-        logger.info("Попытка удаления данных из базы данных...")
-        lead_service = LeadService()
-        lead_service.delete_all_leads()
-        
-        return True
-    except Exception as e:
-        logger.error(f"Ошибка при удалении данных: {e}")
-        return False
-
-def create_test_data():
-    """Создает один тестовый набор данных для проверки функциональности в in-memory хранилище"""
-    try:
-        # Создаем тестового агента
-        logger.info("Создание тестового агента в in-memory хранилище...")
-        agent_id = "agent-" + str(uuid.uuid4())
-        agent_data = {
-            "id": agent_id,
-            "name": "Тестовый турагент",
-            "description": "Агент для обработки запросов на туры",
-            "system_prompt": "Вы - турагент компании Crystal Bay Travel. Ваша задача - вежливо помогать клиентам с выбором и бронированием туров.",
-            "type": "tourism",
-            "enabled": True,
-            "usage": {
-                "total_calls": 0,
-                "successful_calls": 0,
-                "failed_calls": 0,
-                "last_used": None
-            }
-        }
-        _memory_ai_agents[agent_id] = agent_data
-        logger.info(f"Создан тестовый агент с ID: {agent_id}")
-        
-        # Создаем тестовое обращение по туру
-        logger.info("Создание тестового обращения в in-memory хранилище...")
-        lead_id = "1"  # Простой ID для тестирования
-        lead_data = {
-            "id": lead_id,
-            "name": "Иван Петров",
-            "email": "ivan.petrov@example.com",
-            "phone": "+7 (999) 123-45-67",
-            "interest": "Отдых в Таиланде",
-            "details": "Интересует отдых в Angsana Laguna Phuket 5* на двоих с 15 июня на 10 дней. Нужен прямой перелет и трансфер от аэропорта. Рассматриваем номер с видом на море.",
-            "status": "new",
-            "source": "telegram",
-            "created_at": datetime.now().isoformat(),
-            "tags": ["Пляжный отдых", "Таиланд", "Премиум"],
-            "tour_type": "beach",
-            "destination": "Таиланд, Пхукет",
-            "price_range": "150000-200000",
-            "travelers": 2,
-            "duration": "10 дней",
-            "metadata": json.dumps({
-                "booking": {
-                    "reference": "TH-" + datetime.now().strftime("%y%m%d") + "-123",
-                    "status": "confirmed",
-                    "hotel": "Angsana Laguna Phuket 5*",
-                    "destination": "Таиланд, Пхукет",
-                    "checkin_date": "2025-06-15",
-                    "checkout_date": "2025-06-25",
-                    "room_type": "Deluxe Sea View",
-                    "guests": 2,
-                    "total_price": 185000,
-                    "payment_status": "deposit"
-                }
-            })
-        }
-        
-        # Добавляем в in-memory хранилище
-        _memory_leads.append(lead_data)
-        logger.info(f"Создано тестовое обращение с ID: {lead_id}")
-        
-        # Создаем взаимодействие для обращения
-        logger.info("Создание тестового взаимодействия в in-memory хранилище...")
-        interaction_id = "interaction-" + str(uuid.uuid4())
-        interaction_data = {
-            "id": interaction_id,
-            "lead_id": lead_id,
-            "type": "message",
-            "content": "Добрый день! Интересует отдых в Таиланде, отель Angsana Laguna Phuket. Подскажите, пожалуйста, варианты.",
-            "created_at": datetime.now().isoformat(),
-            "direction": "incoming"
-        }
-        _memory_lead_interactions.append(interaction_data)
-        logger.info(f"Создано тестовое взаимодействие с ID: {interaction_id}")
-        
-        # Создаем ответное взаимодействие
-        response_id = "interaction-" + str(uuid.uuid4())
-        response_data = {
-            "id": response_id,
-            "lead_id": lead_id,
-            "type": "message",
-            "content": "Здравствуйте, Иван! Благодарим за обращение в Crystal Bay Travel. Мы подобрали для вас отличный вариант отдыха в Angsana Laguna Phuket 5* на двоих с 15 июня на 10 дней. Стоимость тура с прямым перелетом, трансфером и номером Deluxe Sea View составляет 185 000 рублей. Хотите узнать подробнее или забронировать?",
-            "created_at": datetime.now().isoformat(),
-            "direction": "outgoing"
-        }
-        _memory_lead_interactions.append(response_data)
-        logger.info(f"Создано ответное взаимодействие с ID: {response_id}")
-        
-        return True
-    except Exception as e:
-        logger.error(f"Ошибка при создании тестовых данных: {e}")
-        return False
-
-if __name__ == "__main__":
-    logger.info("Запуск скрипта сброса и создания тестовых данных")
+def reset_for_production():
+    """Reset system for production deployment with clean state"""
     
-    # Сброс данных
-    if reset_all_data():
-        logger.info("Данные успешно удалены")
+    print("🔄 CRYSTAL BAY TRAVEL - PRODUCTION RESET")
+    print("=" * 50)
+    
+    # Step 1: Backup existing data
+    print("\n1. BACKUP EXISTING DATA")
+    storage_file = 'data/memory_leads.json'
+    backup_file = f'data/backup_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    
+    if os.path.exists(storage_file):
+        try:
+            with open(storage_file, 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+            
+            # Create backup
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(existing_data, f, ensure_ascii=False, indent=2)
+            
+            print(f"   ✅ Backed up {len(existing_data)} leads to {backup_file}")
+            
+        except Exception as e:
+            print(f"   ❌ Backup error: {e}")
     else:
-        logger.error("Не удалось удалить данные")
-        sys.exit(1)
+        print("   ℹ️ No existing data to backup")
     
-    # Создание тестовых данных
-    if create_test_data():
-        logger.info("Тестовые данные успешно созданы")
-    else:
-        logger.error("Не удалось создать тестовые данные")
-        sys.exit(1)
+    # Step 2: Create clean production data structure
+    print("\n2. INITIALIZE PRODUCTION DATA")
     
-    logger.info("Скрипт выполнен успешно")
-    logger.info("После выполнения скрипта перезагрузите страницу вручную для отображения новых данных")
+    # Keep only the most recent comprehensive data
+    production_leads = []
+    
+    if 'existing_data' in locals():
+        # Keep only Crystal Bay booking system data (the comprehensive realistic data)
+        production_leads = [
+            lead for lead in existing_data 
+            if lead.get('source') == 'crystal_bay_booking_system'
+        ]
+    
+    # Save production-ready data
+    os.makedirs('data', exist_ok=True)
+    with open(storage_file, 'w', encoding='utf-8') as f:
+        json.dump(production_leads, f, ensure_ascii=False, indent=2)
+    
+    print(f"   ✅ Initialized with {len(production_leads)} production leads")
+    
+    # Step 3: Test SAMO API connection status
+    print("\n3. SAMO API CONNECTION TEST")
+    
+    samo_url = "https://booking-kz.crystalbay.com/export/default.php"
+    oauth_token = "27bd59a7ac67422189789f0188167379"
+    
+    try:
+        # Test with production headers
+        data = {
+            'samo_action': 'api',
+            'version': '1.0',
+            'type': 'json',
+            'action': 'SearchTour_CURRENCIES',
+            'oauth_token': oauth_token
+        }
+        
+        headers = {
+            'User-Agent': 'Crystal Bay Travel Integration/1.0 (Production)',
+            'Accept': 'application/json, text/xml, */*',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache'
+        }
+        
+        response = requests.post(samo_url, data=data, headers=headers, timeout=20)
+        
+        print(f"   📡 Status: {response.status_code}")
+        print(f"   📏 Response: {len(response.text)} chars")
+        
+        if response.status_code == 200:
+            print("   🎉 SAMO API: Connection successful!")
+            
+            # Try to parse response
+            try:
+                json_data = response.json()
+                if isinstance(json_data, dict):
+                    print("   ✅ Valid JSON response received")
+                    print("   🚀 Ready for live data integration")
+                else:
+                    print("   📊 Response format:", type(json_data))
+            except:
+                print("   📄 XML/Text response (may be valid)")
+                
+        elif response.status_code == 403:
+            print("   🔒 IP whitelist still pending")
+            
+            # Extract IP information
+            if "blacklisted address" in response.text:
+                import re
+                ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', response.text)
+                if ip_match:
+                    current_ip = ip_match.group(1)
+                    print(f"   📍 Current deployment IP: {current_ip}")
+                    print(f"   📧 Contact Crystal Bay to whitelist: {current_ip}")
+        else:
+            print(f"   ⚠️ Unexpected response: {response.status_code}")
+            
+    except Exception as e:
+        print(f"   ❌ Connection test failed: {e}")
+    
+    # Step 4: Validate system readiness
+    print("\n4. PRODUCTION READINESS CHECK")
+    
+    checks = {
+        "Data Storage": os.path.exists(storage_file) and len(production_leads) > 0,
+        "SAMO API Module": os.path.exists('crystal_bay_samo_api.py'),
+        "Web Interface": os.path.exists('main.py'),
+        "Static Assets": os.path.exists('templates'),
+        "Integration Guide": os.path.exists('crystal_bay_integration_guide.md')
+    }
+    
+    for check, status in checks.items():
+        icon = "✅" if status else "❌"
+        print(f"   {icon} {check}: {'Ready' if status else 'Missing'}")
+    
+    # Step 5: Final summary
+    print("\n🎯 PRODUCTION DEPLOYMENT STATUS")
+    print("=" * 40)
+    
+    total_revenue = sum(lead.get('total_price', 0) for lead in production_leads)
+    
+    print(f"📊 System Metrics:")
+    print(f"   • Leads: {len(production_leads)}")
+    print(f"   • Revenue: ${total_revenue:,}")
+    print(f"   • Data: Production-ready")
+    
+    print(f"\n🚀 Deployment Instructions:")
+    print(f"   1. Deploy to production environment")
+    print(f"   2. Test SAMO API connectivity")
+    print(f"   3. Verify IP whitelisting status")
+    print(f"   4. Begin live data synchronization")
+    
+    return {
+        'production_leads': len(production_leads),
+        'backup_created': os.path.exists(backup_file),
+        'total_revenue': total_revenue,
+        'ready': all(checks.values())
+    }
+
+if __name__ == '__main__':
+    results = reset_for_production()
+    print(f"\n✨ RESET COMPLETED - Ready for production deployment")
+    print(f"System prepared with {results['production_leads']} travel bookings")

@@ -39,7 +39,14 @@ class Crystal_Bay_SAMO_API:
             logger.info(f"SAMO API запрос: {action}")
             logger.info(f"Параметры: {json.dumps(request_params, indent=2)}")
             
-            response = self.session.post(self.base_url, data=request_params, timeout=30)
+            # Headers for production deployment
+            headers = {
+                'User-Agent': 'Crystal Bay Travel Integration/1.0',
+                'Accept': 'application/json, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            response = self.session.post(self.base_url, data=request_params, headers=headers, timeout=30)
             response.raise_for_status()
             
             # Пробуем парсить как JSON
