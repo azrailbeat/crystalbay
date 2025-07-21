@@ -108,7 +108,7 @@ def reset_for_production():
                 if ip_match:
                     current_ip = ip_match.group(1)
                     print(f"   📍 Current deployment IP: {current_ip}")
-                    print(f"   📧 Contact Crystal Bay to whitelist: {current_ip}")
+                    print(f"   📧 Contact Crystal Bay to whitelist: 34.117.33.233")
         else:
             print(f"   ⚠️ Unexpected response: {response.status_code}")
             

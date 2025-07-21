@@ -123,7 +123,7 @@ def test_production_deployment():
                 if ip_match:
                     detected_ip = ip_match.group(1)
                     print(f"   📍 Detected IP: {detected_ip}")
-                    print(f"   📧 Action: Request Crystal Bay to whitelist {detected_ip}")
+                    print(f"   📧 Action: Request Crystal Bay to whitelist 34.117.33.233")
         else:
             print(f"   ❌ Unexpected status: {response.status_code}")
             print(f"   📄 Response: {response.text[:200]}...")

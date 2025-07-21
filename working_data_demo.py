@@ -47,10 +47,10 @@ def test_system_functionality():
     
     # Test 3: SAMO API status (expected to fail until IP whitelisted)
     print("\n3. SAMO API STATUS")
-    print("   📍 Development IP detected: 34.148.145.238")
+    print("   📍 System IP: 34.117.33.233")
     print("   🔒 Status: Awaiting Crystal Bay IP whitelist")
     print("   ✅ API format and authentication: Correct")
-    print("   ⏳ Action needed: Whitelist IP 34.148.145.238")
+    print("   ⏳ Action needed: Whitelist IP 34.117.33.233")
     
     # Test 4: Sample business data
     print("\n4. BUSINESS DATA SAMPLE")
@@ -88,8 +88,8 @@ def test_system_functionality():
     
     print(f"\n🎯 NEXT STEP")
     print("=" * 30)
-    print("Contact Crystal Bay support to whitelist development IP:")
-    print("📧 Request: Add IP 34.148.145.238 to SAMO API whitelist")
+    print("Contact Crystal Bay support to whitelist system IP:")
+    print("📧 Request: Add IP 34.117.33.233 to SAMO API whitelist")
     print("🔗 OAuth token: 27bd59a7ac67422189789f0188167379")
     print("📋 System: Ready for immediate use once IP is whitelisted")
     
@@ -97,7 +97,7 @@ def test_system_functionality():
         'total_leads': total_leads if 'leads' in locals() else 0,
         'system_status': 'ready',
         'api_integration': 'pending_ip_whitelist',
-        'development_ip': '34.148.145.238'
+        'system_ip': '34.117.33.233'
     }
 
 if __name__ == '__main__':

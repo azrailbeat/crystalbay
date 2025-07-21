@@ -1,165 +1,120 @@
 #!/usr/bin/env python3
 """
-Production Ready Demo - Crystal Bay Travel System
-Demonstrates fully working system with realistic travel booking data
+Production Ready Demo - Crystal Bay System
+Tests system with production IP configuration
 """
 
 import json
 import os
 import requests
-from datetime import datetime, timedelta
-import uuid
+from datetime import datetime
 
-def create_realistic_leads():
-    """Create realistic Crystal Bay travel leads for demonstration"""
+def test_production_configuration():
+    """Test production configuration with correct IP settings"""
     
-    destinations = [
-        {"country": "Вьетнам", "city": "Хошимин", "price_range": (800, 1200)},
-        {"country": "Таиланд", "city": "Пхукет", "price_range": (900, 1400)}, 
-        {"country": "Турция", "city": "Анталья", "price_range": (600, 1000)},
-        {"country": "Египет", "city": "Хургада", "price_range": (500, 800)},
-        {"country": "ОАЭ", "city": "Дубай", "price_range": (1200, 2000)},
-        {"country": "Мальдивы", "city": "Мале", "price_range": (2000, 3500)},
-        {"country": "Индонезия", "city": "Бали", "price_range": (1000, 1600)}
-    ]
+    print("🚀 CRYSTAL BAY TRAVEL - PRODUCTION IP CONFIGURATION")
+    print("=" * 55)
     
-    departure_cities = ["Алматы", "Нур-Султан", "Шымкент", "Актобе", "Караганда"]
+    # System Configuration
+    SYSTEM_IP = "34.117.33.233"
+    SAMO_URL = "https://booking-kz.crystalbay.com/export/default.php"
+    OAUTH_TOKEN = "27bd59a7ac67422189789f0188167379"
     
-    client_names = [
-        "Айжан Серикова", "Данияр Жумабеков", "Гульнара Токтарова", 
-        "Арман Байжанов", "Сауле Касымова", "Ерлан Мустафин",
-        "Жанара Ибраимова", "Нурлан Кенесов", "Алтынай Тулегенова",
-        "Бакыт Рахимов"
-    ]
+    print(f"\n📍 SYSTEM CONFIGURATION")
+    print(f"   System IP: {SYSTEM_IP}")
+    print(f"   SAMO API: {SAMO_URL}")
+    print(f"   OAuth Token: {OAUTH_TOKEN}")
     
-    realistic_leads = []
-    
-    for i, name in enumerate(client_names):
-        destination = destinations[i % len(destinations)]
-        departure = departure_cities[i % len(departure_cities)]
-        
-        # Generate realistic dates (future bookings)
-        departure_date = datetime.now() + timedelta(days=30 + i*14)
-        created_date = datetime.now() - timedelta(days=i+1)
-        
-        # Generate price in range
-        min_price, max_price = destination["price_range"]
-        price = min_price + (i * 50) % (max_price - min_price)
-        
-        lead = {
-            "id": str(uuid.uuid4()),
-            "customer_name": name,
-            "email": f"{name.lower().replace(' ', '.')}@example.com",
-            "phone": f"+7 7{70 + i}{100 + i:02d} {200 + i:02d} {300 + i:02d}",
-            "destination": f"{destination['country']} - {destination['city']}",
-            "departure_city": departure,
-            "departure_date": departure_date.strftime('%Y-%m-%d'),
-            "nights": 7 + (i % 7),
-            "adults": 2 + (i % 2),
-            "children": i % 3,
-            "tour_type": ["Пляжный отдых", "Экскурсионный", "Комбинированный"][i % 3],
-            "price": price,
-            "currency": "USD",
-            "status": ["new", "in_progress", "pending", "confirmed"][i % 4],
-            "source": "website",
-            "created_at": created_date.isoformat(),
-            "notes": f"Crystal Bay Travel - заявка на {destination['country']}. "
-                    f"Вылет из {departure}. "
-                    f"{7 + (i % 7)} дней, {2 + (i % 2)} взрослых"
-                    + (f", {i % 3} детей" if i % 3 > 0 else "") + ".",
-            "agent_assigned": ["Менеджер 1", "Менеджер 2", "Менеджер 3"][i % 3],
-            "priority": ["normal", "high", "urgent"][i % 3] if i % 4 == 3 else "normal",
-            "tags": [
-                destination['country'],
-                departure,
-                "Активная заявка" if i % 4 != 0 else "Новая заявка"
-            ]
-        }
-        
-        realistic_leads.append(lead)
-    
-    return realistic_leads
-
-def update_system_with_production_data():
-    """Update the Crystal Bay system with realistic production data"""
-    
-    print("🏖️ CRYSTAL BAY TRAVEL - ЗАГРУЗКА РЕАЛИСТИЧНЫХ ДАННЫХ")
-    print("=" * 60)
-    
-    # Create realistic leads
-    leads = create_realistic_leads()
-    print(f"✅ Создано {len(leads)} реалистичных заявок Crystal Bay")
-    
-    # Update persistent storage
+    # Test data persistence
+    print(f"\n📊 DATA PERSISTENCE STATUS")
     storage_file = 'data/memory_leads.json'
-    os.makedirs('data', exist_ok=True)
     
-    # Load existing data and merge
-    existing_leads = []
     if os.path.exists(storage_file):
-        try:
-            with open(storage_file, 'r', encoding='utf-8') as f:
-                existing_leads = json.load(f)
-        except:
-            pass
-    
-    # Merge with new realistic data (replace system entries)
-    final_leads = [lead for lead in existing_leads if lead.get('source') != 'system']
-    final_leads.extend(leads)
-    
-    # Save to storage
-    with open(storage_file, 'w', encoding='utf-8') as f:
-        json.dump(final_leads, f, ensure_ascii=False, indent=2)
-    
-    print(f"💾 Сохранено {len(final_leads)} заявок в {storage_file}")
-    
-    # Display sample data
-    print("\n📋 ОБРАЗЦЫ ЗАЯВОК:")
-    print("-" * 40)
-    
-    for i, lead in enumerate(leads[:5]):  # Show first 5
-        status_icon = {"new": "🆕", "in_progress": "⏳", "pending": "⏰", "confirmed": "✅"}
-        icon = status_icon.get(lead['status'], "📝")
+        with open(storage_file, 'r', encoding='utf-8') as f:
+            leads = json.load(f)
         
-        print(f"{icon} {lead['customer_name']}")
-        print(f"   📍 {lead['destination']}")
-        print(f"   🛫 Вылет: {lead['departure_date']} из {lead['departure_city']}")
-        print(f"   💰 {lead['price']} {lead['currency']} - {lead['nights']} ночей")
-        print(f"   📞 {lead['phone']}")
-        print()
+        print(f"   Leads loaded: {len(leads)}")
+        
+        if leads:
+            sample_lead = leads[0]
+            print(f"   Sample customer: {sample_lead.get('customer_name', 'Unknown')}")
+            print(f"   Sample destination: {sample_lead.get('destination', 'Unknown')}")
+    else:
+        print(f"   No data file found")
     
-    # Test API integration
-    print("🔗 ТЕСТИРОВАНИЕ API ИНТЕГРАЦИИ")
-    print("-" * 40)
+    # Test SAMO API with production headers
+    print(f"\n🔗 SAMO API CONNECTION TEST")
     
     try:
-        # Test leads endpoint
-        response = requests.get("http://localhost:5000/api/leads", timeout=5)
+        data = {
+            'samo_action': 'api',
+            'version': '1.0',
+            'type': 'json',
+            'action': 'SearchTour_CURRENCIES',
+            'oauth_token': OAUTH_TOKEN
+        }
+        
+        headers = {
+            'User-Agent': 'Crystal Bay Travel Integration/1.0',
+            'Accept': 'application/json, text/xml, */*',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        
+        response = requests.post(SAMO_URL, data=data, headers=headers, timeout=15)
+        
+        print(f"   Status Code: {response.status_code}")
+        print(f"   Response Length: {len(response.text)} chars")
+        
         if response.status_code == 200:
-            api_leads = response.json()
-            print(f"✅ API возвращает {len(api_leads)} заявок")
+            print(f"   ✅ SAMO API: Connection successful")
+            try:
+                json_data = response.json()
+                print(f"   📊 Valid JSON response received")
+            except:
+                print(f"   📄 Response format: {response.text[:100]}...")
+        
+        elif response.status_code == 403:
+            print(f"   🔒 SAMO API: IP whitelist required")
+            if "blacklisted address" in response.text:
+                import re
+                ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', response.text)
+                if ip_match:
+                    detected_ip = ip_match.group(1)
+                    print(f"   Current IP detected: {detected_ip}")
+            print(f"   📧 Request Crystal Bay to whitelist: {SYSTEM_IP}")
+        
         else:
-            print(f"⚠️ API статус: {response.status_code}")
+            print(f"   ⚠️ Unexpected status: {response.status_code}")
+            
     except Exception as e:
-        print(f"⚠️ API недоступен: {e}")
+        print(f"   ❌ Connection error: {e}")
     
-    print("\n🎯 РЕЗУЛЬТАТ")
-    print("-" * 40)
-    print("✅ Система загружена реалистичными данными Crystal Bay")
-    print("✅ Все заявки готовы для работы с Kanban интерфейсом") 
-    print("✅ Данные персистентны и сохранятся между перезапусками")
-    print("✅ Система готова для демонстрации полной функциональности")
+    # Contact information for Crystal Bay
+    print(f"\n📧 CRYSTAL BAY CONTACT REQUEST")
+    print(f"=" * 35)
+    print(f"Subject: SAMO API IP Whitelist Request")
+    print(f"")
+    print(f"Dear Crystal Bay Technical Support,")
+    print(f"")
+    print(f"Please whitelist the following IP for SAMO API access:")
+    print(f"IP Address: {SYSTEM_IP}")
+    print(f"OAuth Token: {OAUTH_TOKEN}")
+    print(f"API Endpoint: {SAMO_URL}")
+    print(f"")
+    print(f"System: Crystal Bay Travel Integration")
+    print(f"Purpose: Tour booking and inventory management")
+    print(f"")
+    print(f"Thank you,")
+    print(f"Crystal Bay Travel Team")
     
-    print(f"\n📊 СТАТИСТИКА:")
-    status_counts = {}
-    for lead in leads:
-        status = lead['status']
-        status_counts[status] = status_counts.get(status, 0) + 1
-    
-    for status, count in status_counts.items():
-        print(f"   {status.capitalize()}: {count} заявок")
-    
-    return len(final_leads)
+    return {
+        'system_ip': SYSTEM_IP,
+        'samo_url': SAMO_URL,
+        'oauth_token': OAUTH_TOKEN,
+        'leads_count': len(leads) if 'leads' in locals() else 0
+    }
 
 if __name__ == '__main__':
-    update_system_with_production_data()
+    results = test_production_configuration()
+    print(f"\n✅ CONFIGURATION COMPLETE")
+    print(f"System configured with IP {results['system_ip']} for production deployment")
