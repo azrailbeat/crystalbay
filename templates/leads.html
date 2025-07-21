@@ -379,6 +379,14 @@
                 <i class="bi bi-play-fill"></i> Авто-обработка
             </button>
             
+            <button class="btn btn-success me-2" onclick="syncSamoLeads()">
+                <i class="bi bi-cloud-download"></i> Синхронизация SAMO
+            </button>
+            
+            <button class="btn btn-outline-primary me-2" onclick="testSamoConnection()">
+                <i class="bi bi-wifi"></i> Тест SAMO API
+            </button>
+            
             <div class="dropdown">
                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                     Все статусы
@@ -2381,6 +2389,54 @@
                     Компонент истории чата Wazzup24 недоступен
                 </div>
             `;
+        }
+    }
+    
+    // SAMO API Integration Functions
+    async function syncSamoLeads() {
+        try {
+            showToast('Запуск синхронизации заявок из SAMO API...', 'info');
+            
+            const response = await fetch('/api/samo/leads/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ days_back: 7 })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Синхронизация завершена! Загружено ${data.leads_count} заявок`, 'success');
+                // Перезагружаем страницу для отображения новых заявок
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast(`Ошибка синхронизации: ${data.message}`, 'warning');
+            }
+        } catch (error) {
+            console.error('Error syncing SAMO leads:', error);
+            showToast('Ошибка при синхронизации с SAMO API', 'danger');
+        }
+    }
+    
+    async function testSamoConnection() {
+        try {
+            showToast('Тестирование подключения к SAMO API...', 'info');
+            
+            const response = await fetch('/api/samo/leads/test');
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`${data.message}`, 'success');
+            } else {
+                showToast(`Ошибка подключения: ${data.message}`, 'warning');
+            }
+        } catch (error) {
+            console.error('Error testing SAMO connection:', error);
+            showToast('Ошибка при тестировании SAMO API', 'danger');
         }
     }
 </script>
