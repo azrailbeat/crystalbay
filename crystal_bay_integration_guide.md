@@ -4,13 +4,22 @@
 
 **Issue**: 403 Forbidden error persists even on whitelisted Replit deployment
 **Deployment URL**: crystal-bay.replit.app  
-**IP Address**: 34.117.33.233
+**IP Address**: 34.117.33.233 (displayed) / 34.148.145.238 (actual outbound IP detected by Crystal Bay)
 **SAMO API Endpoint**: https://booking-kz.crystalbay.com/export/default.php
 **OAuth Token**: 27bd59a7ac67422189789f0188167379
 
 ## Problem Analysis
 
-The 403 Forbidden error indicates that the IP address is not properly whitelisted in Crystal Bay's system, despite the deployment being on a whitelisted domain.
+**RESOLVED: Root Cause Identified**
+
+Crystal Bay's API is responding correctly but shows:
+`"apiKey provided, but invalid, blacklisted address 34.148.145.238"`
+
+**Issue**: You're developing on a different development server:
+- **Production IP**: 34.117.33.233 (crystal-bay.replit.app deployment)
+- **Development IP**: 34.148.145.238 (current development environment - detected by Crystal Bay API)
+
+The API is working perfectly - it just needs the development server IP whitelisted.
 
 ## Potential Solutions
 
@@ -44,7 +53,7 @@ Since the API integration is technically working (correct format, authentication
 
 ## Next Steps
 
-1. **User Action Required**: Contact Crystal Bay support to whitelist IP 34.117.33.233
+1. **User Action Required**: Contact Crystal Bay support to whitelist development IP 34.148.145.238
 2. **Alternative**: Request Crystal Bay partnership for API access
 3. **Technical**: System ready to work with real data immediately after IP resolution
 
@@ -66,12 +75,14 @@ Dear Crystal Bay Technical Support,
 We are integrating with your SAMO API using the following credentials:
 - OAuth Token: 27bd59a7ac67422189789f0188167379
 - API Endpoint: https://booking-kz.crystalbay.com/export/default.php
-- Deployment IP: 34.117.33.233 (crystal-bay.replit.app)
+- Development IP: 34.148.145.238 (current development server)
+- Production IP: 34.117.33.233 (crystal-bay.replit.app)
 
 We are receiving 403 Forbidden errors and need this IP address whitelisted for API access.
 
 Please assist with:
-1. Whitelisting IP 34.117.33.233
+1. Whitelisting development IP 34.148.145.238
+2. Whitelisting production IP 34.117.33.233
 2. Confirming API access permissions
 3. Any additional requirements for international access
 
