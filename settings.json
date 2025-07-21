@@ -64,7 +64,8 @@
       "pipeline_id": "7",
       "auto_create_leads": true,
       "sync_contacts": true
-    }
+    },
+    "test": true
   },
   "notifications": {
     "email_enabled": false,

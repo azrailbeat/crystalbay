@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block title %}Ошибка - Crystal Bay Tours{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                    </div>
+                    <h3 class="card-title">Произошла ошибка</h3>
+                    <p class="card-text text-muted mb-4">
+                        При обработке запроса произошла ошибка. Пожалуйста, попробуйте позже.
+                    </p>
+                    {% if error %}
+                    <div class="alert alert-danger text-start">
+                        <strong>Детали ошибки:</strong><br>
+                        <code>{{ error }}</code>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="/" class="btn btn-primary">
+                            <i class="bi bi-house me-2"></i>Главная
+                        </a>
+                        <button onclick="window.history.back()" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Назад
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
