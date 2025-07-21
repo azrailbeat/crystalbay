@@ -39,119 +39,25 @@ _memory_agents_config = {
     'auto_process': False
 }
 
-# Sample leads data for demo when database is unavailable
-_memory_leads = [
-    {
-        'id': '1',
-        'name': 'Анна Смирнова',
-        'email': 'anna.smirnova@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'telegram',
-        'status': 'new',
-        'created_at': '2025-05-05T10:00:00',
-        'details': 'Запрос на пляжный тур в Турцию, семейный отдых, 2 взрослых и 2 детей, июль-август 2025, бюджет до 350000 рублей',
-        'tags': ['Пляжный отдых', 'Семья', 'Турция']
-    },
-    {
-        'id': '2',
-        'name': 'Иван Петров',
-        'email': 'ivan.petrov@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'website',
-        'status': 'new',
-        'created_at': '2025-05-05T11:00:00',
-        'details': 'Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция. Планирую поездку в сентябре 2025, продолжительность 10-14 дней',
-        'tags': ['Экскурсии', 'Европа', 'Культурный туризм']
-    },
-    {
-        'id': '3',
-        'name': 'Екатерина Васильева',
-        'email': 'ekaterina.vasilyeva@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'phone',
-        'status': 'new',
-        'created_at': '2025-05-05T12:00:00',
-        'details': 'Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025, для 2 человек с опытом катания. Нужен отель с хорошим доступом к склонам',
-        'tags': ['Горнолыжный', 'Зима', 'Активный отдых']
-    },
-    {
-        'id': '4',
-        'name': 'Михаил Соколов',
-        'email': 'mikhail.sokolov@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'email',
-        'status': 'new',
-        'created_at': '2025-05-05T13:00:00',
-        'details': 'Ищем варианты для медового месяца на Мальдивах или Бали в октябре 2025. Хотим отель с частным пляжем или виллу на воде',
-        'tags': ['Романтический отдых', 'Пляжный отдых', 'VIP']
-    },
-    {
-        'id': '5',
-        'name': 'Ольга Новикова',
-        'email': 'olga.novikova@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'telegram',
-        'status': 'new',
-        'created_at': '2025-05-05T14:00:00',
-        'details': 'Планирую поездку в Японию для знакомства с культурой и посещения фестиваля сакуры. Апрель 2026, примерно на 2 недели',
-        'tags': ['Азия', 'Япония', 'Культурный туризм']
-    },
-    {
-        'id': '6',
-        'name': 'Алексей Козлов',
-        'email': 'alexey.kozlov@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'website',
-        'status': 'new',
-        'created_at': '2025-05-05T15:00:00',
-        'details': 'Нужен тур для рыбалки на Камчатке летом 2025. Группа из 4 мужчин, с опытом походов. Интересуют варианты с разным уровнем комфорта',
-        'tags': ['Экстрим', 'Рыбалка', 'Активный отдых']
-    },
-    {
-        'id': '7',
-        'name': 'Татьяна Морозова',
-        'email': 'tatiana.morozova@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'phone',
-        'status': 'new',
-        'created_at': '2025-05-05T16:00:00',
-        'details': 'Хочу заказать групповой тур в Египет для дайвинга. 6 человек, все с сертификатами. Нужна программа на 8-10 дней в ноябре 2025',
-        'tags': ['Дайвинг', 'Группа', 'Активный отдых']
-    },
-    {
-        'id': '8',
-        'name': 'Сергей Белов',
-        'email': 'sergey.belov@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'website',
-        'status': 'new',
-        'created_at': '2025-05-05T17:00:00',
-        'details': 'Ищу варианты для оздоровительного отдыха в санатории. Предпочтительно в России или Беларуси. 14-21 день, сентябрь 2025',
-        'tags': ['Санаторий', 'Оздоровление', 'Россия']
-    },
-    {
-        'id': '9',
-        'name': 'Наталья Кузнецова',
-        'email': 'natalia.kuznetsova@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'email',
-        'status': 'new',
-        'created_at': '2025-05-05T18:00:00',
-        'details': 'Планирую гастрономический тур по Италии. Интересуют регионы Тоскана и Пьемонт. 10 дней, май 2026, с дегустациями и кулинарными мастер-классами',
-        'tags': ['Гастрономия', 'Европа', 'Италия']
-    },
-    {
-        'id': '10',
-        'name': 'Дмитрий Волков',
-        'email': 'dmitry.volkov@example.com',
-        'phone': '+7 (xxx) xxx-xx-xx',
-        'source': 'telegram',
-        'status': 'new',
-        'created_at': '2025-05-05T19:00:00',
-        'details': 'Хочу забронировать тур в Таиланд для йога-ретрита. 10-14 дней в январе 2026. Нужен спокойный отель вдали от туристических маршрутов',
-        'tags': ['Йога', 'Оздоровление', 'Таиланд']
-    }
-]
+# Real leads data from SAMO API - no more mock data
+_memory_leads = []
+
+def _load_samo_leads():
+    """Загружает заявки из SAMO API при инициализации"""
+    try:
+        from samo_leads_integration import samo_leads
+        real_leads = samo_leads.get_recent_bookings(days_back=30)
+        if real_leads:
+            global _memory_leads
+            _memory_leads.extend(real_leads)
+            logger.info(f"Загружено {len(real_leads)} заявок из SAMO API")
+        else:
+            logger.info("Заявки из SAMO API не найдены")
+    except Exception as e:
+        logger.error(f"Ошибка загрузки заявок из SAMO API: {e}")
+
+# Загружаем заявки из SAMO при старте
+_load_samo_leads()
 
 try:
     if not supabase_url or not supabase_key:

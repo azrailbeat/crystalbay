@@ -14,18 +14,28 @@ logger = logging.getLogger(__name__)
 # Резервное хранилище данных для случаев, когда БД недоступна
 _memory_leads = []
 
-# Предзаполняем список тестовыми данными
-for i in range(1, 8):
+# Load real leads from SAMO API instead of demo data
+try:
+    from samo_leads_integration import samo_leads
+    samo_bookings = samo_leads.get_recent_bookings(days_back=14)
+    if samo_bookings:
+        _memory_leads.extend(samo_bookings)
+        logger.info(f"Загружено {len(samo_bookings)} заявок из SAMO API")
+except Exception as e:
+    logger.error(f"Ошибка загрузки заявок SAMO: {e}")
+
+# Minimal fallback only if no SAMO leads loaded (for testing without IP whitelisting)
+if not _memory_leads:
     _memory_leads.append({
-        'id': str(i),
+        'id': 'sample_1',
         'status': 'new',
-        'name': f'Клиент #{i}',
-        'email': f'client{i}@example.com',
-        'phone': f'+7 (9{i}0) 123-45-67',
+        'name': 'SAMO API - ожидание настройки IP',
+        'email': 'admin@crystalbay.travel',
+        'phone': '+7 (777) 123-45-67',
         'created_at': datetime.now().isoformat(),
-        'source': 'demo',
-        'tags': ['Демо'],
-        'details': f'Запрос от клиента #{i}'
+        'source': 'system',
+        'tags': ['Система', 'Настройка'],
+        'details': 'Для загрузки заявок из SAMO API необходимо добавить IP-адрес сервера в whitelist Crystal Bay'
     })
 
 
@@ -79,21 +89,11 @@ def register_api_routes(app):
                 
                 # Если лид не найден нигде, создаем тестовые данные
                 if not lead:
-                    # Создаём демонстрационный лид если мы вообще не нашли данные
-                    lead = {
-                        'id': lead_id,
-                        'status': 'new',
-                        'name': f'Лид #{lead_id}',
-                        'email': 'demo@example.com',
-                        'phone': '+7 (xxx) xxx-xx-xx',
-                        'source': 'demo',
-                        'created_at': datetime.now().isoformat(),
-                        'details': 'Демонстрационные данные лида',
-                        'tags': ['Демо', 'Тест']
-                    }
-                    
-                    # Добавляем в память для будущих запросов
-                    _memory_leads.append(lead)
+                    # Возвращаем ошибку вместо создания демо-лида
+                    return jsonify({
+                        'error': f'Лид с ID {lead_id} не найден',
+                        'timestamp': datetime.now().isoformat()
+                    }), 404
             
             # Получаем взаимодействия для лида (если есть)
             interactions = []

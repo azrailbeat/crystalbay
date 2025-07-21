@@ -10,20 +10,16 @@
   },
   "integrations": {
     "samo_api": {
-      "enabled": true,
-      "endpoint": "https://booking-kz.crystalbay.com/export/default.php",
       "oauth_token": "27bd59a7ac67422189789f0188167379",
-      "timeout": 30,
-      "max_retries": 3,
-      "default_currency": "USD",
-      "default_departure": "1"
+      "api_url": ""
     },
     "telegram_bot": {
       "enabled": true,
       "token": "7880836446:AAEQ09MFgpqDRzJVz5ijzUtE3g4SZ4Fiul8",
       "welcome_message": "Добро пожаловать в Crystal Bay Travel! 🌊",
       "auto_respond": true,
-      "response_timeout": 30
+      "response_timeout": 30,
+      "status": "active"
     },
     "openai": {
       "enabled": true,
@@ -31,14 +27,16 @@
       "model": "gpt-4o",
       "temperature": 0.7,
       "max_tokens": 1500,
-      "language": "ru"
+      "language": "ru",
+      "status": "active"
     },
     "supabase": {
       "enabled": true,
       "url": "https://lqjwwzvwqorfqeurerrw.supabase.co",
       "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxxand3enZ3cW9yZnFldXJlcnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NjQyMTEsImV4cCI6MjA2MDU0MDIxMX0.nl6UXDsjTKklR-eY4XUSFnpUcKWwNz20CV068hal2s0",
       "auto_sync": true,
-      "sync_interval": 5
+      "sync_interval": 5,
+      "status": "active"
     },
     "sendgrid": {
       "enabled": false,
@@ -48,14 +46,16 @@
         "booking_confirmation": "",
         "booking_reminder": "",
         "lead_notification": ""
-      }
+      },
+      "status": "disabled"
     },
     "wazzup": {
       "enabled": false,
       "api_key": "",
       "api_secret": "",
       "webhook_url": "",
-      "auto_process": true
+      "auto_process": true,
+      "status": "disabled"
     },
     "bitrix24": {
       "enabled": true,
@@ -63,7 +63,8 @@
       "access_token": "",
       "pipeline_id": "7",
       "auto_create_leads": true,
-      "sync_contacts": true
+      "sync_contacts": true,
+      "status": "not_configured"
     },
     "test": true
   },

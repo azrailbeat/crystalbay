@@ -22,6 +22,50 @@ bot_process = None
 from app_api import register_api_routes
 register_api_routes(app)
 
+# SAMO API Leads Sync endpoints
+@app.route('/api/samo/leads/sync', methods=['POST'])
+def sync_samo_leads():
+    """Синхронизация заявок из SAMO API"""
+    try:
+        from samo_leads_integration import samo_leads
+        
+        days_back = request.json.get('days_back', 7) if request.json else 7
+        result = samo_leads.sync_leads(days_back)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Ошибка синхронизации SAMO: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Ошибка синхронизации: {str(e)}',
+            'leads_count': 0
+        }), 500
+
+@app.route('/api/samo/leads/test', methods=['GET'])
+def test_samo_leads():
+    """Тестирование подключения к SAMO API для получения заявок"""
+    try:
+        from samo_leads_integration import samo_leads
+        
+        # Пробуем получить заявки за последние 3 дня
+        test_leads = samo_leads.get_recent_bookings(days_back=3)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Подключение работает. Найдено {len(test_leads)} заявок за последние 3 дня',
+            'leads_count': len(test_leads),
+            'sample_leads': test_leads[:2] if test_leads else []  # Показываем первые 2 для примера
+        })
+        
+    except Exception as e:
+        logger.error(f"Ошибка тестирования SAMO: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Ошибка подключения: {str(e)}',
+            'leads_count': 0
+        }), 500
+
 # Import and register test API routes
 from app_api_test import register_test_routes
 register_test_routes(app)
