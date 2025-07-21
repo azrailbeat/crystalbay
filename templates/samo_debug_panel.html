@@ -1,0 +1,397 @@
+<!-- SAMO API Debugging Panel -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired me-2"></i>SAMO API Connectivity Debugging
+                </h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshSamoStatus()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Connection Status Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3">
+                                <div id="samo-status-indicator" class="status-indicator status-unknown"></div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Connection Status</h6>
+                                <span id="samo-status-text" class="text-muted">Checking...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-server text-secondary fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">API Endpoint</h6>
+                                <small class="text-muted">booking-kz.crystalbay.com</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IP Address Information -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Current IP</h6>
+                                <span id="current-ip" class="fw-bold text-primary">Detecting...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Expected Production IP</h6>
+                                <span class="fw-bold text-success">34.117.33.233</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Environment</h6>
+                                <span id="environment-status" class="fw-bold">Development</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Controls -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" class="btn btn-primary" onclick="runConnectivityTest()">
+                                <i class="fas fa-play me-1"></i>Run Connection Test
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="runFullDiagnostics()">
+                                <i class="fas fa-cogs me-1"></i>Full Diagnostics
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="testSpecificEndpoint()">
+                                <i class="fas fa-search me-1"></i>Test Endpoint
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Endpoint Testing Grid -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6>API Endpoints Status</h6>
+                        <div id="endpoints-grid" class="row">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Test Results -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card bg-dark text-light">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Test Results Console</h6>
+                                <button type="button" class="btn btn-outline-light btn-sm" onclick="clearConsole()">
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <pre id="debug-console" class="mb-0" style="height: 300px; overflow-y: auto; font-size: 12px;">
+Waiting for test results...
+                                </pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div id="action-items" class="alert alert-info" style="display: none;">
+                            <h6><i class="fas fa-info-circle me-2"></i>Next Steps</h6>
+                            <ul id="action-list" class="mb-0">
+                                <!-- Will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-operational { background-color: #28a745; }
+.status-partial { background-color: #ffc107; }
+.status-blocked { background-color: #dc3545; }
+.status-unknown { background-color: #6c757d; }
+
+.endpoint-card {
+    transition: all 0.3s ease;
+}
+
+.endpoint-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.endpoint-status-ok { border-left: 4px solid #28a745; }
+.endpoint-status-error { border-left: 4px solid #dc3545; }
+.endpoint-status-warning { border-left: 4px solid #ffc107; }
+.endpoint-status-testing { border-left: 4px solid #007bff; }
+
+#debug-console {
+    background: #1e1e1e;
+    color: #f8f9fa;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+</style>
+
+<script>
+let isTestRunning = false;
+
+// Initialize SAMO debugging panel
+$(document).ready(function() {
+    initializeSamoDebugPanel();
+});
+
+function initializeSamoDebugPanel() {
+    updateSamoStatus();
+    createEndpointsGrid();
+}
+
+function updateSamoStatus() {
+    $.get('/api/samo/debug/status')
+        .done(function(data) {
+            updateStatusIndicator(data);
+            updateIPInformation(data);
+            updateActionItems(data);
+        })
+        .fail(function() {
+            $('#samo-status-text').text('Failed to load status');
+            $('#samo-status-indicator').removeClass().addClass('status-indicator status-blocked');
+        });
+}
+
+function updateStatusIndicator(data) {
+    const status = data.connectivity?.status || 'unknown';
+    const statusText = data.connectivity?.message || 'Status unknown';
+    
+    $('#samo-status-indicator')
+        .removeClass()
+        .addClass(`status-indicator status-${status}`);
+    
+    $('#samo-status-text').text(statusText);
+}
+
+function updateIPInformation(data) {
+    const currentIP = data.connectivity?.current_ip || 'Unknown';
+    const environment = data.deployment?.environment || 'development';
+    
+    $('#current-ip').text(currentIP);
+    $('#environment-status')
+        .text(environment.charAt(0).toUpperCase() + environment.slice(1))
+        .removeClass()
+        .addClass(environment === 'production' ? 'fw-bold text-success' : 'fw-bold text-warning');
+}
+
+function updateActionItems(data) {
+    const nextSteps = data.samo_api?.next_steps || [];
+    
+    if (nextSteps.length > 0) {
+        const actionList = $('#action-list');
+        actionList.empty();
+        
+        nextSteps.forEach(step => {
+            actionList.append(`<li>${step}</li>`);
+        });
+        
+        $('#action-items').show();
+    } else {
+        $('#action-items').hide();
+    }
+}
+
+function createEndpointsGrid() {
+    const endpoints = [
+        { name: 'Currencies', action: 'SearchTour_CURRENCIES', description: 'Available currencies' },
+        { name: 'Departures', action: 'SearchTour_TOWNFROMS', description: 'Departure cities' },
+        { name: 'Destinations', action: 'SearchTour_STATES', description: 'Available countries' },
+        { name: 'Hotels', action: 'SearchTour_HOTELS', description: 'Hotel inventory' },
+        { name: 'Tours', action: 'SearchTour_TOURS', description: 'Tour packages' },
+        { name: 'Prices', action: 'SearchTour_PRICES', description: 'Tour pricing' }
+    ];
+    
+    const grid = $('#endpoints-grid');
+    grid.empty();
+    
+    endpoints.forEach(endpoint => {
+        grid.append(`
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="card endpoint-card h-100" id="endpoint-${endpoint.action}">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">${endpoint.name}</h6>
+                            <div class="endpoint-status" data-action="${endpoint.action}">
+                                <i class="fas fa-circle text-muted"></i>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-2">${endpoint.description}</p>
+                        <button class="btn btn-outline-primary btn-sm w-100" 
+                                onclick="testSingleEndpoint('${endpoint.action}')" 
+                                data-action="${endpoint.action}">
+                            Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `);
+    });
+}
+
+function runConnectivityTest() {
+    if (isTestRunning) return;
+    
+    isTestRunning = true;
+    logToConsole('🚀 Starting SAMO API connectivity test...\n');
+    
+    $.post('/api/samo/debug/test')
+        .done(function(data) {
+            logToConsole('✅ Connectivity test completed\n');
+            logToConsole(JSON.stringify(data, null, 2) + '\n');
+            updateSamoStatus(); // Refresh status
+        })
+        .fail(function(xhr) {
+            logToConsole('❌ Connectivity test failed\n');
+            logToConsole(xhr.responseText + '\n');
+        })
+        .always(function() {
+            isTestRunning = false;
+        });
+}
+
+function runFullDiagnostics() {
+    if (isTestRunning) return;
+    
+    isTestRunning = true;
+    logToConsole('🔍 Running full SAMO API diagnostics...\n');
+    
+    // Update all endpoint cards to testing state
+    $('.endpoint-card').addClass('endpoint-status-testing');
+    $('.endpoint-status i').removeClass().addClass('fas fa-spinner fa-spin text-primary');
+    
+    $.post('/api/samo/debug/full-diagnostics')
+        .done(function(data) {
+            logToConsole('📊 Full diagnostics completed\n');
+            logToConsole(JSON.stringify(data, null, 2) + '\n');
+            
+            // Update endpoint cards based on results
+            if (data.test_results) {
+                Object.keys(data.test_results).forEach(action => {
+                    const result = data.test_results[action];
+                    updateEndpointStatus(action, result);
+                });
+            }
+            
+            updateSamoStatus(); // Refresh overall status
+        })
+        .fail(function(xhr) {
+            logToConsole('❌ Full diagnostics failed\n');
+            logToConsole(xhr.responseText + '\n');
+            
+            // Reset endpoint cards
+            $('.endpoint-card').removeClass('endpoint-status-testing endpoint-status-ok endpoint-status-error endpoint-status-warning');
+            $('.endpoint-status i').removeClass().addClass('fas fa-circle text-muted');
+        })
+        .always(function() {
+            isTestRunning = false;
+        });
+}
+
+function testSingleEndpoint(action) {
+    const button = $(`button[data-action="${action}"]`);
+    const originalText = button.text();
+    
+    button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Testing');
+    
+    logToConsole(`🔍 Testing endpoint: ${action}\n`);
+    
+    $.post('/api/samo/debug/test-endpoint', { action: action })
+        .done(function(data) {
+            logToConsole(`📊 ${action} test completed\n`);
+            logToConsole(JSON.stringify(data, null, 2) + '\n');
+            updateEndpointStatus(action, data);
+        })
+        .fail(function(xhr) {
+            logToConsole(`❌ ${action} test failed\n`);
+            logToConsole(xhr.responseText + '\n');
+        })
+        .always(function() {
+            button.prop('disabled', false).text(originalText);
+        });
+}
+
+function updateEndpointStatus(action, result) {
+    const card = $(`#endpoint-${action}`);
+    const statusIcon = $(`.endpoint-status[data-action="${action}"] i`);
+    
+    card.removeClass('endpoint-status-testing endpoint-status-ok endpoint-status-error endpoint-status-warning');
+    statusIcon.removeClass();
+    
+    switch (result.status) {
+        case 'success':
+            card.addClass('endpoint-status-ok');
+            statusIcon.addClass('fas fa-check-circle text-success');
+            break;
+        case 'blocked':
+            card.addClass('endpoint-status-error');
+            statusIcon.addClass('fas fa-times-circle text-danger');
+            break;
+        case 'error':
+            card.addClass('endpoint-status-warning');
+            statusIcon.addClass('fas fa-exclamation-triangle text-warning');
+            break;
+        default:
+            statusIcon.addClass('fas fa-circle text-muted');
+    }
+}
+
+function testSpecificEndpoint() {
+    const action = prompt('Enter SAMO API action to test:', 'SearchTour_CURRENCIES');
+    if (action) {
+        testSingleEndpoint(action);
+    }
+}
+
+function refreshSamoStatus() {
+    updateSamoStatus();
+    logToConsole('🔄 Status refreshed\n');
+}
+
+function clearConsole() {
+    $('#debug-console').text('Console cleared...\n');
+}
+
+function logToConsole(message) {
+    const console = $('#debug-console');
+    const timestamp = new Date().toLocaleTimeString();
+    console.append(`[${timestamp}] ${message}`);
+    console.scrollTop(console[0].scrollHeight);
+}
+</script>

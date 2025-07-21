@@ -323,7 +323,11 @@
                         <div class="card-body text-center">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <h5 class="card-title">Crystal Bay SAMO API</h5>
-                                <span class="connection-status status-{{ integration_status.get('samo_api', {}).get('status', 'disabled') }}" id="samo-status">
+                                <button class="btn btn-outline-primary btn-sm" onclick="showSamoDebugPanel()">
+                                    <i class="fas fa-cogs me-1"></i>Debug
+                                </button>
+                            </div>
+                            <span class="connection-status status-{{ integration_status.get('samo_api', {}).get('status', 'disabled') }}" id="samo-status">
                                     {% set status = integration_status.get('samo_api', {}).get('status', 'disabled') %}
                                     {{ 'Активно' if status == 'active' else 'Неактивно' if status == 'inactive' else 'Отключено' }}
                                 </span>
@@ -2122,5 +2126,28 @@
     
     // Initialize system status on page load
     updateSystemStatus();
+    
+    // Show SAMO Debug Panel
+    function showSamoDebugPanel() {
+        $('#samoDebugModal').modal('show');
+    }
 </script>
+
+<!-- SAMO Debug Panel Modal -->
+<div class="modal fade" id="samoDebugModal" tabindex="-1" aria-labelledby="samoDebugModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="samoDebugModalLabel">
+                    <i class="fas fa-network-wired me-2"></i>SAMO API Debugging Panel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include 'samo_debug_panel.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

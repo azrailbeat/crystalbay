@@ -1,0 +1,32 @@
+{
+  "connectivity_status": "blocked",
+  "successful_connections": 0,
+  "total_endpoints": 6,
+  "test_results": {
+    "SearchTour_CURRENCIES": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    },
+    "SearchTour_TOWNFROMS": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    },
+    "SearchTour_STATES": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    },
+    "SearchTour_HOTELS": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    },
+    "SearchTour_TOURS": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    },
+    "SearchTour_PRICES": {
+      "status": "blocked",
+      "current_ip": "34.148.145.238"
+    }
+  },
+  "test_timestamp": "2025-07-21T15:06:19.284237"
+}

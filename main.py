@@ -100,6 +100,83 @@ register_test_routes(app)
 from samo_api_routes import register_samo_api_routes
 register_samo_api_routes(app)
 
+# SAMO API Debug endpoints
+@app.route('/api/samo/debug/status')
+def samo_debug_status():
+    """Get SAMO API debug status"""
+    try:
+        from samo_settings_integration import generate_settings_dashboard_data
+        data = generate_settings_dashboard_data()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/samo/debug/test', methods=['POST'])
+def samo_debug_test():
+    """Run SAMO API connectivity test"""
+    try:
+        from samo_settings_integration import test_samo_connection_now
+        result = test_samo_connection_now()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/samo/debug/full-diagnostics', methods=['POST'])
+def samo_debug_full_diagnostics():
+    """Run full SAMO API diagnostics"""
+    try:
+        import subprocess
+        result = subprocess.run(['python', 'samo_connectivity_test.py'], 
+                              capture_output=True, text=True, cwd='.')
+        
+        # Load the results file
+        import json
+        with open('data/samo_connectivity_results.json', 'r') as f:
+            data = json.load(f)
+        
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/samo/debug/test-endpoint', methods=['POST'])
+def samo_debug_test_endpoint():
+    """Test specific SAMO API endpoint"""
+    try:
+        from crystal_bay_samo_api import CrystalBaySamoAPI
+        
+        action = request.json.get('action', 'SearchTour_CURRENCIES')
+        
+        api = CrystalBaySamoAPI()
+        if action == 'SearchTour_CURRENCIES':
+            result = api.get_currencies()
+        elif action == 'SearchTour_TOWNFROMS':
+            result = api.get_departure_cities()
+        elif action == 'SearchTour_STATES':
+            result = api.get_destinations()
+        else:
+            # Generic test
+            import requests
+            data = {
+                'samo_action': 'api',
+                'version': '1.0',
+                'type': 'json',
+                'action': action,
+                'oauth_token': '27bd59a7ac67422189789f0188167379'
+            }
+            response = requests.post('https://booking-kz.crystalbay.com/export/default.php', 
+                                   data=data, timeout=15)
+            
+            if response.status_code == 200:
+                result = {'status': 'success', 'response': response.text[:500]}
+            elif response.status_code == 403:
+                result = {'status': 'blocked', 'message': 'IP not whitelisted'}
+            else:
+                result = {'status': 'error', 'code': response.status_code}
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
 # Import and register lead import routes
 from lead_import_api import lead_import_bp
 app.register_blueprint(lead_import_bp)
