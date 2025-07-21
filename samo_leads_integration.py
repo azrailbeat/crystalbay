@@ -1,286 +1,257 @@
+#!/usr/bin/env python3
 """
-SAMO API Leads Integration Module
-Модуль для получения и синхронизации заявок из SAMO API Crystal Bay
+SAMO API Lead Integration Module
+Интеграция для загрузки реальных заявок из SAMO API Crystal Bay Travel
 """
-import os
-import json
-import logging
-import requests
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
 
-# Configure logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+import logging
+import os
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional
+from crystal_bay_samo_api import CrystalBaySAMOAPI
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class SAMOLeadsIntegration:
-    """Интеграция с SAMO API для получения заявок"""
+    """Класс для интеграции с SAMO API для загрузки заявок"""
     
     def __init__(self):
-        self.samo_oauth_token = os.getenv('SAMO_OAUTH_TOKEN')
-        self.samo_api_base_url = "https://booking-kz.crystalbay.com/export/default.php"
+        """Инициализация интеграции SAMO API"""
+        self.samo_api = CrystalBaySAMOAPI()
+        self.is_connected = False
         
-        # SAMO API параметры
-        self.samo_base_params = {
-            'samo_action': 'api',
-            'version': '1.0',
-            'type': 'json',
-            'oauth_token': self.samo_oauth_token
-        }
-        
-        if not self.samo_oauth_token:
-            logger.warning("SAMO_OAUTH_TOKEN не найден - заявки не будут загружаться")
-        else:
-            logger.info("SAMO Leads Integration инициализирована")
+    def test_connection(self) -> bool:
+        """Тестирует подключение к SAMO API"""
+        try:
+            result = self.samo_api.get_townfroms()
+            if 'error' not in result:
+                self.is_connected = True
+                logger.info("✅ SAMO API подключение успешно")
+                return True
+            else:
+                logger.warning(f"⚠️ SAMO API недоступен: {result.get('error', 'Unknown error')}")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Ошибка подключения к SAMO API: {e}")
+            return False
     
-    def get_recent_bookings(self, days_back: int = 30) -> List[Dict[str, Any]]:
+    def load_recent_bookings(self, days_back: int = 30) -> List[Dict]:
         """
-        Получает последние заявки/бронирования из SAMO API
+        Загружает последние бронирования из SAMO API
         
         Args:
-            days_back: Количество дней назад для поиска заявок
+            days_back: Количество дней назад для поиска
             
         Returns:
-            List[Dict]: Список заявок из SAMO API
+            Список заявок/бронирований
         """
-        if not self.samo_oauth_token:
-            logger.warning("Токен SAMO API отсутствует")
-            return []
-        
         try:
-            # Поиск бронирований за последние дни
+            # Формируем даты для поиска
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days_back)
             
-            params = self.samo_base_params.copy()
-            params.update({
-                'action': 'SearchBooking',  # Поиск бронирований
-                'date_from': start_date.strftime('%Y-%m-%d'),
-                'date_to': end_date.strftime('%Y-%m-%d'),
-                'status': 'all'  # Все статусы
-            })
+            date_from = start_date.strftime('%Y-%m-%d')
+            date_to = end_date.strftime('%Y-%m-%d')
             
-            logger.info(f"Загружаю заявки SAMO API за последние {days_back} дней")
+            logger.info(f"🔄 Загружаем бронирования с {date_from} по {date_to}")
             
-            response = requests.get(
-                self.samo_api_base_url,
-                params=params,
-                timeout=30
-            )
+            # Получаем бронирования
+            bookings_result = self.samo_api.get_bookings(date_from=date_from, date_to=date_to)
             
-            if response.status_code == 200:
-                data = response.json()
-                bookings = self._parse_samo_bookings(data)
-                logger.info(f"Загружено {len(bookings)} заявок из SAMO API")
-                return bookings
-            else:
-                logger.error(f"Ошибка SAMO API: {response.status_code}")
+            if 'error' in bookings_result:
+                logger.warning(f"⚠️ Ошибка загрузки бронирований: {bookings_result['error']}")
                 return []
-                
-        except Exception as e:
-            logger.error(f"Ошибка получения заявок SAMO: {e}")
-            return []
-    
-    def _parse_samo_bookings(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Парсит ответ SAMO API и преобразует в формат заявок Crystal Bay
-        
-        Args:
-            data: Ответ от SAMO API
             
-        Returns:
-            List[Dict]: Заявки в формате Crystal Bay
-        """
-        leads = []
-        
-        try:
-            # Обрабатываем данные в зависимости от структуры ответа SAMO
-            bookings = data.get('bookings', [])
-            if not bookings and 'data' in data:
-                bookings = data['data']
-            if not bookings and isinstance(data, list):
-                bookings = data
+            bookings = bookings_result.get('bookings', [])
+            logger.info(f"📋 Загружено {len(bookings)} бронирований")
             
+            # Конвертируем в формат заявок
+            leads = []
             for booking in bookings:
                 lead = self._convert_booking_to_lead(booking)
                 if lead:
                     leads.append(lead)
-                    
+            
+            return leads
+            
         except Exception as e:
-            logger.error(f"Ошибка парсинга заявок SAMO: {e}")
-        
-        return leads
+            logger.error(f"❌ Ошибка загрузки бронирований: {e}")
+            return []
     
-    def _convert_booking_to_lead(self, booking: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def search_tours_for_lead(self, search_params: Dict) -> List[Dict]:
         """
-        Преобразует бронирование SAMO в формат заявки Crystal Bay
+        Поиск туров для конкретной заявки
         
         Args:
-            booking: Данные бронирования из SAMO
+            search_params: Параметры поиска тура
             
         Returns:
-            Dict: Заявка в формате Crystal Bay или None
+            Список найденных туров
         """
         try:
-            # Извлекаем основные поля из SAMO бронирования
-            lead_id = str(booking.get('id', booking.get('booking_id', f"samo_{datetime.now().timestamp()}")))
+            logger.info(f"🔍 Поиск туров с параметрами: {search_params}")
             
-            # Клиентские данные
-            client_name = booking.get('client_name', 
-                                    f"{booking.get('first_name', '')} {booking.get('last_name', '')}").strip()
-            if not client_name:
-                client_name = booking.get('contact_name', 'Клиент из SAMO')
+            # Поиск туров через SAMO API
+            result = self.samo_api.search_tour_prices(search_params)
             
-            client_email = booking.get('email', booking.get('client_email', ''))
-            client_phone = booking.get('phone', booking.get('client_phone', ''))
+            if 'error' in result:
+                logger.warning(f"⚠️ Ошибка поиска туров: {result['error']}")
+                return []
             
-            # Данные тура
-            tour_name = booking.get('tour_name', booking.get('hotel_name', ''))
-            destination = booking.get('destination', booking.get('country', ''))
-            departure_date = booking.get('departure_date', booking.get('checkin_date', ''))
+            tours = result.get('tours', [])
+            logger.info(f"🎯 Найдено {len(tours)} туров")
             
-            # Статус заявки
-            booking_status = booking.get('status', 'new').lower()
-            lead_status = self._map_samo_status_to_lead_status(booking_status)
+            return tours
             
-            # Цена и валюта
-            total_price = booking.get('total_price', booking.get('price', 0))
-            currency = booking.get('currency', 'USD')
+        except Exception as e:
+            logger.error(f"❌ Ошибка поиска туров: {e}")
+            return []
+    
+    def _convert_booking_to_lead(self, booking: Dict) -> Optional[Dict]:
+        """
+        Конвертирует бронирование SAMO в формат заявки Crystal Bay
+        
+        Args:
+            booking: Данные бронирования из SAMO API
             
-            # Создаем детальное описание
-            details_parts = []
-            if tour_name:
-                details_parts.append(f"Тур: {tour_name}")
-            if destination:
-                details_parts.append(f"Направление: {destination}")
-            if departure_date:
-                details_parts.append(f"Дата выезда: {departure_date}")
-            if total_price:
-                details_parts.append(f"Стоимость: {total_price} {currency}")
+        Returns:
+            Словарь с данными заявки или None
+        """
+        try:
+            # Извлекаем основные данные
+            customer_name = booking.get('customer_name', 'Неизвестный клиент')
+            email = booking.get('customer_email', '')
+            phone = booking.get('customer_phone', '')
             
-            # Дополнительная информация
-            adults = booking.get('adults', booking.get('adult_count', 0))
-            children = booking.get('children', booking.get('child_count', 0))
-            if adults or children:
-                details_parts.append(f"Туристы: {adults} взр., {children} дет.")
+            # Формируем описание тура
+            tour_details = []
+            if booking.get('destination'):
+                tour_details.append(f"Направление: {booking['destination']}")
+            if booking.get('hotel'):
+                tour_details.append(f"Отель: {booking['hotel']}")
+            if booking.get('departure_date'):
+                tour_details.append(f"Даты: {booking['departure_date']}")
+            if booking.get('nights'):
+                tour_details.append(f"Ночей: {booking['nights']}")
+            if booking.get('adults'):
+                tour_details.append(f"Взрослых: {booking['adults']}")
+            if booking.get('children'):
+                tour_details.append(f"Детей: {booking['children']}")
             
-            details = "; ".join(details_parts) if details_parts else "Заявка из SAMO API"
+            notes = "Заявка из SAMO API:\n" + "\n".join(tour_details)
             
-            # Определяем теги
+            # Определяем статус
+            samo_status = booking.get('status', 'new')
+            status = self._map_samo_status_to_crystal_bay(samo_status)
+            
+            # Формируем теги
             tags = ['SAMO API']
-            if destination:
-                tags.append(destination)
-            if tour_name and 'пляж' in tour_name.lower():
-                tags.append('Пляжный отдых')
-            elif tour_name and any(word in tour_name.lower() for word in ['экскур', 'тур']):
-                tags.append('Экскурсии')
+            if booking.get('destination'):
+                tags.append(booking['destination'])
+            if booking.get('tour_type'):
+                tags.append(booking['tour_type'])
             
             # Создаем заявку
             lead = {
-                'id': f"samo_{lead_id}",
-                'name': client_name,
-                'email': client_email,
-                'phone': client_phone,
-                'source': 'samo_api',
-                'status': lead_status,
-                'created_at': booking.get('created_date', datetime.now().isoformat()),
-                'details': details,
+                'id': f"samo_{booking.get('booking_id', datetime.now().timestamp())}",
+                'customer_name': customer_name,
+                'email': email,
+                'phone': phone,
+                'source': 'SAMO API',
+                'status': status,
+                'notes': notes,
                 'tags': tags,
-                'samo_booking_id': lead_id,
-                'tour_name': tour_name,
-                'destination': destination,
-                'departure_date': departure_date,
-                'total_price': total_price,
-                'currency': currency,
-                'adults': adults,
-                'children': children
+                'created_at': booking.get('created_at', datetime.now().isoformat()),
+                'updated_at': datetime.now().isoformat(),
+                'samo_booking_id': booking.get('booking_id'),
+                'price': booking.get('total_amount', 0),
+                'currency': booking.get('currency', 'USD')
             }
             
             return lead
             
         except Exception as e:
-            logger.error(f"Ошибка преобразования бронирования SAMO: {e}")
+            logger.error(f"❌ Ошибка конвертации бронирования: {e}")
             return None
     
-    def _map_samo_status_to_lead_status(self, samo_status: str) -> str:
+    def _map_samo_status_to_crystal_bay(self, samo_status: str) -> str:
         """
-        Маппинг статусов SAMO в статусы заявок Crystal Bay
+        Маппинг статусов SAMO в статусы Crystal Bay
         
         Args:
             samo_status: Статус из SAMO API
             
         Returns:
-            str: Статус заявки для Crystal Bay
+            Статус Crystal Bay
         """
         status_mapping = {
             'new': 'new',
-            'pending': 'in_progress',
-            'confirmed': 'confirmed',
+            'confirmed': 'confirmed', 
             'paid': 'confirmed',
             'cancelled': 'closed',
             'completed': 'closed',
-            'draft': 'new'
+            'pending': 'in_progress',
+            'processing': 'in_progress'
         }
         
         return status_mapping.get(samo_status.lower(), 'new')
     
-    def sync_leads(self, days_back: int = 7) -> Dict[str, Any]:
+    def sync_leads_to_system(self, leads_service) -> int:
         """
-        Синхронизирует заявки из SAMO API
+        Синхронизирует заявки из SAMO в систему Crystal Bay
         
         Args:
-            days_back: Количество дней для синхронизации
+            leads_service: Сервис управления заявками
             
         Returns:
-            Dict: Результат синхронизации
+            Количество синхронизированных заявок
         """
         try:
-            # Получаем заявки из SAMO
-            samo_leads = self.get_recent_bookings(days_back)
+            if not self.test_connection():
+                logger.warning("⚠️ SAMO API недоступен, синхронизация пропущена")
+                return 0
+            
+            # Загружаем заявки из SAMO
+            samo_leads = self.load_recent_bookings(days_back=30)
             
             if not samo_leads:
-                return {
-                    'success': False,
-                    'message': 'Не удалось получить заявки из SAMO API',
-                    'leads_count': 0
-                }
+                logger.info("📭 Новых заявок в SAMO API не найдено")
+                return 0
             
-            # Импортируем сервис для сохранения заявок
-            from models import LeadService
-            
-            # Сохраняем каждую заявку
-            saved_count = 0
+            # Добавляем заявки в систему
+            synced_count = 0
             for lead in samo_leads:
                 try:
                     # Проверяем, не существует ли уже такая заявка
-                    existing_lead = LeadService.get_lead_by_id(lead['id'])
+                    existing_lead = leads_service.get_lead_by_samo_id(lead.get('samo_booking_id'))
+                    
                     if existing_lead:
                         # Обновляем существующую заявку
-                        LeadService.update_lead(lead['id'], lead)
+                        leads_service.update_lead(existing_lead['id'], lead)
+                        logger.info(f"🔄 Обновлена заявка {lead['customer_name']}")
                     else:
                         # Создаем новую заявку
-                        LeadService.create_lead(lead)
-                    saved_count += 1
+                        leads_service.create_lead(lead)
+                        logger.info(f"➕ Добавлена заявка {lead['customer_name']}")
+                    
+                    synced_count += 1
+                    
                 except Exception as e:
-                    logger.error(f"Ошибка сохранения заявки {lead['id']}: {e}")
+                    logger.error(f"❌ Ошибка синхронизации заявки {lead.get('customer_name', 'Unknown')}: {e}")
+                    continue
             
-            return {
-                'success': True,
-                'message': f'Синхронизировано {saved_count} заявок из SAMO API',
-                'leads_count': saved_count,
-                'total_fetched': len(samo_leads)
-            }
+            logger.info(f"✅ Синхронизировано {synced_count} заявок из SAMO API")
+            return synced_count
             
         except Exception as e:
-            logger.error(f"Ошибка синхронизации заявок SAMO: {e}")
-            return {
-                'success': False,
-                'message': f'Ошибка синхронизации: {str(e)}',
-                'leads_count': 0
-            }
+            logger.error(f"❌ Ошибка синхронизации заявок: {e}")
+            return 0
 
-# Глобальный экземпляр
-samo_leads = SAMOLeadsIntegration()
+# Глобальный экземпляр интеграции
+samo_integration = SAMOLeadsIntegration()
+
+def get_samo_integration() -> SAMOLeadsIntegration:
+    """Возвращает экземпляр интеграции SAMO API"""
+    return samo_integration

@@ -27,41 +27,65 @@ register_api_routes(app)
 def sync_samo_leads():
     """Синхронизация заявок из SAMO API"""
     try:
-        from samo_leads_integration import samo_leads
+        from samo_leads_integration import get_samo_integration
         
+        samo_integration = get_samo_integration()
         days_back = request.json.get('days_back', 7) if request.json else 7
-        result = samo_leads.sync_leads(days_back)
         
-        return jsonify(result)
+        # Синхронизируем заявки
+        synced_count = samo_integration.sync_leads_to_system(lead_service)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Синхронизация завершена. Обработано заявок: {synced_count}',
+            'leads_count': synced_count,
+            'timestamp': datetime.now().isoformat()
+        })
         
     except Exception as e:
         logger.error(f"Ошибка синхронизации SAMO: {e}")
         return jsonify({
             'success': False,
             'message': f'Ошибка синхронизации: {str(e)}',
-            'leads_count': 0
+            'leads_count': 0,
+            'timestamp': datetime.now().isoformat()
         }), 500
 
 @app.route('/api/samo/leads/test', methods=['GET'])
 def test_samo_leads():
     """Тестирование подключения к SAMO API для получения заявок"""
     try:
-        from samo_leads_integration import samo_leads
+        from samo_leads_integration import get_samo_integration
         
-        # Пробуем получить заявки за последние 3 дня
-        test_leads = samo_leads.get_recent_bookings(days_back=3)
+        samo_integration = get_samo_integration()
         
-        return jsonify({
-            'success': True,
-            'message': f'Подключение работает. Найдено {len(test_leads)} заявок за последние 3 дня',
-            'leads_count': len(test_leads),
-            'sample_leads': test_leads[:2] if test_leads else []  # Показываем первые 2 для примера
-        })
+        # Тестируем подключение
+        is_connected = samo_integration.test_connection()
+        
+        if is_connected:
+            # Пробуем получить заявки за последние 3 дня
+            test_leads = samo_integration.load_recent_bookings(days_back=3)
+            
+            return jsonify({
+                'success': True,
+                'connection': True,
+                'message': f'Подключение работает. Найдено {len(test_leads)} заявок за последние 3 дня',
+                'leads_count': len(test_leads),
+                'sample_leads': test_leads[:2] if test_leads else []
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'connection': False,
+                'message': 'САМО API недоступен (403 Forbidden). Требуется добавить IP в whitelist.',
+                'leads_count': 0
+            })
         
     except Exception as e:
         logger.error(f"Ошибка тестирования SAMO: {e}")
         return jsonify({
             'success': False,
+            'connection': False,
             'message': f'Ошибка подключения: {str(e)}',
             'leads_count': 0
         }), 500
