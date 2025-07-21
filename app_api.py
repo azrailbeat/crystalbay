@@ -3,6 +3,8 @@ from flask import request, jsonify
 from datetime import datetime
 import random
 import time
+import json
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -14,17 +16,50 @@ logger = logging.getLogger(__name__)
 # Резервное хранилище данных для случаев, когда БД недоступна
 _memory_leads = []
 
-# Load real leads from SAMO API instead of demo data
-try:
-    from samo_leads_integration import samo_leads
-    samo_bookings = samo_leads.get_recent_bookings(days_back=14)
-    if samo_bookings:
-        _memory_leads.extend(samo_bookings)
-        logger.info(f"Загружено {len(samo_bookings)} заявок из SAMO API")
-except Exception as e:
-    logger.error(f"Ошибка загрузки заявок SAMO: {e}")
+# File path for persistent memory storage
+MEMORY_LEADS_FILE = 'data/memory_leads.json'
 
-# Minimal fallback only if no SAMO leads loaded (for testing without IP whitelisting)
+def _save_memory_leads_to_file():
+    """Save memory leads to file for persistence"""
+    try:
+        # Ensure data directory exists
+        os.makedirs('data', exist_ok=True)
+        
+        with open(MEMORY_LEADS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(_memory_leads, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved {len(_memory_leads)} leads to persistent storage")
+    except Exception as e:
+        logger.error(f"Error saving memory leads to file: {e}")
+
+def _load_memory_leads_from_file():
+    """Load memory leads from file if exists"""
+    try:
+        if os.path.exists(MEMORY_LEADS_FILE):
+            with open(MEMORY_LEADS_FILE, 'r', encoding='utf-8') as f:
+                loaded_leads = json.load(f)
+                logger.info(f"Loaded {len(loaded_leads)} leads from persistent storage")
+                return loaded_leads
+    except Exception as e:
+        logger.error(f"Error loading memory leads from file: {e}")
+    return []
+
+# Load persistent leads first (to restore state changes)
+_memory_leads = _load_memory_leads_from_file()
+
+# Load real leads from SAMO API if memory is empty
+if not _memory_leads:
+    try:
+        from samo_leads_integration import samo_leads
+        samo_bookings = samo_leads.get_recent_bookings(days_back=14)
+        if samo_bookings:
+            _memory_leads.extend(samo_bookings)
+            logger.info(f"Загружено {len(samo_bookings)} заявок из SAMO API")
+            # Save to persistent storage
+            _save_memory_leads_to_file()
+    except Exception as e:
+        logger.error(f"Ошибка загрузки заявок SAMO: {e}")
+
+# Minimal fallback only if no SAMO leads and no persistent data
 if not _memory_leads:
     _memory_leads.append({
         'id': 'sample_1',
@@ -37,6 +72,8 @@ if not _memory_leads:
         'tags': ['Система', 'Настройка'],
         'details': 'Для загрузки заявок из SAMO API необходимо добавить IP-адрес сервера в whitelist Crystal Bay'
     })
+    # Save initial data to file
+    _save_memory_leads_to_file()
 
 
 def register_api_routes(app):
@@ -364,8 +401,12 @@ def register_api_routes(app):
                     for memory_lead in _memory_leads:
                         if str(memory_lead.get('id')) == str(lead_id):
                             memory_lead['status'] = new_status
+                            memory_lead['updated_at'] = datetime.now().isoformat()
                             updated_lead = memory_lead
                             break
+                    
+                    # Save changes to persistent storage
+                    _save_memory_leads_to_file()
                     
                     # Если по-прежнему обновленный лид не найден, используем оригинальный с измененным статусом
                     if not updated_lead and lead:
@@ -379,8 +420,12 @@ def register_api_routes(app):
                     if str(memory_lead.get('id')) == str(lead_id):
                         old_status = memory_lead.get('status', 'new')
                         memory_lead['status'] = new_status
+                        memory_lead['updated_at'] = datetime.now().isoformat()
                         updated_lead = memory_lead
                         break
+                
+                # Save changes to persistent storage
+                _save_memory_leads_to_file()
                         
                 if not updated_lead:
                     # Создаем минимальный лид для демонстрации

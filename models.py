@@ -40,24 +40,8 @@ _memory_agents_config = {
 }
 
 # Real leads data from SAMO API - no more mock data
+# Note: Lead storage is now handled by app_api.py with persistent file storage
 _memory_leads = []
-
-def _load_samo_leads():
-    """Загружает заявки из SAMO API при инициализации"""
-    try:
-        from samo_leads_integration import samo_leads
-        real_leads = samo_leads.get_recent_bookings(days_back=30)
-        if real_leads:
-            global _memory_leads
-            _memory_leads.extend(real_leads)
-            logger.info(f"Загружено {len(real_leads)} заявок из SAMO API")
-        else:
-            logger.info("Заявки из SAMO API не найдены")
-    except Exception as e:
-        logger.error(f"Ошибка загрузки заявок из SAMO API: {e}")
-
-# Загружаем заявки из SAMO при старте
-_load_samo_leads()
 
 try:
     if not supabase_url or not supabase_key:
