@@ -8,7 +8,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-from crystal_bay_samo_api import CrystalBaySAMOAPI
+from crystal_bay_samo_api import Crystal_Bay_SAMO_API
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +19,7 @@ class SAMOLeadsIntegration:
     
     def __init__(self):
         """Инициализация интеграции SAMO API"""
-        self.samo_api = CrystalBaySAMOAPI()
+        self.samo_api = Crystal_Bay_SAMO_API()
         self.is_connected = False
         
     def test_connection(self) -> bool:
