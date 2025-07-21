@@ -442,5 +442,9 @@ class RealDataSettingsManager:
             logger.error(f"Ошибка сохранения всех настроек: {e}")
             return False
 
+    def get_all_settings(self) -> Dict[str, Any]:
+        """Возвращает все настройки системы"""
+        return self._settings.copy()
+
 # Глобальный экземпляр улучшенного менеджера
 real_settings_manager = RealDataSettingsManager()

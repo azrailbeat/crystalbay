@@ -219,8 +219,9 @@ def api_get_all_settings():
         # Добавляем статус интеграций для отображения
         integrations = settings.get('integrations', {})
         for integration_name in integrations.keys():
-            status_info = real_settings_manager.get_integration_status(integration_name)
-            integrations[integration_name]['status'] = status_info['status']
+            if isinstance(integrations[integration_name], dict):
+                status_info = real_settings_manager.get_integration_status(integration_name)
+                integrations[integration_name]['status'] = status_info['status']
         
         return jsonify({
             "status": "success",
@@ -1055,6 +1056,8 @@ def api_get_wazzup_chat(lead_id):
             }), 503
         
         # Получаем данные лида
+        from models import InMemoryLeadStorage
+        lead_service = InMemoryLeadStorage()
         lead = lead_service.get_lead_by_id(int(lead_id))
         if not lead:
             return jsonify({
