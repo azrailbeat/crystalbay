@@ -390,8 +390,8 @@ class RealDataSettingsManager:
         return {
             "integration": integration,
             "status": status,
-            "enabled": config.get('enabled', False) if config else False,
-            "config": config or {}
+            "enabled": config.get('enabled', False) if isinstance(config, dict) else False,
+            "config": config if isinstance(config, dict) else {}
         }
     
     def get_all_settings(self) -> Dict[str, Any]:

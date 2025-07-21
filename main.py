@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import subprocess
 import threading
@@ -877,6 +878,8 @@ def api_create_lead_from_message(message_id):
             lead_data["COMMENTS"] += f"\nКоличество человек: {metadata['pax']}"
         
         # Создаем лид в Bitrix24
+        from bitrix_integration import BitrixIntegration
+        bitrix_client = BitrixIntegration()
         lead_id = bitrix_client.create_lead(lead_data)
         
         if lead_id:
