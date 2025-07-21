@@ -1995,6 +1995,98 @@ def api_save_all_settings():
             "message": str(e)
         }), 500
 
+# =============== WAZZUP24 API v3 ENDPOINTS ===============
+
+@app.route('/api/wazzup/users', methods=['GET'])
+def get_wazzup_users():
+    """Получить список пользователей Wazzup24"""
+    try:
+        from wazzup_api_v3 import get_wazzup_client
+        client = get_wazzup_client()
+        
+        result = client.get_users()
+        if result and not result.get('error'):
+            return jsonify({"success": True, "data": result})
+        else:
+            return jsonify({"success": False, "error": result.get('message', 'API error')}), 400
+            
+    except Exception as e:
+        logger.error(f"Error getting Wazzup users: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/wazzup/users', methods=['POST'])
+def create_wazzup_users():
+    """Создать или обновить пользователей в Wazzup24"""
+    try:
+        data = request.get_json()
+        if not data or not isinstance(data, list):
+            return jsonify({"error": "Неверный формат данных"}), 400
+            
+        from wazzup_api_v3 import get_wazzup_client
+        client = get_wazzup_client()
+        
+        # Форматируем пользователей
+        formatted_users = []
+        for user in data:
+            formatted_user = client.format_user_for_wazzup(user)
+            formatted_users.append(formatted_user)
+        
+        result = client.create_users(formatted_users)
+        if not result.get('error'):
+            return jsonify({"success": True, "message": "Пользователи созданы/обновлены"})
+        else:
+            return jsonify({"success": False, "error": result}), 400
+            
+    except Exception as e:
+        logger.error(f"Error creating Wazzup users: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/wazzup/test', methods=['GET'])
+def test_wazzup_connection():
+    """Тест подключения к Wazzup24 API"""
+    try:
+        from wazzup_api_v3 import get_wazzup_client
+        client = get_wazzup_client()
+        
+        result = client.test_connection()
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error testing Wazzup connection: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/wazzup/webhook', methods=['POST'])
+def handle_wazzup_webhook():
+    """Обработать входящий Wazzup24 вебхук"""
+    try:
+        data = request.get_json()
+        logger.info(f"Получен Wazzup24 вебхук: {data}")
+        
+        # Проверяем тестовый запрос
+        if data and data.get('test') == True:
+            logger.info("Получен тестовый вебхук от Wazzup24")
+            return jsonify({"status": "ok"}), 200
+        
+        # Обрабатываем реальные вебхуки
+        if data and data.get('messages'):
+            # Обработка новых сообщений
+            messages = data['messages']
+            for message in messages:
+                logger.info(f"Новое сообщение от Wazzup24: {message}")
+                # Здесь можно добавить логику обработки сообщений
+        
+        if data and data.get('statuses'):
+            # Обработка статусов сообщений
+            statuses = data['statuses']
+            for status in statuses:
+                logger.info(f"Обновление статуса от Wazzup24: {status}")
+        
+        return jsonify({"status": "ok"}), 200
+        
+    except Exception as e:
+        logger.error(f"Error handling Wazzup webhook: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # Initialize the app
 if __name__ == '__main__':
     # Start the bot immediately before the app starts

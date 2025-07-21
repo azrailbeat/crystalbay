@@ -364,7 +364,7 @@ class RealDataSettingsManager:
         config = self.get_setting(f'integrations.{integration}', {})
         
         # Определяем статус на основе конфигурации
-        if not config:
+        if not config or not isinstance(config, dict):
             status = "not_found"
         elif not config.get('enabled', False):
             status = "disabled"
