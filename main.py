@@ -303,6 +303,22 @@ def api_test_integration(integration_name):
                         "message": "Ошибка подключения к SAMO API"
                     })
         
+        elif integration_name == 'wazzup':
+            from wazzup_integration import WazzupIntegration
+            wazzup = WazzupIntegration()
+            if not wazzup.is_configured():
+                return jsonify({
+                    "status": "error",
+                    "message": "Wazzup24 API ключи не настроены"
+                })
+            else:
+                # Test API connection by getting users
+                users = wazzup.get_users()
+                return jsonify({
+                    "status": "success",
+                    "message": f"Wazzup24 API работает - найдено {len(users)} пользователей"
+                })
+        
         elif integration_name == 'telegram_bot':
             import os
             token = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -1781,6 +1797,136 @@ def search_tours_api():
             "status": "error",
             "error": str(e),
             "timestamp": datetime.now().isoformat()
+        }), 500
+
+# Wazzup24 API endpoints for user management
+@app.route('/api/wazzup/users', methods=['GET'])
+def api_wazzup_get_users():
+    """Get all Wazzup24 users"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        wazzup = WazzupIntegration()
+        
+        users = wazzup.get_users()
+        return jsonify({
+            "success": True,
+            "users": users,
+            "count": len(users)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting Wazzup users: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/wazzup/users', methods=['POST'])
+def api_wazzup_create_users():
+    """Create or update Wazzup24 users"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        wazzup = WazzupIntegration()
+        
+        data = request.get_json()
+        users_data = data.get('users', [])
+        
+        if not users_data:
+            return jsonify({
+                "success": False,
+                "error": "No users data provided"
+            }), 400
+        
+        success = wazzup.create_users(users_data)
+        
+        return jsonify({
+            "success": success,
+            "message": f"{'Successfully' if success else 'Failed to'} create/update {len(users_data)} users"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating Wazzup users: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/wazzup/users/<user_id>', methods=['GET'])
+def api_wazzup_get_user(user_id):
+    """Get specific Wazzup24 user"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        wazzup = WazzupIntegration()
+        
+        user = wazzup.get_user(user_id)
+        
+        if user:
+            return jsonify({
+                "success": True,
+                "user": user
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "User not found"
+            }), 404
+        
+    except Exception as e:
+        logger.error(f"Error getting Wazzup user {user_id}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/wazzup/users/<user_id>', methods=['DELETE'])
+def api_wazzup_delete_user(user_id):
+    """Delete Wazzup24 user"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        wazzup = WazzupIntegration()
+        
+        success = wazzup.delete_user(user_id)
+        
+        return jsonify({
+            "success": success,
+            "message": f"{'Successfully deleted' if success else 'Failed to delete'} user {user_id}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting Wazzup user {user_id}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/wazzup/users/bulk-delete', methods=['POST'])
+def api_wazzup_bulk_delete_users():
+    """Bulk delete Wazzup24 users"""
+    try:
+        from wazzup_integration import WazzupIntegration
+        wazzup = WazzupIntegration()
+        
+        data = request.get_json()
+        user_ids = data.get('user_ids', [])
+        
+        if not user_ids:
+            return jsonify({
+                "success": False,
+                "error": "No user IDs provided"
+            }), 400
+        
+        success = wazzup.bulk_delete_users(user_ids)
+        
+        return jsonify({
+            "success": success,
+            "message": f"{'Successfully processed' if success else 'Failed to process'} bulk delete for {len(user_ids)} users"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error bulk deleting Wazzup users: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
         }), 500
 
 # Initialize the app

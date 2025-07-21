@@ -269,32 +269,104 @@ class WazzupIntegration:
             logger.error(f"Wazzup API request failed: {e}")
             return None
     
-    # User Synchronization
+    # User Management (based on Wazzup24.ru official API documentation)
+    def get_users(self):
+        """Get list of all users from Wazzup24"""
+        if not self.is_configured():
+            logger.warning("Wazzup24 API not configured")
+            return []
+            
+        result = self._make_request('GET', '/users')
+        if result and isinstance(result, list):
+            logger.info(f"Retrieved {len(result)} users from Wazzup24")
+            return result
+        return []
+    
+    def get_user(self, user_id: str):
+        """Get specific user data from Wazzup24"""
+        if not self.is_configured():
+            logger.warning("Wazzup24 API not configured")
+            return None
+            
+        result = self._make_request('GET', f'/users/{user_id}')
+        if result:
+            logger.info(f"Retrieved user {user_id} from Wazzup24")
+        return result
+    
+    def create_users(self, users_data: List[Dict]) -> bool:
+        """Create or update users in Wazzup24 (up to 100 users per request)"""
+        if not self.is_configured():
+            logger.warning("Wazzup24 API not configured")
+            return False
+            
+        if not isinstance(users_data, list):
+            users_data = [users_data]
+            
+        if len(users_data) > 100:
+            logger.error("Cannot create more than 100 users per request")
+            return False
+            
+        # Validate user data according to API requirements
+        validated_users = []
+        for user in users_data:
+            if not user.get('id') or not user.get('name'):
+                logger.error(f"User missing required fields (id, name): {user}")
+                continue
+                
+            validated_user = {
+                'id': str(user['id'])[:64],  # Max 64 characters
+                'name': str(user['name'])[:150],  # Max 150 characters
+            }
+            
+            if user.get('phone'):
+                # Ensure phone is in international format
+                phone = str(user['phone']).replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+                if phone.startswith('8') and len(phone) == 11:
+                    phone = '7' + phone[1:]  # Convert Russian format to international
+                validated_user['phone'] = phone
+                
+            validated_users.append(validated_user)
+        
+        result = self._make_request('POST', '/users', validated_users)
+        if result is not None:
+            logger.info(f"Successfully created/updated {len(validated_users)} users in Wazzup24")
+            return True
+        return False
+    
+    def delete_user(self, user_id: str) -> bool:
+        """Delete a user from Wazzup24"""
+        if not self.is_configured():
+            logger.warning("Wazzup24 API not configured")
+            return False
+            
+        result = self._make_request('DELETE', f'/users/{user_id}')
+        if result is not None:
+            logger.info(f"Successfully deleted user {user_id} from Wazzup24")
+            return True
+        return False
+    
+    def bulk_delete_users(self, user_ids: List[str]) -> bool:
+        """Delete multiple users from Wazzup24"""
+        if not self.is_configured():
+            logger.warning("Wazzup24 API not configured")
+            return False
+            
+        result = self._make_request('PATCH', '/users/bulk_delete', user_ids)
+        if result is not None:
+            if not result:
+                logger.info(f"Successfully deleted all {len(user_ids)} users from Wazzup24")
+            else:
+                logger.warning(f"Some users were not found: {result}")
+            return True
+        return False
+
+    # Legacy method for backward compatibility
     def sync_users(self, users: List[Dict]) -> bool:
         """
-        Sync CRM users with Wazzup
+        Sync CRM users with Wazzup (legacy method)
         Users need to be synchronized so they can access chats in Wazzup interface
         """
-        try:
-            for user in users:
-                user_data = {
-                    'externalId': str(user.get('id')),
-                    'name': user.get('name'),
-                    'email': user.get('email'),
-                    'role': user.get('role', 'manager'),
-                    'status': 'active'
-                }
-                
-                result = self._make_request('POST', '/users', user_data)
-                if result:
-                    logger.info(f"User {user.get('name')} synced successfully")
-                else:
-                    logger.error(f"Failed to sync user {user.get('name')}")
-                    
-            return True
-        except Exception as e:
-            logger.error(f"User synchronization failed: {e}")
-            return False
+        return self.create_users(users)
     
     # Contact Synchronization
     def sync_contact(self, lead_data: Dict) -> Optional[str]:
