@@ -390,13 +390,57 @@ class RealDataSettingsManager:
         return {
             "integration": integration,
             "status": status,
-            "enabled": config.get('enabled', False),
-            "config": config
+            "enabled": config.get('enabled', False) if config else False,
+            "config": config or {}
         }
     
     def get_all_settings(self) -> Dict[str, Any]:
         """Возвращает все настройки"""
         return self._settings.copy()
+
+    def save_integration_settings(self, integration_name: str, settings: Dict[str, Any]) -> bool:
+        """
+        Сохранить настройки конкретной интеграции
+        """
+        try:
+            # Получаем текущие настройки
+            all_settings = dict(self._settings)
+            
+            if 'integrations' not in all_settings:
+                all_settings['integrations'] = {}
+            
+            # Обновляем настройки интеграции
+            all_settings['integrations'][integration_name] = settings
+            
+            # Сохраняем обновленные настройки
+            self._settings = all_settings
+            success = self._save_settings()
+            
+            if success:
+                logger.info(f"Настройки интеграции {integration_name} успешно сохранены")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Ошибка сохранения настроек интеграции {integration_name}: {e}")
+            return False
+    
+    def save_all_settings_unified(self, settings: Dict[str, Any]) -> bool:
+        """
+        Сохранить все настройки
+        """
+        try:
+            self._settings = settings
+            success = self._save_settings()
+            
+            if success:
+                logger.info("Все настройки успешно сохранены")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Ошибка сохранения всех настроек: {e}")
+            return False
 
 # Глобальный экземпляр улучшенного менеджера
 real_settings_manager = RealDataSettingsManager()

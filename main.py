@@ -162,8 +162,8 @@ def history():
 
 @app.route('/integrations')
 def integrations():
-    """Render the integrations page"""
-    return render_template('integrations.html', active_page='integrations')
+    """Redirect to unified settings page (integrations are now centralized)"""
+    return redirect(url_for('unified_settings'))
 
 @app.route('/widget-demo')
 def widget_demo():
@@ -1927,6 +1927,72 @@ def api_wazzup_bulk_delete_users():
         return jsonify({
             "success": False,
             "error": str(e)
+        }), 500
+
+# Unified Settings API endpoints
+@app.route('/api/settings/integration/<integration_name>', methods=['POST'])
+def api_save_integration_settings(integration_name):
+    """Save settings for specific integration"""
+    try:
+        from unified_settings_manager import real_settings_manager
+        
+        data = request.get_json()
+        
+        # Save integration settings
+        success = real_settings_manager.save_integration_settings(integration_name, data)
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": f"Настройки интеграции {integration_name} сохранены"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Ошибка сохранения настроек"
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Error saving integration settings {integration_name}: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/settings/save-all', methods=['POST'])
+def api_save_all_settings():
+    """Save all settings"""
+    try:
+        from unified_settings_manager import real_settings_manager
+        
+        data = request.get_json()
+        integrations = data.get('integrations', {})
+        settings = data.get('settings', {})
+        
+        # Save all settings
+        success = True
+        
+        # Save each integration
+        for integration_name, integration_settings in integrations.items():
+            if not real_settings_manager.save_integration_settings(integration_name, integration_settings):
+                success = False
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": "Все настройки сохранены"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Ошибка сохранения некоторых настроек"
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Error saving all settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
         }), 500
 
 # Initialize the app
