@@ -39,9 +39,8 @@ _memory_agents_config = {
     'auto_process': False
 }
 
-# Real leads data from SAMO API - no more mock data
-# Note: Lead storage is now handled by app_api.py with persistent file storage
-_memory_leads = []
+# Production: All data comes from SAMO API through app_api.py persistent storage
+# No mock data in production deployment
 
 try:
     if not supabase_url or not supabase_key:

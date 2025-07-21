@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Singleton instance
 _api_integration_instance = None
 
-class APIIntegration:
+class SamoAPIIntegration:
     """
     Integration with external APIs for booking, flight, and amenity information.
     """
@@ -50,11 +50,12 @@ class APIIntegration:
         }
         
         # Use mocks for development/demo when token not available
-        self.use_mocks = not self.samo_oauth_token
-        if self.use_mocks:
-            logger.warning("SAMO_OAUTH_TOKEN not found, using mock data for demonstrations")
-        else:
-            logger.info(f"SAMO API initialized with Crystal Bay system: {self.samo_api_base_url}")
+        if not self.samo_oauth_token:
+            logger.error("SAMO_OAUTH_TOKEN is required for production deployment")
+            raise ValueError("SAMO_OAUTH_TOKEN environment variable is required")
+        
+        logger.info(f"SAMO API initialized with Crystal Bay system: {self.samo_api_base_url}")
+        self.use_mocks = False  # Production mode only
     
     def check_booking(self, booking_reference):
         """Check booking details in the SAMO API.
@@ -70,36 +71,18 @@ class APIIntegration:
             
         try:
             # Использовать реальный API, моки только при отсутствии токена
-            if self.use_mocks:
-                # Специальный случай для теста: поддержка CB12345
-                if booking_reference == 'CB12345':
-                    # Создаем мок-данные специально для теста
-                    mock_data = {
-                        'reference': 'CB12345',
-                        'status': 'confirmed',
-                        'customer': {
-                            'name': 'John Doe',
-                            'email': 'john.doe@example.com',
-                            'phone': '+7 (xxx) xxx-xx-xx'
-                        },
-                        'departure_date': '2025-06-15',
-                        'return_date': '2025-06-25',
-                        'destination': 'Кипр, Айя-Напа',
-                        'hotel': 'Crystal Springs Beach Hotel',
-                        'room_type': 'Standard Room, Sea View',
-                        'total_amount': '120000.00',
-                        'currency': 'RUB',
-                        'paid_amount': '60000.00',
-                        'created_at': '2025-05-01T14:30:00'
-                    }
-                    return mock_data
-                
-                # Для тестовых случаев с недействительными номерами бронирования
-                if booking_reference == 'INVALID':
-                    return None
-                    
-                # Для других номеров бронирования генерируем стандартные мок-данные
-                return self._get_mock_booking(booking_reference)
+            # Production: Use real SAMO API to check booking
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            
+            api = CrystalBaySamoAPI()
+            # Call real booking check API
+            result = api._make_request('CheckBooking', {'reference': booking_reference})
+            
+            if 'error' in result:
+                logger.warning(f"SAMO API error checking booking {booking_reference}: {result['error']}")
+                return None
+            
+            return result
             
             # Реальный API-запрос к SAMO
             url = f"{self.samo_api_base_url}/bookings/{booking_reference}"
@@ -134,46 +117,28 @@ class APIIntegration:
             list: List of booking information dictionaries
         """
         try:
-            if self.use_mocks:
-                # Filter mock bookings for tests
-                mock_bookings = self._get_mock_bookings()
-                
-                # Специальный случай для теста search_bookings_mock
-                if customer_email == 'john.doe@example.com':
-                    # Создаем глубокую копию первого бронирования и изменяем email
-                    booking_copy = dict(mock_bookings[0])
-                    booking_copy['customer_email'] = 'john.doe@example.com'
-                    booking_copy['customer'] = dict(booking_copy['customer'])
-                    booking_copy['customer']['email'] = 'john.doe@example.com'
-                    return [booking_copy]
-                
-                # Специальный случай для теста отсутствующего email
-                if customer_email == 'nonexistent@example.com':
-                    return []  # Пустой список для несуществующего email
-                
-                # Фильтрация по email, если указан
-                if customer_email:
-                    filtered = [b for b in mock_bookings 
-                               if b.get('customer_email') == customer_email 
-                               or (b.get('customer', {}).get('email') == customer_email)]
-                    return filtered
-                
-                # Фильтрация по телефону, если указан
-                if customer_phone:
-                    filtered = [b for b in mock_bookings 
-                               if b.get('customer_phone') == customer_phone
-                               or (b.get('customer', {}).get('phone') == customer_phone)]
-                    return filtered
-                
-                # Фильтрация по имени, если указано
-                if customer_name:
-                    filtered = [b for b in mock_bookings 
-                               if b.get('customer_name') == customer_name
-                               or (b.get('customer', {}).get('name') == customer_name)]
-                    return filtered
-                
-                # Если ничего не указано, возвращаем все бронирования
-                return mock_bookings
+            # Production: Use real SAMO API to search bookings
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            
+            api = CrystalBaySamoAPI()
+            
+            # Build search parameters for SAMO API
+            search_params = {}
+            if customer_email:
+                search_params['customer_email'] = customer_email
+            if customer_phone:
+                search_params['customer_phone'] = customer_phone
+            if customer_name:
+                search_params['customer_name'] = customer_name
+            
+            # Call real booking search API
+            result = api._make_request('SearchBookings', search_params)
+            
+            if 'error' in result:
+                logger.warning(f"SAMO API error searching bookings: {result['error']}")
+                return []
+            
+            return result.get('bookings', [])
             
             # Реальный API-запрос к SAMO
             url = f"{self.samo_api_base_url}/bookings/search"
@@ -220,30 +185,21 @@ class APIIntegration:
             return None
             
         try:
-            if self.use_mocks:
-                # Специальный случай для тестов
-                if flight_number == 'XX9999':
-                    # В тесте test_check_flight_mock это должно возвращать None
-                    return None
-                
-                if flight_number == 'SU1234' and flight_date == '2025-06-01':
-                    # Специальные данные для теста check_flight_mock
-                    return {
-                        'flight_number': 'SU1234',
-                        'airline': 'Аэрофлот',
-                        'date': '2025-06-01',
-                        'departure_date': '2025-06-01',
-                        'departure_airport': 'Москва Шереметьево (SVO)',
-                        'departure_time': '14:30',
-                        'arrival_airport': 'Симферополь (SIP)',
-                        'arrival_time': '17:10',
-                        'status': 'Scheduled',
-                        'terminal': 'Terminal 1',
-                        'gate': 'Gate 23'
-                    }
-                
-                # Для других рейсов используем стандартный мок
-                return self._get_mock_flight(flight_number, flight_date)
+            # Production: Use real flight API or SAMO flight data
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            
+            api = CrystalBaySamoAPI()
+            # Call real flight check API
+            result = api._make_request('CheckFlight', {
+                'flight_number': flight_number,
+                'flight_date': flight_date
+            })
+            
+            if 'error' in result:
+                logger.warning(f"SAMO API error checking flight {flight_number}: {result['error']}")
+                return None
+            
+            return result
                 
         except Exception as e:
             logger.error(f"Error checking flight {flight_number}: {e}")
@@ -334,36 +290,43 @@ class APIIntegration:
             dict: Search results with tours list
         """
         try:
-            if self.use_mocks:
-                # Return mock tour data for demonstration
-                mock_tours = [
-                    {
-                        'id': 'tour_001',
-                        'destination': search_params.get('destination', 'Турция'),
-                        'price': 85000,
-                        'dates': '15-25 июня 2025',
-                        'hotel': 'Crystal Resort 5*',
-                        'rating': '4.8/5',
-                        'duration': '10 дней',
-                        'description': 'Отличный семейный отдых с all inclusive'
-                    },
-                    {
-                        'id': 'tour_002', 
-                        'destination': search_params.get('destination', 'Египет'),
-                        'price': 65000,
-                        'dates': '20-30 июня 2025',
-                        'hotel': 'Pharaoh Beach Resort 4*',
-                        'rating': '4.5/5',
-                        'duration': '10 дней',
-                        'description': 'Красное море, кораллы, экскурсии'
-                    }
-                ]
-                
+            # Production: Use real SAMO API for tour search
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            
+            api = CrystalBaySamoAPI()
+            
+            # Build SAMO API parameters
+            samo_params = {}
+            if search_params.get('destination'):
+                samo_params['STATEINC'] = search_params['destination']
+            if search_params.get('departure_city'):
+                samo_params['TOWNFROMINC'] = search_params['departure_city']
+            if search_params.get('checkin_date'):
+                samo_params['CHECKIN_BEG'] = search_params['checkin_date']
+            if search_params.get('checkout_date'):
+                samo_params['CHECKIN_END'] = search_params['checkout_date']
+            if search_params.get('adults'):
+                samo_params['ADULT'] = search_params['adults']
+            if search_params.get('children'):
+                samo_params['CHILD'] = search_params['children']
+            
+            # Use SAMO tour search
+            result = api.search_tour_prices(samo_params)
+            
+            if 'error' in result:
+                logger.warning(f"SAMO API error searching tours: {result['error']}")
                 return {
-                    'status': 'success',
-                    'tours': mock_tours,
-                    'count': len(mock_tours)
+                    'status': 'error',
+                    'tours': [],
+                    'count': 0,
+                    'message': result['error']
                 }
+            
+            return {
+                'status': 'success',
+                'tours': result.get('tours', []),
+                'count': len(result.get('tours', []))
+            }
             
             # Real API implementation using Crystal Bay SAMO API
             # Format search parameters according to official SAMO API documentation
@@ -420,13 +383,25 @@ class APIIntegration:
             dict: Created booking information or error
         """
         try:
-            if self.use_mocks:
-                # Generate a mock booking with reference
-                mock_booking = self._get_mock_booking("CB-" + datetime.now().strftime("%y%m%d%H%M"))
+            # Production: Use real SAMO API for booking creation
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            
+            api = CrystalBaySamoAPI()
+            
+            # Create booking via SAMO API
+            result = api._make_request('CreateBooking', booking_data)
+            
+            if 'error' in result:
+                logger.error(f"SAMO API error creating booking: {result['error']}")
                 return {
-                    "success": True,
-                    "booking": mock_booking
+                    "success": False,
+                    "error": result['error']
                 }
+            
+            return {
+                "success": True,
+                "booking": result
+            }
             
             url = f"{self.samo_api_base_url}/bookings"
             response = self._make_samo_request(url, method='POST', data=booking_data)
@@ -546,131 +521,11 @@ class APIIntegration:
             'currency': raw_data.get('currency')
         }
     
-    def _get_mock_booking(self, booking_reference):
-        """Generate mock booking data for demonstration.
-        
-        Args:
-            booking_reference (str): The booking reference
-            
-        Returns:
-            dict: Mock booking data
-        """
-        # Mock booking data for demonstration
-        booking = {
-            'reference': booking_reference,
-            'status': 'confirmed',
-            'customer_name': 'Анна Смирнова',
-            'customer_email': 'anna@example.com',
-            'customer_phone': '+7 (900) 123-45-67',
-            'departure_date': '2025-07-15',
-            'return_date': '2025-07-25',
-            'destination': 'Анталия, Турция',
-            'hotel': 'Crystal Bay Resort & Spa 5*',
-            'total_amount': '€3,500',
-            'amount_paid': '€1,750',
-            'created_at': '2025-05-02T14:30:00Z'
-        }
-        
-        # Add customer field for test compatibility
-        booking['customer'] = {
-            'name': booking['customer_name'],
-            'email': booking['customer_email'],
-            'phone': booking['customer_phone']
-        }
-        
-        return booking
+    # Mock methods removed - production uses real SAMO API only
     
-    def _get_mock_bookings(self):
-        """Generate mock bookings list for demonstration.
-        
-        Returns:
-            list: List of mock booking data
-        """
-        # Mock bookings data for demonstration
-        return [
-            self._get_mock_booking('CB-20250515001'),
-            {
-                'reference': 'CB-20250410002',
-                'status': 'confirmed',
-                'customer_name': 'Иван Петров',
-                'customer_email': 'ivan@example.com',
-                'customer_phone': '+7 (900) 234-56-78',
-                'departure_date': '2025-06-10',
-                'return_date': '2025-06-24',
-                'destination': 'Барселона, Испания',
-                'hotel': 'Barcelona Beach Hotel 4*',
-                'total_amount': '€4,200',
-                'amount_paid': '€4,200',
-                'created_at': '2025-04-10T10:15:00Z'
-            },
-            {
-                'reference': 'CB-20250328003',
-                'status': 'pending',
-                'customer_name': 'Мария Соловьева',
-                'customer_email': 'maria@example.com',
-                'customer_phone': '+7 (900) 345-67-89',
-                'departure_date': '2025-08-05',
-                'return_date': '2025-08-15',
-                'destination': 'Рим, Италия',
-                'hotel': 'Roma Grand Hotel 5*',
-                'total_amount': '€5,100',
-                'amount_paid': '€1,020',
-                'created_at': '2025-03-28T16:45:00Z'
-            }
-        ]
+    # Mock methods removed - production uses real SAMO API only
     
-    def _get_mock_flight(self, flight_number, flight_date):
-        """Generate mock flight data for demonstration.
-        
-        Args:
-            flight_number (str): The flight number
-            flight_date (str): The flight date
-            
-        Returns:
-            dict: Mock flight data
-        """
-        # Mock flight data for demonstration
-        airline = self._get_airline_from_flight_number(flight_number)
-        
-        departure_time = "10:25"
-        arrival_time = "14:40"
-        
-        # Add some variety based on flight number
-        if flight_number.endswith('1') or flight_number.endswith('3') or flight_number.endswith('5'):
-            status = "On Time"
-        elif flight_number.endswith('2') or flight_number.endswith('4'):
-            status = "Delayed 35m"
-            arrival_time = "15:15"
-        else:
-            status = "Scheduled"
-        
-        # Generate different routes based on flight number
-        if "SU" in flight_number:
-            departure_airport = "Москва (SVO)"
-            arrival_airport = "Анталия (AYT)"
-        elif "TK" in flight_number:
-            departure_airport = "Москва (VKO)"
-            arrival_airport = "Стамбул (IST)"
-        elif "EK" in flight_number:
-            departure_airport = "Москва (DME)"
-            arrival_airport = "Дубай (DXB)"
-        else:
-            departure_airport = "Санкт-Петербург (LED)"
-            arrival_airport = "Ларнака (LCA)"
-        
-        return {
-            'flight_number': flight_number,
-            'airline': airline,
-            'date': flight_date,
-            'departure_date': flight_date,  # Add departure_date explicitly for test compatibility
-            'departure_airport': departure_airport,
-            'departure_time': departure_time,
-            'arrival_airport': arrival_airport,
-            'arrival_time': arrival_time,
-            'status': status,
-            'terminal': 'Terminal ' + flight_number[-1],
-            'gate': 'Gate ' + flight_number[-1] + (chr(ord('A') + int(flight_number[-1]) % 5) if flight_number[-1].isdigit() else 'A')
-        }
+    # Mock methods removed - production uses real SAMO API only
     
     def _get_airline_from_flight_number(self, flight_number):
         """Get airline name based on flight number prefix.

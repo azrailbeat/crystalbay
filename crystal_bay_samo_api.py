@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-class Crystal_Bay_SAMO_API:
+class CrystalBaySamoAPI:
     """Полная интеграция SAMO API для Crystal Bay Travel"""
     
     def __init__(self, base_url: str = "https://booking-kz.crystalbay.com/export/default.php", 
@@ -342,8 +342,8 @@ class Crystal_Bay_SAMO_API:
         return bookings
 
 # Глобальный экземпляр API
-crystal_bay_api = Crystal_Bay_SAMO_API()
+crystal_bay_api = CrystalBaySamoAPI()
 
-def get_crystal_bay_api() -> Crystal_Bay_SAMO_API:
+def get_crystal_bay_api() -> CrystalBaySamoAPI:
     """Получить экземпляр Crystal Bay SAMO API"""
     return crystal_bay_api

@@ -59,20 +59,10 @@ if not _memory_leads:
     except Exception as e:
         logger.error(f"Ошибка загрузки заявок SAMO: {e}")
 
-# Minimal fallback only if no SAMO leads and no persistent data
+# Production mode: If no leads available, system displays empty state with error message
 if not _memory_leads:
-    _memory_leads.append({
-        'id': 'sample_1',
-        'status': 'new',
-        'name': 'SAMO API - ожидание настройки IP',
-        'email': 'admin@crystalbay.travel',
-        'phone': '+7 (777) 123-45-67',
-        'created_at': datetime.now().isoformat(),
-        'source': 'system',
-        'tags': ['Система', 'Настройка'],
-        'details': 'Для загрузки заявок из SAMO API необходимо добавить IP-адрес сервера в whitelist Crystal Bay'
-    })
-    # Save initial data to file
+    logger.warning("No leads available from SAMO API. System needs IP whitelisting or API configuration.")
+    # Save empty state to prevent repeated errors
     _save_memory_leads_to_file()
 
 
