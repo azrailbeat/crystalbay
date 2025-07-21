@@ -70,6 +70,10 @@ def test_samo_leads():
 from app_api_test import register_test_routes
 register_test_routes(app)
 
+# Register SAMO API routes
+from samo_api_routes import register_samo_api_routes
+register_samo_api_routes(app)
+
 # Import and register lead import routes
 from lead_import_api import lead_import_bp
 app.register_blueprint(lead_import_bp)
@@ -1800,8 +1804,8 @@ def start_chat_monitoring():
         }), 500
 
 # SAMO API Testing Endpoints
-@app.route('/api/samo/test-connection', methods=['POST'])
-def test_samo_connection():
+@app.route('/api/samo/test-legacy', methods=['POST'])  
+def test_samo_connection_legacy():
     """Test SAMO API connection with Anex Tour Partner API"""
     try:
         from samo_api_test import SAMOAPITester
@@ -1825,8 +1829,8 @@ def test_samo_connection():
             "timestamp": datetime.now().isoformat()
         }), 500
 
-@app.route('/api/samo/search-tours', methods=['POST'])
-def search_tours_api():
+@app.route('/api/samo/search-tours-legacy', methods=['POST'])
+def search_tours_api_legacy():
     """Search tours using SAMO API with proper parameters"""
     try:
         search_params = request.get_json() or {}

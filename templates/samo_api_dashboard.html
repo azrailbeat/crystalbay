@@ -1,0 +1,528 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay SAMO API - Панель управления{% endblock %}
+
+{% block page_title %}SAMO API - Панель управления{% endblock %}
+
+{% block head %}
+<style>
+    .api-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    
+    .api-section h3 {
+        color: #1a73e8;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .api-button {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .connection-status {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+    
+    .connection-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .connection-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .api-response {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-top: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+    }
+    
+    .search-form {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .btn-group-custom {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Статус подключения -->
+    <div class="api-section">
+        <h3><i class="bi bi-wifi"></i> Статус подключения</h3>
+        <div id="connection-status" class="connection-status">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Проверка подключения...
+        </div>
+        <button class="btn btn-primary" onclick="testConnection()">
+            <i class="bi bi-arrow-clockwise"></i> Тест подключения
+        </button>
+    </div>
+
+    <!-- Справочники -->
+    <div class="api-section">
+        <h3><i class="bi bi-book"></i> Справочники</h3>
+        <div class="btn-group-custom">
+            <button class="btn btn-outline-primary api-button" onclick="loadTownFroms()">
+                <i class="bi bi-geo-alt"></i> Города отправления
+            </button>
+            <button class="btn btn-outline-primary api-button" onclick="loadStates()">
+                <i class="bi bi-globe"></i> Страны
+            </button>
+            <button class="btn btn-outline-primary api-button" onclick="loadCurrencies()">
+                <i class="bi bi-currency-dollar"></i> Валюты
+            </button>
+            <button class="btn btn-outline-primary api-button" onclick="loadHotels()">
+                <i class="bi bi-building"></i> Отели
+            </button>
+            <button class="btn btn-outline-primary api-button" onclick="loadTours()">
+                <i class="bi bi-map"></i> Туры
+            </button>
+        </div>
+    </div>
+
+    <!-- Поиск туров -->
+    <div class="api-section">
+        <h3><i class="bi bi-search"></i> Поиск туров</h3>
+        
+        <div class="search-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="townfrom">Город отправления:</label>
+                    <select class="form-select" id="townfrom">
+                        <option value="">Любой</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="country">Страна:</label>
+                    <select class="form-select" id="country">
+                        <option value="">Любая</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="currency">Валюта:</label>
+                    <select class="form-select" id="currency">
+                        <option value="USD">USD</option>
+                        <option value="RUB">RUB</option>
+                        <option value="EUR">EUR</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="checkin_beg">Дата заезда от:</label>
+                    <input type="date" class="form-control" id="checkin_beg">
+                </div>
+                <div class="form-group">
+                    <label for="checkin_end">Дата заезда до:</label>
+                    <input type="date" class="form-control" id="checkin_end">
+                </div>
+                <div class="form-group">
+                    <label for="nights_from">Ночей от:</label>
+                    <input type="number" class="form-control" id="nights_from" value="7" min="1" max="30">
+                </div>
+                <div class="form-group">
+                    <label for="nights_till">Ночей до:</label>
+                    <input type="number" class="form-control" id="nights_till" value="14" min="1" max="30">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="adults">Взрослых:</label>
+                    <input type="number" class="form-control" id="adults" value="2" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label for="children">Детей:</label>
+                    <input type="number" class="form-control" id="children" value="0" min="0" max="10">
+                </div>
+            </div>
+        </div>
+        
+        <div class="btn-group-custom">
+            <button class="btn btn-success" onclick="searchTourPrices()">
+                <i class="bi bi-search"></i> Поиск цен
+            </button>
+            <button class="btn btn-info" onclick="searchToursDetailed()">
+                <i class="bi bi-list-ul"></i> Детальный поиск
+            </button>
+        </div>
+    </div>
+
+    <!-- Бронирования -->
+    <div class="api-section">
+        <h3><i class="bi bi-calendar-check"></i> Бронирования</h3>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="booking_date_from">Дата от:</label>
+                <input type="date" class="form-control" id="booking_date_from">
+            </div>
+            <div class="form-group">
+                <label for="booking_date_to">Дата до:</label>
+                <input type="date" class="form-control" id="booking_date_to">
+            </div>
+        </div>
+        
+        <div class="btn-group-custom">
+            <button class="btn btn-primary" onclick="loadBookings()">
+                <i class="bi bi-list"></i> Список бронирований
+            </button>
+            <button class="btn btn-success" onclick="showCreateBookingForm()">
+                <i class="bi bi-plus"></i> Создать бронирование
+            </button>
+        </div>
+    </div>
+
+    <!-- Отчеты -->
+    <div class="api-section">
+        <h3><i class="bi bi-graph-up"></i> Отчеты</h3>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="report_date_from">Дата от:</label>
+                <input type="date" class="form-control" id="report_date_from">
+            </div>
+            <div class="form-group">
+                <label for="report_date_to">Дата до:</label>
+                <input type="date" class="form-control" id="report_date_to">
+            </div>
+        </div>
+        
+        <div class="btn-group-custom">
+            <button class="btn btn-info" onclick="loadSalesReport()">
+                <i class="bi bi-bar-chart"></i> Отчет по продажам
+            </button>
+            <button class="btn btn-warning" onclick="loadFinancialReport()">
+                <i class="bi bi-currency-exchange"></i> Финансовый отчет
+            </button>
+        </div>
+    </div>
+
+    <!-- Результаты API -->
+    <div class="api-section">
+        <h3><i class="bi bi-code-slash"></i> Результаты API</h3>
+        <div id="api-response" class="api-response">
+            Здесь будут отображаться результаты API запросов...
+        </div>
+    </div>
+</div>
+
+<script>
+// Инициализация дат
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    
+    // Даты для поиска туров
+    document.getElementById('checkin_beg').value = today.toISOString().split('T')[0];
+    document.getElementById('checkin_end').value = nextMonth.toISOString().split('T')[0];
+    
+    // Даты для бронирований
+    document.getElementById('booking_date_from').value = lastMonth.toISOString().split('T')[0];
+    document.getElementById('booking_date_to').value = today.toISOString().split('T')[0];
+    
+    // Даты для отчетов
+    document.getElementById('report_date_from').value = lastMonth.toISOString().split('T')[0];
+    document.getElementById('report_date_to').value = today.toISOString().split('T')[0];
+    
+    // Автоматический тест подключения
+    setTimeout(testConnection, 1000);
+});
+
+// Функции API
+async function testConnection() {
+    try {
+        showLoading('Тестирование подключения...');
+        const response = await fetch('/api/samo/test');
+        const data = await response.json();
+        
+        const statusDiv = document.getElementById('connection-status');
+        if (data.success) {
+            statusDiv.className = 'connection-status connection-success';
+            statusDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+        } else {
+            statusDiv.className = 'connection-status connection-error';
+            statusDiv.innerHTML = '<i class="bi bi-x-circle"></i> ' + data.message;
+        }
+        
+        showResponse(data);
+    } catch (error) {
+        const statusDiv = document.getElementById('connection-status');
+        statusDiv.className = 'connection-status connection-error';
+        statusDiv.innerHTML = '<i class="bi bi-x-circle"></i> Ошибка подключения: ' + error.message;
+        showResponse({error: error.message});
+    }
+}
+
+async function loadTownFroms() {
+    try {
+        showLoading('Загрузка городов отправления...');
+        const response = await fetch('/api/samo/townfroms');
+        const data = await response.json();
+        
+        // Заполняем select
+        const select = document.getElementById('townfrom');
+        select.innerHTML = '<option value="">Любой</option>';
+        
+        if (data.SearchTour_TOWNFROMS) {
+            data.SearchTour_TOWNFROMS.forEach(town => {
+                const option = document.createElement('option');
+                option.value = town.id;
+                option.textContent = town.nameAlt || town.name;
+                select.appendChild(option);
+            });
+        }
+        
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadStates() {
+    try {
+        showLoading('Загрузка стран...');
+        const response = await fetch('/api/samo/states');
+        const data = await response.json();
+        
+        // Заполняем select
+        const select = document.getElementById('country');
+        select.innerHTML = '<option value="">Любая</option>';
+        
+        if (data.SearchTour_STATES) {
+            data.SearchTour_STATES.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state.id;
+                option.textContent = state.nameAlt || state.name;
+                select.appendChild(option);
+            });
+        }
+        
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadCurrencies() {
+    try {
+        showLoading('Загрузка валют...');
+        const response = await fetch('/api/samo/currencies');
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadHotels() {
+    try {
+        showLoading('Загрузка отелей...');
+        const stateKey = document.getElementById('country').value;
+        const url = stateKey ? `/api/samo/hotels?state_key=${stateKey}` : '/api/samo/hotels';
+        const response = await fetch(url);
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadTours() {
+    try {
+        showLoading('Загрузка туров...');
+        const response = await fetch('/api/samo/tours');
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function searchTourPrices() {
+    try {
+        showLoading('Поиск цен на туры...');
+        
+        const params = {
+            TOWNFROMINC: document.getElementById('townfrom').value,
+            STATEINC: document.getElementById('country').value,
+            CHECKIN_BEG: document.getElementById('checkin_beg').value,
+            CHECKIN_END: document.getElementById('checkin_end').value,
+            NIGHTS_FROM: parseInt(document.getElementById('nights_from').value),
+            NIGHTS_TILL: parseInt(document.getElementById('nights_till').value),
+            ADULT: parseInt(document.getElementById('adults').value),
+            CHILD: parseInt(document.getElementById('children').value),
+            CURRENCY: document.getElementById('currency').value,
+            FILTER: 1
+        };
+        
+        const response = await fetch('/api/samo/search/prices', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+        
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function searchToursDetailed() {
+    try {
+        showLoading('Детальный поиск туров...');
+        
+        const params = {
+            TOWNFROMINC: document.getElementById('townfrom').value,
+            STATEINC: document.getElementById('country').value,
+            CHECKIN_BEG: document.getElementById('checkin_beg').value,
+            CHECKIN_END: document.getElementById('checkin_end').value,
+            NIGHTS_FROM: parseInt(document.getElementById('nights_from').value),
+            NIGHTS_TILL: parseInt(document.getElementById('nights_till').value),
+            ADULT: parseInt(document.getElementById('adults').value),
+            CHILD: parseInt(document.getElementById('children').value),
+            CURRENCY: document.getElementById('currency').value
+        };
+        
+        const response = await fetch('/api/samo/search/tours', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+        
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadBookings() {
+    try {
+        showLoading('Загрузка бронирований...');
+        
+        const dateFrom = document.getElementById('booking_date_from').value;
+        const dateTo = document.getElementById('booking_date_to').value;
+        
+        const url = `/api/samo/bookings?date_from=${dateFrom}&date_to=${dateTo}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadSalesReport() {
+    try {
+        showLoading('Загрузка отчета по продажам...');
+        
+        const dateFrom = document.getElementById('report_date_from').value;
+        const dateTo = document.getElementById('report_date_to').value;
+        
+        const url = `/api/samo/reports/sales?date_from=${dateFrom}&date_to=${dateTo}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+async function loadFinancialReport() {
+    try {
+        showLoading('Загрузка финансового отчета...');
+        
+        const dateFrom = document.getElementById('report_date_from').value;
+        const dateTo = document.getElementById('report_date_to').value;
+        
+        const url = `/api/samo/reports/financial?date_from=${dateFrom}&date_to=${dateTo}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        showResponse(data);
+    } catch (error) {
+        showResponse({error: error.message});
+    }
+}
+
+function showCreateBookingForm() {
+    alert('Форма создания бронирования будет добавлена в следующем обновлении');
+}
+
+function showLoading(message) {
+    const responseDiv = document.getElementById('api-response');
+    responseDiv.innerHTML = `<div class="text-center"><span class="spinner-border spinner-border-sm me-2"></span>${message}</div>`;
+}
+
+function showResponse(data) {
+    const responseDiv = document.getElementById('api-response');
+    responseDiv.innerHTML = JSON.stringify(data, null, 2);
+}
+
+function showToast(message, type = 'info') {
+    // Простая реализация toast уведомлений
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}
