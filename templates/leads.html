@@ -354,11 +354,11 @@
         <h5 class="mb-0">Управление и обслуживание процесса обработки обращений</h5>
         <div class="d-flex align-items-center">
             <div class="lead-stats me-4">
-                <span class="me-3">Всего: <span class="fw-bold">6</span></span>
-                <span class="me-3">Новые: <span class="fw-bold text-primary">0</span></span>
-                <span class="me-3">В работе: <span class="fw-bold text-warning">3</span></span>
-                <span class="me-3">Ожидание: <span class="fw-bold text-info">0</span></span>
-                <span class="me-3">Выполнено: <span class="fw-bold text-success">0</span></span>
+                <span class="me-3">Всего: <span class="fw-bold">{{ leads_data.total_leads if leads_data else 0 }}</span></span>
+                <span class="me-3">Новые: <span class="fw-bold text-primary">{{ leads_data.new_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">В работе: <span class="fw-bold text-warning">{{ leads_data.in_progress_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">Ожидание: <span class="fw-bold text-info">{{ leads_data.pending_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">Выполнено: <span class="fw-bold text-success">{{ leads_data.confirmed_leads|length if leads_data else 0 }}</span></span>
             </div>
         </div>
     </div>
@@ -413,7 +413,7 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <i class="bi bi-plus-circle text-primary"></i> Новые
-                    <span class="column-count">8</span>
+                    <span class="column-count">{{ leads_data.new_leads|length if leads_data else 0 }}</span>
                 </div>
                 <button class="btn btn-sm btn-light">
                     <i class="bi bi-three-dots"></i>
@@ -421,68 +421,36 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card auto-processing" data-lead-id="1" data-bs-toggle="modal" data-bs-target="#viewLeadModal" draggable="true">
-                    <div class="lead-source">
-                        <i class="bi bi-telegram source-icon"></i> Telegram
-                        <span class="ai-badge"><i class="bi bi-robot"></i> Обработано ИИ</span>
-                    </div>
-                    <div class="lead-name">Анна Смирнова</div>
-                    <div class="lead-details">Запрос на тур в Турцию, семейный отдых, июль-август 2025. Интересуют отели 5* с аквапарком и детской анимацией.</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Пляжный отдых</span>
-                        <span class="lead-tag">Семья</span>
-                        <span class="lead-tag">Турция</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">2 часа назад</div>
-                        <div class="lead-actions">
-                            <button><i class="bi bi-chat"></i></button>
-                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                {% if leads_data and leads_data.new_leads %}
+                    {% for lead in leads_data.new_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Новый</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="lead-card auto-processing" data-lead-id="2" draggable="true">
-                    <div class="processing-indicator">
-                        <div class="processing-spinner"></div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет новых лидов</p>
                     </div>
-                    <div class="lead-source">
-                        <i class="bi bi-globe source-icon"></i> Веб-сайт
-                    </div>
-                    <div class="lead-name">Иван Петров</div>
-                    <div class="lead-details">Запрос на экскурсионный тур по Европе, интересуют Италия, Испания, Франция. Предпочтение отелям 4-5*.</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Экскурсии</span>
-                        <span class="lead-tag">Европа</span>
-                        <span class="lead-tag">VIP</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">3 часа назад</div>
-                        <div class="lead-actions">
-                            <button><i class="bi bi-chat"></i></button>
-                            <button><i class="bi bi-arrow-right-circle"></i></button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-telephone source-icon"></i> Телефон
-                    </div>
-                    <div class="lead-name">Екатерина Васильева</div>
-                    <div class="lead-details">Запрос о горнолыжном отдыхе в Австрии или Швейцарии, декабрь 2025</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Горнолыжный</span>
-                        <span class="lead-tag">Зима</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">5 часов назад</div>
-                        <div class="lead-actions">
-                            <button><i class="bi bi-chat"></i></button>
-                            <button><i class="bi bi-arrow-right-circle"></i></button>
-                        </div>
-                    </div>
-                </div>
+                {% endif %}
                 
                 <button class="new-lead-btn" data-bs-toggle="modal" data-bs-target="#newLeadModal">
                     <i class="bi bi-plus-circle me-2"></i> Добавить новое обращение
@@ -495,7 +463,7 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <i class="bi bi-clock-history text-warning"></i> В работе
-                    <span class="column-count">5</span>
+                    <span class="column-count">{{ leads_data.in_progress_leads|length if leads_data else 0 }}</span>
                 </div>
                 <button class="btn btn-sm btn-light">
                     <i class="bi bi-three-dots"></i>
@@ -561,7 +529,7 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <i class="bi bi-chat-dots text-info"></i> Переговоры
-                    <span class="column-count">3</span>
+                    <span class="column-count">{{ leads_data.pending_leads|length if leads_data else 0 }}</span>
                 </div>
                 <button class="btn btn-sm btn-light">
                     <i class="bi bi-three-dots"></i>
@@ -608,7 +576,7 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <i class="bi bi-check-circle text-success"></i> Забронировано
-                    <span class="column-count">4</span>
+                    <span class="column-count">{{ leads_data.confirmed_leads|length if leads_data else 0 }}</span>
                 </div>
                 <button class="btn btn-sm btn-light">
                     <i class="bi bi-three-dots"></i>
@@ -655,7 +623,7 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <i class="bi bi-x-circle text-danger"></i> Отменено
-                    <span class="column-count">2</span>
+                    <span class="column-count">{{ leads_data.closed_leads|length if leads_data else 0 }}</span>
                 </div>
                 <button class="btn btn-sm btn-light">
                     <i class="bi bi-three-dots"></i>

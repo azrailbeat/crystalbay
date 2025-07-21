@@ -173,28 +173,28 @@
         <div class="col-md-3">
             <div class="booking-stats">
                 <i class="bi bi-calendar2-check text-primary" style="font-size: 2rem;"></i>
-                <span class="stat-value" id="total-bookings">0</span>
+                <span class="stat-value" id="total-bookings">{{ bookings_data.total_bookings if bookings_data else 0 }}</span>
                 <span class="stat-label">Всего бронирований</span>
             </div>
         </div>
         <div class="col-md-3">
             <div class="booking-stats">
                 <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
-                <span class="stat-value" id="pending-bookings">0</span>
+                <span class="stat-value" id="pending-bookings">{{ bookings_data.pending_bookings if bookings_data else 0 }}</span>
                 <span class="stat-label">Ожидают подтверждения</span>
             </div>
         </div>
         <div class="col-md-3">
             <div class="booking-stats">
                 <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                <span class="stat-value" id="confirmed-bookings">0</span>
+                <span class="stat-value" id="confirmed-bookings">{{ bookings_data.confirmed_bookings if bookings_data else 0 }}</span>
                 <span class="stat-label">Подтверждены</span>
             </div>
         </div>
         <div class="col-md-3">
             <div class="booking-stats">
                 <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
-                <span class="stat-value" id="cancelled-bookings">0</span>
+                <span class="stat-value" id="cancelled-bookings">{{ bookings_data.cancelled_bookings if bookings_data else 0 }}</span>
                 <span class="stat-label">Отменены</span>
             </div>
         </div>
@@ -292,7 +292,60 @@
             
             <!-- Bookings List -->
             <div id="bookings-list">
-                <!-- Bookings will be dynamically inserted here -->
+                {% if bookings_data and bookings_data.bookings %}
+                    {% for booking in bookings_data.bookings %}
+                    <div class="card booking-card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="booking-info">
+                                    <h5 class="card-title">{{ booking.get('destination', 'Направление не указано') }}</h5>
+                                    <p class="text-muted mb-2">
+                                        <i class="bi bi-person"></i> {{ booking.get('name', 'Клиент не указан') }}
+                                        <span class="ms-3">
+                                            <i class="bi bi-telephone"></i> {{ booking.get('phone', 'Телефон не указан') }}
+                                        </span>
+                                    </p>
+                                    <p class="text-muted mb-2">
+                                        <i class="bi bi-calendar3"></i> Создан: {{ booking.get('created_at', '')[:10] if booking.get('created_at') else 'Дата не указана' }}
+                                    </p>
+                                    {% if booking.get('message') %}
+                                    <p class="booking-message text-muted">
+                                        <i class="bi bi-chat-quote"></i> {{ booking.get('message')[:100] }}{% if booking.get('message')|length > 100 %}...{% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                <div class="booking-status-area">
+                                    {% if booking.get('status') == 'confirmed' %}
+                                    <span class="status-indicator status-confirmed"></span>
+                                    <span class="booking-status confirmed">Подтвержден</span>
+                                    {% elif booking.get('status') == 'pending' %}
+                                    <span class="status-indicator status-pending"></span>
+                                    <span class="booking-status pending">Ожидает</span>
+                                    {% elif booking.get('status') == 'cancelled' %}
+                                    <span class="status-indicator status-cancelled"></span>
+                                    <span class="booking-status cancelled">Отменен</span>
+                                    {% else %}
+                                    <span class="status-indicator"></span>
+                                    <span class="booking-status">{{ booking.get('status', 'Новый').title() }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar-x" style="font-size: 4rem; color: #ccc;"></i>
+                        <h4 class="text-muted mt-3">Нет бронирований</h4>
+                        <p class="text-muted">Бронирования будут отображаться здесь после создания лидов или получения данных от SAMO API</p>
+                        {% if bookings_data and not bookings_data.samo_connected %}
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            SAMO API недоступен. Свяжитесь с техподдержкой для разблокировки IP 34.117.33.233
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </div>
         

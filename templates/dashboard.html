@@ -224,12 +224,18 @@
                 <div class="stat-icon bg-blue">
                     <i class="bi bi-calendar-check"></i>
                 </div>
-                <p class="stat-title">Бронирования за месяц</p>
+                <p class="stat-title">Общее количество лидов</p>
             </div>
-            <h3 class="stat-value">124</h3>
+            <h3 class="stat-value">{{ dashboard_data.total_leads if dashboard_data else 0 }}</h3>
+            {% if dashboard_data and dashboard_data.total_leads > 0 %}
             <div class="stat-change positive">
-                <i class="bi bi-arrow-up-short"></i> +12% с прошлого месяца
+                <i class="bi bi-arrow-up-short"></i> Активных лидов: {{ dashboard_data.active_leads }}
             </div>
+            {% else %}
+            <div class="stat-change">
+                <i class="bi bi-info-circle"></i> Нет данных лидов
+            </div>
+            {% endif %}
         </div>
         
         <div class="stat-card">
@@ -237,12 +243,24 @@
                 <div class="stat-icon bg-green">
                     <i class="bi bi-currency-dollar"></i>
                 </div>
-                <p class="stat-title">Доход за месяц</p>
+                <p class="stat-title">SAMO API статус</p>
             </div>
-            <h3 class="stat-value">$268,500</h3>
+            {% if dashboard_data and dashboard_data.samo_status == 'connected' %}
+            <h3 class="stat-value text-success">Подключен</h3>
             <div class="stat-change positive">
-                <i class="bi bi-arrow-up-short"></i> +8% с прошлого месяца
+                <i class="bi bi-check-circle"></i> API готов к использованию
             </div>
+            {% elif dashboard_data and dashboard_data.samo_status == 'ip_blocked' %}
+            <h3 class="stat-value text-warning">IP Заблокирован</h3>
+            <div class="stat-change">
+                <i class="bi bi-exclamation-triangle"></i> Нужен whitelist IP 34.117.33.233
+            </div>
+            {% else %}
+            <h3 class="stat-value text-danger">Отключен</h3>
+            <div class="stat-change negative">
+                <i class="bi bi-x-circle"></i> API недоступен
+            </div>
+            {% endif %}
         </div>
         
         <div class="stat-card">
@@ -250,12 +268,18 @@
                 <div class="stat-icon bg-orange">
                     <i class="bi bi-people"></i>
                 </div>
-                <p class="stat-title">Новые клиенты</p>
+                <p class="stat-title">Активные лиды</p>
             </div>
-            <h3 class="stat-value">48</h3>
-            <div class="stat-change positive">
-                <i class="bi bi-arrow-up-short"></i> +6% с прошлого месяца
+            <h3 class="stat-value">{{ dashboard_data.active_leads if dashboard_data else 0 }}</h3>
+            {% if dashboard_data and dashboard_data.total_leads > 0 %}
+            <div class="stat-change">
+                <i class="bi bi-info-circle"></i> В работе и новые
             </div>
+            {% else %}
+            <div class="stat-change">
+                <i class="bi bi-plus-circle"></i> Начните добавлять лиды
+            </div>
+            {% endif %}
         </div>
         
         <div class="stat-card">
@@ -265,10 +289,16 @@
                 </div>
                 <p class="stat-title">Коэф. конверсии лидов</p>
             </div>
-            <h3 class="stat-value">24%</h3>
-            <div class="stat-change negative">
-                <i class="bi bi-arrow-down-short"></i> -2% с прошлого месяца
+            <h3 class="stat-value">{{ "%.1f"|format(dashboard_data.conversion_rate) if dashboard_data else 0 }}%</h3>
+            {% if dashboard_data and dashboard_data.total_leads > 0 %}
+            <div class="stat-change">
+                <i class="bi bi-info-circle"></i> На основе реальных данных
             </div>
+            {% else %}
+            <div class="stat-change">
+                <i class="bi bi-info-circle"></i> Нет данных для расчета
+            </div>
+            {% endif %}
         </div>
     </div>
     
@@ -317,12 +347,29 @@
                 </div>
                 
                 <div class="booking-list">
-                    <div class="booking-item">
-                        <div class="booking-info">
-                            <div class="booking-destination">Анталья, Турция</div>
-                            <div class="booking-details">Иванов Сергей · 10-20 мая 2025 · 2 взрослых</div>
+                    {% if dashboard_data and dashboard_data.leads %}
+                        {% for lead in dashboard_data.leads %}
+                        <div class="booking-item">
+                            <div class="booking-info">
+                                <div class="booking-destination">{{ lead.get('destination', 'Не указано') }}</div>
+                                <div class="booking-details">{{ lead.get('name', 'Неизвестный клиент') }} · {{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }} · {{ lead.get('phone', 'Телефон не указан') }}</div>
+                            </div>
+                            {% if lead.get('status') == 'confirmed' %}
+                            <span class="booking-status confirmed">Подтвержден</span>
+                            {% elif lead.get('status') == 'in_progress' %}
+                            <span class="booking-status pending">В работе</span>
+                            {% else %}
+                            <span class="booking-status">{{ lead.get('status', 'Новый').title() }}</span>
+                            {% endif %}
                         </div>
-                        <span class="booking-status confirmed">Подтвержден</span>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                            <p class="text-muted mt-3">Нет недавних лидов</p>
+                            <p class="text-muted">Лиды будут отображаться здесь после добавления в систему</p>
+                        </div>
+                    {% endif %}
                     </div>
                     
                     <div class="booking-item">
