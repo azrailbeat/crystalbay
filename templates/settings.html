@@ -603,82 +603,92 @@
             <!-- SAMO API Deployment Testing -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-rocket-takeoff me-2"></i>Тестирование API для деплоя</h5>
-                    <small class="text-muted">Проверка SAMO API endpoints для производственной среды</small>
+                    <h5 class="mb-0"><i class="bi bi-rocket-takeoff me-2"></i>Тестирование SAMO API Endpoints</h5>
+                    <small class="text-muted">Детальное тестирование всех endpoints для производственной среды</small>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <!-- Departure Towns Test -->
                         <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">Departure Towns</h6>
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-geo-alt me-1"></i>Departure Towns</h6>
                                 <p class="text-muted small mb-3">GET запрос списка городов отправления</p>
-                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('townfroms')">
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('townfroms')">
                                     <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOWNFROMS
                                 </button>
-                                <div class="test-result mt-2" id="townfroms-result"></div>
+                                <div class="test-result" id="townfroms-result"></div>
                             </div>
                         </div>
                         
-                        <!-- Available Tours Test -->
+                        <!-- Available Tours GET Test -->
                         <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">Available Tours (Almaty → Tashkent)</h6>
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-airplane me-1"></i>Tours Search (GET)</h6>
                                 <p class="text-muted small mb-3">GET запрос туров из Алматы в Ташкент</p>
-                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('tours_get')">
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('tours_get')">
                                     <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOURS (GET)
                                 </button>
-                                <div class="test-result mt-2" id="tours_get-result"></div>
+                                <div class="test-result" id="tours_get-result"></div>
                             </div>
                         </div>
                         
-                        <!-- Destination Towns Test -->
+                        <!-- Destination Towns XML Test -->
                         <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">Destination Towns (Uzbekistan)</h6>
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-pin-map me-1"></i>Destination Towns (XML)</h6>
                                 <p class="text-muted small mb-3">POST XML запрос городов назначения в Узбекистане</p>
-                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('towns_xml')">
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('towns_xml')">
                                     <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOWNS (XML)
                                 </button>
-                                <div class="test-result mt-2" id="towns_xml-result"></div>
+                                <div class="test-result" id="towns_xml-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tours XML Test -->
+                        <div class="col-md-6">
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-search me-1"></i>Tours Search (XML)</h6>
+                                <p class="text-muted small mb-3">POST XML запрос туров альтернативным методом</p>
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('tours_xml')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOURS (XML)
+                                </button>
+                                <div class="test-result" id="tours_xml-result"></div>
                             </div>
                         </div>
                         
                         <!-- All Available Data Test -->
                         <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">All Available Data</h6>
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-database me-1"></i>All Available Data</h6>
                                 <p class="text-muted small mb-3">POST XML запрос всех данных по Узбекистану</p>
-                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('all_data')">
-                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_ALL (XML)
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('all_data')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_ALL
                                 </button>
-                                <div class="test-result mt-2" id="all_data-result"></div>
+                                <div class="test-result" id="all_data-result"></div>
                             </div>
                         </div>
                         
-                        <!-- Tours XML Alternative Test -->
+                        <!-- Countries Test -->
                         <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">Tours (XML Alternative)</h6>
-                                <p class="text-muted small mb-3">POST XML альтернативный запрос туров</p>
-                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('tours_xml')">
-                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOURS (XML)
+                            <div class="test-card p-3 border rounded">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-globe me-1"></i>Countries List</h6>
+                                <p class="text-muted small mb-3">GET запрос списка доступных стран</p>
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="testSamoEndpoint('countries')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_COUNTRIES
                                 </button>
-                                <div class="test-result mt-2" id="tours_xml-result"></div>
+                                <div class="test-result" id="countries-result"></div>
                             </div>
                         </div>
-                        
-                        <!-- Run All Tests -->
-                        <div class="col-md-6">
-                            <div class="test-card">
-                                <h6 class="fw-bold">Полное тестирование</h6>
-                                <p class="text-muted small mb-3">Запуск всех 5 тестов API endpoints</p>
-                                <button class="btn btn-primary btn-sm w-100" onclick="runAllSamoTests()">
-                                    <i class="bi bi-lightning me-1"></i>Запустить все тесты
-                                </button>
-                                <div class="test-result mt-2" id="all-tests-result"></div>
-                            </div>
-                        </div>
+                    </div>
+                    
+                    <!-- Test All Button -->
+                    <div class="mt-4 text-center">
+                        <button class="btn btn-primary" onclick="testAllEndpoints()">
+                            <i class="bi bi-lightning-charge me-1"></i>Запустить все тесты
+                        </button>
+                        <button class="btn btn-outline-secondary ms-2" onclick="clearAllResults()">
+                            <i class="bi bi-trash3 me-1"></i>Очистить результаты
+                        </button>
                     </div>
                     
                     <!-- Test Results Summary -->
@@ -2460,6 +2470,124 @@
                 showToast('Ошибка копирования', 'error');
             });
         }
+    }
+
+    // Test all endpoints sequentially
+    function testAllEndpoints() {
+        const endpoints = ['townfroms', 'tours_get', 'towns_xml', 'tours_xml', 'all_data', 'countries'];
+        const summary = document.getElementById('test-summary');
+        const summaryContent = document.getElementById('test-summary-content');
+        
+        summary.style.display = 'block';
+        summaryContent.innerHTML = '<div class="text-info"><i class="bi bi-hourglass me-1"></i>Выполняется тестирование всех endpoints...</div>';
+        
+        let completedTests = 0;
+        let results = {};
+        
+        endpoints.forEach((endpoint, index) => {
+            setTimeout(() => {
+                fetch(`/api/samo/test-endpoint/${endpoint}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                })
+                .then(response => response.json())
+                .then(data => {
+                    results[endpoint] = data;
+                    completedTests++;
+                    
+                    // Update individual result
+                    const resultDiv = document.getElementById(`${endpoint}-result`);
+                    if (resultDiv) {
+                        if (data.success) {
+                            resultDiv.innerHTML = `<div class="text-success small"><i class="bi bi-check-circle me-1"></i>Успешно</div>`;
+                        } else {
+                            resultDiv.innerHTML = `<div class="text-danger small"><i class="bi bi-x-circle me-1"></i>Ошибка</div>`;
+                        }
+                    }
+                    
+                    // Update summary when all tests complete
+                    if (completedTests === endpoints.length) {
+                        updateTestSummary(results);
+                    }
+                })
+                .catch(error => {
+                    results[endpoint] = { success: false, error: error.message };
+                    completedTests++;
+                    
+                    const resultDiv = document.getElementById(`${endpoint}-result`);
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `<div class="text-danger small"><i class="bi bi-x-circle me-1"></i>Сеть</div>`;
+                    }
+                    
+                    if (completedTests === endpoints.length) {
+                        updateTestSummary(results);
+                    }
+                });
+            }, index * 1000); // Stagger requests by 1 second
+        });
+    }
+
+    // Update test summary
+    function updateTestSummary(results) {
+        const summaryContent = document.getElementById('test-summary-content');
+        const total = Object.keys(results).length;
+        const successful = Object.values(results).filter(r => r.success).length;
+        const failed = total - successful;
+        
+        let html = `
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-success">${successful}</h3>
+                        <small>Успешно</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-danger">${failed}</h3>
+                        <small>Ошибок</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-primary">${total}</h3>
+                        <small>Всего</small>
+                    </div>
+                </div>
+            </div>
+            <div class="list-group">
+        `;
+        
+        Object.entries(results).forEach(([endpoint, result]) => {
+            const status = result.success ? 'success' : 'danger';
+            const icon = result.success ? 'check-circle' : 'x-circle';
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>${endpoint}</span>
+                    <span class="badge bg-${status}">
+                        <i class="bi bi-${icon} me-1"></i>
+                        ${result.success ? 'OK' : 'Error'}
+                    </span>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        summaryContent.innerHTML = html;
+    }
+
+    // Clear all test results
+    function clearAllResults() {
+        const endpoints = ['townfroms', 'tours_get', 'towns_xml', 'tours_xml', 'all_data', 'countries'];
+        endpoints.forEach(endpoint => {
+            const resultDiv = document.getElementById(`${endpoint}-result`);
+            if (resultDiv) {
+                resultDiv.innerHTML = '';
+            }
+        });
+        
+        const summary = document.getElementById('test-summary');
+        summary.style.display = 'none';
     }
 
     window.runAllSamoTests = function() {

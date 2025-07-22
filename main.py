@@ -2384,6 +2384,17 @@ def test_samo_endpoint(endpoint_name):
             response = requests.post(base_url, params=params,
                                   headers={'Content-Type': 'application/xml'}, 
                                   data=xml_data, timeout=10)
+            
+        elif endpoint_name == 'countries':
+            # GET request for countries list
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_COUNTRIES'
+            }
+            response = requests.get(base_url, params=params, timeout=10)
+            
         else:
             return jsonify({'success': False, 'error': f'Unknown endpoint: {endpoint_name}'})
         
