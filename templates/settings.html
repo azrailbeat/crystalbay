@@ -367,9 +367,14 @@
                         <div class="card-body text-center">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <h5 class="card-title">Crystal Bay SAMO API</h5>
-                                <button class="btn btn-outline-primary btn-sm" onclick="showSamoDebugPanel()">
-                                    <i class="fas fa-cogs me-1"></i>Debug
-                                </button>
+                                <div>
+                                    <button class="btn btn-outline-success btn-sm me-1" onclick="testSamoEndpoint('townfroms')">
+                                        <i class="bi bi-play-circle me-1"></i>Test
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="showSamoDebugPanel()">
+                                        <i class="fas fa-cogs me-1"></i>Debug
+                                    </button>
+                                </div>
                             </div>
                             <span class="connection-status status-{{ integration_status.get('samo_api', {}).get('status', 'disabled') }}" id="samo-status">
                                     {% set status = integration_status.get('samo_api', {}).get('status', 'disabled') %}
@@ -379,7 +384,8 @@
                             <div class="mb-3">
                                 <i class="bi bi-tsunami settings-icon"></i>
                             </div>
-                            <p class="card-text text-secondary mb-4">Интеграция с системой бронирования Crystal Bay (SAMO API)</p>
+                            <p class="card-text text-secondary mb-3">Интеграция с системой бронирования Crystal Bay (SAMO API)</p>
+                            <div class="test-result mb-3" id="quick-test-result" style="min-height: 20px;"></div>
                             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#samo-modal">
                                 <i class="bi bi-pencil me-2"></i> Настроить
                             </button>
@@ -2269,13 +2275,15 @@
 
     // SAMO API Testing Functions
     window.testSamoEndpoint = function(endpointName) {
-        const resultDiv = document.getElementById(`${endpointName}-result`);
+        const resultDiv = document.getElementById(`${endpointName}-result`) || document.getElementById('quick-test-result');
         const button = event.target;
         const originalText = button.innerHTML;
         
         button.disabled = true;
         button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Тестирование...';
-        resultDiv.innerHTML = '<div class="text-info loading">Выполняется запрос к SAMO API...</div>';
+        if (resultDiv) {
+            resultDiv.innerHTML = '<div class="text-info loading">Выполняется запрос к SAMO API...</div>';
+        }
         
         fetch(`/api/samo/test-endpoint/${endpointName}`, {
             method: 'POST',
@@ -2286,16 +2294,20 @@
             button.disabled = false;
             button.innerHTML = originalText;
             
-            if (data.success) {
-                resultDiv.innerHTML = `<div class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</div>`;
-            } else {
-                resultDiv.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.message || data.error}</div>`;
+            if (resultDiv) {
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.message || data.error}</div>`;
+                }
             }
         })
         .catch(error => {
             button.disabled = false;
             button.innerHTML = originalText;
-            resultDiv.innerHTML = `<div class="text-danger">Ошибка: ${error.message}</div>`;
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div class="text-danger">Ошибка: ${error.message}</div>`;
+            }
         });
     };
 
