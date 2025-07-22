@@ -185,6 +185,50 @@
     input:checked + .slider:before {
         transform: translateX(22px);
     }
+    
+    /* Test Card Styles */
+    .test-card {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .test-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+    }
+    
+    .test-result {
+        font-size: 0.875rem;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    .test-result.loading {
+        color: #007bff;
+    }
+    
+    .test-result.success {
+        color: #28a745;
+    }
+    
+    .test-result.error {
+        color: #dc3545;
+    }
+    
+    .test-result pre {
+        background-color: #f1f3f4;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 8px;
+        font-size: 0.75rem;
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
 </style>
 {% endblock %}
 
@@ -545,6 +589,97 @@
                             <div class="progress mb-3" style="height: 10px;">
                                 <div class="progress-bar bg-warning" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SAMO API Deployment Testing -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-rocket-takeoff me-2"></i>Тестирование API для деплоя</h5>
+                    <small class="text-muted">Проверка SAMO API endpoints для производственной среды</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Departure Towns Test -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">Departure Towns</h6>
+                                <p class="text-muted small mb-3">GET запрос списка городов отправления</p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('townfroms')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOWNFROMS
+                                </button>
+                                <div class="test-result mt-2" id="townfroms-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Available Tours Test -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">Available Tours (Almaty → Tashkent)</h6>
+                                <p class="text-muted small mb-3">GET запрос туров из Алматы в Ташкент</p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('tours_get')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOURS (GET)
+                                </button>
+                                <div class="test-result mt-2" id="tours_get-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Destination Towns Test -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">Destination Towns (Uzbekistan)</h6>
+                                <p class="text-muted small mb-3">POST XML запрос городов назначения в Узбекистане</p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('towns_xml')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOWNS (XML)
+                                </button>
+                                <div class="test-result mt-2" id="towns_xml-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- All Available Data Test -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">All Available Data</h6>
+                                <p class="text-muted small mb-3">POST XML запрос всех данных по Узбекистану</p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('all_data')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_ALL (XML)
+                                </button>
+                                <div class="test-result mt-2" id="all_data-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tours XML Alternative Test -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">Tours (XML Alternative)</h6>
+                                <p class="text-muted small mb-3">POST XML альтернативный запрос туров</p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="testSamoEndpoint('tours_xml')">
+                                    <i class="bi bi-play-circle me-1"></i>Тест SearchTour_TOURS (XML)
+                                </button>
+                                <div class="test-result mt-2" id="tours_xml-result"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Run All Tests -->
+                        <div class="col-md-6">
+                            <div class="test-card">
+                                <h6 class="fw-bold">Полное тестирование</h6>
+                                <p class="text-muted small mb-3">Запуск всех 5 тестов API endpoints</p>
+                                <button class="btn btn-primary btn-sm w-100" onclick="runAllSamoTests()">
+                                    <i class="bi bi-lightning me-1"></i>Запустить все тесты
+                                </button>
+                                <div class="test-result mt-2" id="all-tests-result"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Test Results Summary -->
+                    <div class="mt-4">
+                        <div class="alert alert-info" id="test-summary" style="display: none;">
+                            <h6><i class="bi bi-info-circle me-2"></i>Результаты тестирования:</h6>
+                            <div id="test-summary-content"></div>
                         </div>
                     </div>
                 </div>
@@ -2131,6 +2266,48 @@
     function showSamoDebugPanel() {
         $('#samoDebugModal').modal('show');
     }
+
+    // SAMO API Testing Functions
+    window.testSamoEndpoint = function(endpointName) {
+        const resultDiv = document.getElementById(`${endpointName}-result`);
+        const button = event.target;
+        const originalText = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Тестирование...';
+        resultDiv.innerHTML = '<div class="text-info loading">Выполняется запрос к SAMO API...</div>';
+        
+        fetch(`/api/samo/test-endpoint/${endpointName}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            
+            if (data.success) {
+                resultDiv.innerHTML = `<div class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.message || data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            resultDiv.innerHTML = `<div class="text-danger">Ошибка: ${error.message}</div>`;
+        });
+    };
+
+    window.runAllSamoTests = function() {
+        const endpoints = ['townfroms', 'tours_get', 'towns_xml', 'all_data', 'tours_xml'];
+        endpoints.forEach(endpoint => {
+            setTimeout(() => {
+                const btn = document.querySelector(`button[onclick="testSamoEndpoint('${endpoint}')"]`);
+                if (btn) btn.click();
+            }, endpoints.indexOf(endpoint) * 500);
+        });
+    };
 </script>
 
 <!-- SAMO Debug Panel Modal -->

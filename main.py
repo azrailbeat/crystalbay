@@ -2310,6 +2310,125 @@ def handle_wazzup_webhook():
         logger.error(f"Error handling Wazzup webhook: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/samo/test-endpoint/<endpoint_name>', methods=['POST'])
+def test_samo_endpoint(endpoint_name):
+    """Test specific SAMO API endpoints for deployment validation"""
+    import requests
+    
+    try:
+        base_url = "https://booking-kz.crystalbay.com/export/default.php"
+        oauth_token = "27bd59a7ac67422189789f0188167379"
+        
+        if endpoint_name == 'townfroms':
+            # GET request for departure towns
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_TOWNFROMS'
+            }
+            response = requests.get(base_url, params=params, timeout=10)
+            
+        elif endpoint_name == 'tours_get':
+            # GET request for tours from Almaty to Tashkent
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_TOURS',
+                'townfrom': '1344',  # Almaty
+                'townto': '1853',    # Tashkent
+                'checkin': '2025-04-01',
+                'checkout': '2025-04-10',
+                'nights_min': '3',
+                'nights_max': '7',
+                'adults': '2'
+            }
+            response = requests.get(base_url, params=params, timeout=10)
+            
+        elif endpoint_name == 'towns_xml':
+            # POST XML request for destination towns (Uzbekistan)
+            xml_data = '<?xml version="1.0" encoding="utf-8"?><data><STATEINC>35</STATEINC><TOWNFROMINC>1344</TOWNFROMINC></data>'
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_TOWNS'
+            }
+            response = requests.post(base_url, params=params, 
+                                  headers={'Content-Type': 'application/xml'}, 
+                                  data=xml_data, timeout=10)
+            
+        elif endpoint_name == 'all_data':
+            # POST XML request for all available data
+            xml_data = '<?xml version="1.0" encoding="utf-8"?><data><STATEINC>35</STATEINC><TOWNFROMINC>1344</TOWNFROMINC><PRODUCTTYPE>1</PRODUCTTYPE></data>'
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_ALL'
+            }
+            response = requests.post(base_url, params=params,
+                                  headers={'Content-Type': 'application/xml'}, 
+                                  data=xml_data, timeout=10)
+            
+        elif endpoint_name == 'tours_xml':
+            # POST XML request for tours (alternative method)
+            xml_data = '<?xml version="1.0" encoding="utf-8"?><data><STATEINC>35</STATEINC><TOWNFROMINC>1344</TOWNFROMINC><PRODUCTTYPE>1</PRODUCTTYPE></data>'
+            params = {
+                'samo_action': 'api',
+                'oauth_token': oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_TOURS'
+            }
+            response = requests.post(base_url, params=params,
+                                  headers={'Content-Type': 'application/xml'}, 
+                                  data=xml_data, timeout=10)
+        else:
+            return jsonify({'success': False, 'error': f'Unknown endpoint: {endpoint_name}'})
+        
+        # Process response
+        result = {
+            'endpoint': endpoint_name,
+            'status_code': response.status_code,
+            'headers': dict(response.headers),
+            'url': response.url,
+            'method': 'GET' if endpoint_name in ['townfroms', 'tours_get'] else 'POST'
+        }
+        
+        # Try to parse response as JSON
+        try:
+            result['response'] = response.json()
+        except:
+            result['response'] = response.text[:1000]  # Limit to first 1000 chars
+        
+        # Determine success based on status code and content
+        if response.status_code == 200:
+            result['success'] = True
+            result['message'] = 'Endpoint responded successfully'
+        elif response.status_code == 403:
+            result['success'] = False 
+            result['message'] = 'IP address not whitelisted (403 Forbidden) - contact Crystal Bay support'
+        else:
+            result['success'] = False
+            result['message'] = f'HTTP {response.status_code} error'
+            
+        return jsonify(result)
+        
+    except requests.exceptions.Timeout:
+        return jsonify({
+            'success': False,
+            'error': 'Request timeout (10 seconds)',
+            'endpoint': endpoint_name
+        })
+    except Exception as e:
+        logger.error(f"Error testing SAMO endpoint {endpoint_name}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'endpoint': endpoint_name
+        })
+
 # Initialize the app
 if __name__ == '__main__':
     # Start the bot immediately before the app starts
