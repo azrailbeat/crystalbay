@@ -74,7 +74,7 @@ const CONFIG = {
 };
 
 // Global variables for drag and drop state
-let draggedCard = null;
+let draggedCardElementElement = null;
 
 /**
  * Initialize all drag and drop functionality
@@ -205,7 +205,7 @@ function handleCardDragStart(e) {
         }
         
         // Store reference to dragged card
-        draggedCard = this;
+        draggedCardElement = this;
         
         // Add visual effect
         this.classList.add(CONFIG.classes.dragging);
@@ -294,13 +294,13 @@ function handleColumnDrop(e) {
         
         // Get the card ID from the data transfer
         const leadId = e.dataTransfer.getData('text/plain');
-        if (!leadId || !draggedCard) {
+        if (!leadId || !draggedCardElement) {
             console.error('Missing lead ID or dragged card reference');
             return false;
         }
         
         // Get source and target columns
-        const sourceColumn = draggedCard.closest(CONFIG.selectors.kanbanColumn);
+        const sourceColumn = draggedCardElement.closest(CONFIG.selectors.kanbanColumn);
         const targetColumn = this.closest(CONFIG.selectors.kanbanColumn);
         
         if (!sourceColumn || !targetColumn) {
@@ -326,16 +326,16 @@ function handleColumnDrop(e) {
             const addButton = dropList.querySelector(CONFIG.selectors.newLeadBtn);
             
             if (addButton) {
-                dropList.insertBefore(draggedCard, addButton);
+                dropList.insertBefore(draggedCardElement, addButton);
             } else {
-                dropList.appendChild(draggedCard);
+                dropList.appendChild(draggedCardElement);
             }
             
             // Update column counts
             updateColumnCounts();
             
             // Show visual feedback
-            showSuccessIndicator(draggedCard);
+            showSuccessIndicator(draggedCardElement);
             
             // Update the status on the server
             updateLeadStatus(leadId, newStatus);
