@@ -93,8 +93,10 @@ def test_samo_leads():
         }), 500
 
 # Import and register test API routes
-from app_api_test import register_test_routes
-register_test_routes(app)
+# Test routes moved to backup - production ready
+# from app_api_test import register_test_routes
+# Test routes disabled in production
+# register_test_routes(app)
 
 # Register SAMO API routes
 from samo_api_routes import register_samo_api_routes
@@ -187,11 +189,13 @@ app.register_blueprint(wazzup_bp)
 
 # Import new integrations
 try:
-    from bitrix_integration import bitrix
+    from api_integration import SamoAPIIntegration as APIIntegration
+    from bitrix_integration import bitrix_client
     from intelligent_chat_processor import chat_processor
 except ImportError as e:
     logger.warning(f"New integrations not available: {e}")
-    bitrix = None
+    APIIntegration = None
+    bitrix_client = None
     chat_processor = None
 
 def start_bot_process():
@@ -200,7 +204,7 @@ def start_bot_process():
     if bot_process is None or bot_process.poll() is not None:
         try:
             logger.info("Starting bot process...")
-            bot_process = subprocess.Popen(["python", "launch_bot.py"], 
+            bot_process = subprocess.Popen(["python", "crystal_bay_bot.py"], 
                                           stdout=subprocess.PIPE, 
                                           stderr=subprocess.PIPE)
             logger.info("Bot process started")
