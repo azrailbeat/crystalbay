@@ -305,6 +305,34 @@
     </div>
 </div>
 
+<!-- Quick SAMO API Test Section -->
+<div class="container mb-4">
+    <div class="alert alert-primary">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="alert-heading mb-2">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Быстрое тестирование SAMO API
+                </h5>
+                <p class="mb-0">Проверьте подключение к системе бронирования Crystal Bay</p>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2 justify-content-md-end">
+                    <button class="btn btn-success btn-sm" onclick="testSamoEndpoint('townfroms')">
+                        <i class="bi bi-geo-alt me-1"></i>Города
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="testSamoEndpoint('countries')">
+                        <i class="bi bi-globe me-1"></i>Страны  
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="testAllEndpoints()">
+                        <i class="bi bi-lightning-charge me-1"></i>Все тесты
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3" id="quick-api-test-result"></div>
+    </div>
+</div>
+
 <!-- Validation Errors -->
 {% if validation_errors %}
 <div class="container mb-4">
@@ -386,6 +414,23 @@
                             </div>
                             <p class="card-text text-secondary mb-3">Интеграция с системой бронирования Crystal Bay (SAMO API)</p>
                             <div class="test-result mb-3" id="quick-test-result" style="min-height: 20px;"></div>
+                            
+                            <!-- Quick Test Buttons -->
+                            <div class="mb-3">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-success btn-sm w-100" onclick="testSamoEndpoint('townfroms')">
+                                            <i class="bi bi-geo-alt me-1"></i>Города
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-success btn-sm w-100" onclick="testSamoEndpoint('countries')">
+                                            <i class="bi bi-globe me-1"></i>Страны
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#samo-modal">
                                 <i class="bi bi-pencil me-2"></i> Настроить
                             </button>
@@ -2295,7 +2340,7 @@
             resultDiv.innerHTML = '<div class="text-info loading">Выполняется запрос к SAMO API...</div>';
         }
         
-        fetch(`/api/samo/test-endpoint/${endpointName}`, {
+        fetch(`/api/samo/test/${endpointName}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
         })
@@ -2330,6 +2375,66 @@
             if (resultDiv) {
                 resultDiv.innerHTML = `<div class="text-danger">Ошибка сети - посмотреть детали</div>`;
             }
+        });
+    };
+
+    // Test all endpoints sequentially
+    window.testAllEndpoints = function() {
+        const endpoints = ['townfroms', 'countries', 'tours_get', 'towns_xml'];
+        const resultDiv = document.getElementById('quick-api-test-result');
+        
+        if (resultDiv) {
+            resultDiv.innerHTML = `<div class="alert alert-info mb-0">
+                <i class="bi bi-lightning-charge me-2"></i>Запуск всех тестов (${endpoints.length} endpoints)...
+            </div>`;
+        }
+        
+        let completedTests = 0;
+        let results = [];
+        
+        endpoints.forEach((endpoint, index) => {
+            setTimeout(() => {
+                fetch(`/api/samo/test/${endpoint}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                })
+                .then(response => response.json())
+                .then(data => {
+                    completedTests++;
+                    results.push({
+                        endpoint,
+                        success: data.success,
+                        status: data.status_code,
+                        time: data.response_time
+                    });
+                    
+                    if (completedTests === endpoints.length && resultDiv) {
+                        const successCount = results.filter(r => r.success).length;
+                        const alertClass = successCount === endpoints.length ? 'alert-success' : 'alert-warning';
+                        const icon = successCount === endpoints.length ? 'check-circle' : 'exclamation-circle';
+                        
+                        let summary = `<div class="alert ${alertClass} mb-0">
+                            <i class="bi bi-${icon} me-2"></i><strong>Тестирование завершено!</strong> 
+                            Успешно: ${successCount}/${endpoints.length}<br>`;
+                        
+                        results.forEach(result => {
+                            const status = result.success ? '✓' : '✗';
+                            summary += `${status} ${result.endpoint}: ${result.status || 'N/A'} (${result.time || 'N/A'}ms)<br>`;
+                        });
+                        
+                        summary += '</div>';
+                        resultDiv.innerHTML = summary;
+                    }
+                })
+                .catch(error => {
+                    completedTests++;
+                    results.push({
+                        endpoint,
+                        success: false,
+                        error: error.message
+                    });
+                });
+            }, index * 1000); // 1 second delay between tests
         });
     };
 
