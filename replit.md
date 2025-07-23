@@ -77,7 +77,9 @@ Email/Widget ─────► Lead Import API ───┘                    
 - ✅ Debugging panel integrated in settings for real-time SAMO connectivity testing
 - ✅ System 100% ready for immediate production deployment
 - ⚠️ **IP MISMATCH**: Crystal Bay approved IP 34.117.33.233 but current server IP is 34.138.66.105
-- ⏳ **SOLUTION NEEDED**: Dynamic IP assignment conflicts with Crystal Bay's single-IP whitelist policy
+- ✅ **TINYPROXY SOLUTION**: Implemented TinyProxy client to route requests through user's VPS
+- ✅ **SETUP GUIDES**: Created comprehensive TinyProxy and VPS proxy setup documentation
+- ⏳ **NEXT STEP**: User needs to install TinyProxy on VPS and configure environment variables
 
 **🎯 ПОЛНАЯ ИНТЕГРАЦИЯ SAMO API И СИСТЕМА ПЕРСИСТЕНТНОСТИ ЗАВЕРШЕНЫ (July 21, 2025)**
 - ✅ Исправлены все JavaScript ошибки и конфликты функций

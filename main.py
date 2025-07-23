@@ -578,6 +578,76 @@ def test_vps_proxy():
             'message': str(e)
         }), 500
 
+@app.route('/api/proxy/test', methods=['POST'])
+def test_tinyproxy():
+    """Test TinyProxy connection"""
+    try:
+        from proxy_client import get_proxy_client
+        client = get_proxy_client()
+        result = client.test_proxy_connection()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"TinyProxy test error: {e}")
+        return jsonify({
+            'status': 'error', 
+            'message': str(e)
+        }), 500
+
+@app.route('/api/proxy/config', methods=['GET'])
+def get_proxy_config():
+    """Get TinyProxy configuration status"""
+    try:
+        from proxy_client import get_proxy_client
+        client = get_proxy_client()
+        return jsonify(client.get_config_status())
+    except Exception as e:
+        logger.error(f"Proxy config error: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to get proxy configuration'
+        }), 500
+
+@app.route('/api/samo/test-with-proxy/<endpoint_name>', methods=['POST'])
+def test_samo_with_proxy(endpoint_name):
+    """Test specific SAMO API endpoints using TinyProxy"""
+    try:
+        from proxy_client import get_proxy_client
+        client = get_proxy_client()
+        
+        if not client.is_configured():
+            return jsonify({
+                'status': 'not_configured',
+                'message': 'TinyProxy not configured. Set PROXY_HOST environment variable.'
+            }), 400
+        
+        # Test different endpoints
+        if endpoint_name == 'townfroms':
+            result = client.make_samo_request('SearchTour_TOWNFROMS')
+        elif endpoint_name == 'currencies':
+            result = client.make_samo_request('SearchTour_CURRENCIES')
+        elif endpoint_name == 'states':
+            result = client.make_samo_request('SearchTour_STATES')
+        elif endpoint_name == 'countries':
+            result = client.make_samo_request('SearchTour_COUNTRIES')
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Unknown endpoint: {endpoint_name}'
+            }), 400
+        
+        return jsonify({
+            'status': 'success' if 'error' not in result else 'error',
+            'endpoint': endpoint_name,
+            'result': result
+        })
+        
+    except Exception as e:
+        logger.error(f"SAMO proxy test error for {endpoint_name}: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.route('/api/vps/config', methods=['GET'])
 def get_vps_config():
     """Get VPS proxy configuration status"""
@@ -607,6 +677,16 @@ def vps_setup_guide():
         return f'<pre style="white-space: pre-wrap; padding: 20px; font-family: monospace;">{content}</pre>'
     except Exception as e:
         return f'<h3>VPS Setup Guide</h3><p>Error loading guide: {e}</p><p>Please check vps_setup_guide.md file</p>'
+
+@app.route('/tinyproxy-setup-guide')
+def tinyproxy_setup_guide():
+    """Show TinyProxy setup guide"""
+    try:
+        with open('tinyproxy_setup.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return f'<pre style="white-space: pre-wrap; padding: 20px; font-family: monospace;">{content}</pre>'
+    except Exception as e:
+        return f'<h3>TinyProxy Setup Guide</h3><p>Error loading guide: {e}</p><p>Please check tinyproxy_setup.md file</p>'
 
 @app.route('/bot_logs')
 def bot_logs():

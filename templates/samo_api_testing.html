@@ -36,16 +36,34 @@
                                 </div>
                             </div>
                             
-                            <!-- VPS Proxy Solution -->
+                            <!-- TinyProxy Solution (Recommended) -->
                             <div class="alert alert-success">
-                                <h6><i class="bi bi-server me-2"></i>VPS Proxy Solution:</h6>
-                                <p class="mb-2">Your VPS server successfully connects to SAMO API! Route requests through your VPS.</p>
+                                <h6><i class="bi bi-shield-check me-2"></i>TinyProxy Solution (Recommended):</h6>
+                                <p class="mb-2">Install TinyProxy on your VPS for transparent HTTP proxy routing.</p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-success btn-sm" onclick="testTinyProxy()">
+                                        <i class="bi bi-play-circle me-1"></i>Test TinyProxy
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="showProxyConfig()">
+                                        <i class="bi bi-gear me-1"></i>Proxy Config
+                                    </button>
+                                    <a href="/tinyproxy-setup-guide" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="bi bi-book me-1"></i>Setup Guide
+                                    </a>
+                                </div>
+                                <div id="proxyTestResult" class="mt-2"></div>
+                            </div>
+                            
+                            <!-- VPS Custom Proxy Solution -->
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-server me-2"></i>Custom VPS Proxy:</h6>
+                                <p class="mb-2">Alternative: Custom proxy script on your VPS server.</p>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-success btn-sm" onclick="testVPSProxy()">
-                                        <i class="bi bi-play-circle me-1"></i>Test VPS Proxy
+                                    <button class="btn btn-info btn-sm" onclick="testVPSProxy()">
+                                        <i class="bi bi-play-circle me-1"></i>Test Custom Proxy
                                     </button>
                                     <button class="btn btn-outline-info btn-sm" onclick="showVPSConfig()">
-                                        <i class="bi bi-gear me-1"></i>VPS Config
+                                        <i class="bi bi-gear me-1"></i>Custom Config
                                     </button>
                                 </div>
                                 <div id="vpsTestResult" class="mt-2"></div>
@@ -694,6 +712,209 @@ function createVPSConfigModal() {
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     return document.getElementById('vpsConfigModal');
+}
+
+// Test TinyProxy connection
+async function testTinyProxy() {
+    try {
+        const button = document.querySelector('button[onclick="testTinyProxy()"]');
+        const resultDiv = document.getElementById('proxyTestResult');
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Testing...';
+        
+        const response = await fetch('/api/proxy/test', { method: 'POST' });
+        const result = await response.json();
+        
+        let alertClass = 'alert-info';
+        let icon = 'bi-info-circle';
+        
+        if (result.status === 'connected') {
+            alertClass = 'alert-success';
+            icon = 'bi-check-circle';
+        } else if (result.status === 'error' || result.status === 'proxy_error') {
+            alertClass = 'alert-danger';
+            icon = 'bi-exclamation-triangle';
+        } else if (result.status === 'not_configured') {
+            alertClass = 'alert-warning';
+            icon = 'bi-gear';
+        }
+        
+        resultDiv.innerHTML = `
+            <div class="alert ${alertClass} alert-dismissible fade show">
+                <i class="${icon} me-2"></i>
+                <strong>TinyProxy Test:</strong> ${result.message}
+                ${result.detected_ip ? `<br><small>Detected IP: ${result.detected_ip}</small>` : ''}
+                ${result.proxy_config ? `<br><small>Using: ${result.proxy_config}</small>` : ''}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+    } catch (error) {
+        document.getElementById('proxyTestResult').innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Test Failed:</strong> ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    } finally {
+        const button = document.querySelector('button[onclick="testTinyProxy()"]');
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-play-circle me-1"></i>Test TinyProxy';
+    }
+}
+
+// Show TinyProxy configuration
+async function showProxyConfig() {
+    try {
+        const response = await fetch('/api/proxy/config');
+        const config = await response.json();
+        
+        const modal = new bootstrap.Modal(document.getElementById('proxyConfigModal') || createProxyConfigModal());
+        updateProxyConfigModal(config);
+        modal.show();
+        
+    } catch (error) {
+        console.error('Failed to get proxy config:', error);
+    }
+}
+
+// Create TinyProxy config modal
+function createProxyConfigModal() {
+    const modalHTML = `
+        <div class="modal fade" id="proxyConfigModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-shield-check me-2"></i>TinyProxy Configuration</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="proxyConfigBody">
+                        <!-- Content will be inserted here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="/tinyproxy-setup-guide" class="btn btn-primary" target="_blank">Setup Guide</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    return document.getElementById('proxyConfigModal');
+}
+
+// Update TinyProxy config modal content
+function updateProxyConfigModal(config) {
+    const body = document.getElementById('proxyConfigBody');
+    
+    const statusBadge = config.configured ? 
+        '<span class="badge bg-success">Configured</span>' : 
+        '<span class="badge bg-warning">Not Configured</span>';
+    
+    body.innerHTML = `
+        <div class="row">
+            <div class="col-12">
+                <h6>TinyProxy Status ${statusBadge}</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Proxy Host:</strong></td>
+                        <td><code>${config.proxy_host}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Proxy Port:</strong></td>
+                        <td><code>${config.proxy_port}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Authentication:</strong></td>
+                        <td>${config.auth_enabled ? '✅ Enabled' : '❌ Disabled'}</td>
+                    </tr>
+                </table>
+                
+                <h6 class="mt-3">Environment Variables Status:</h6>
+                <table class="table table-sm">
+                    ${Object.entries(config.environment_vars).map(([key, value]) => `
+                        <tr>
+                            <td><code>${key}</code></td>
+                            <td>${value.includes('Set') ? '✅' : '❌'} ${value}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                
+                <h6 class="mt-3">Required Environment Variables:</h6>
+                <pre class="bg-light p-2 rounded"><code>PROXY_HOST=your-vps-ip-or-domain
+PROXY_PORT=8888
+PROXY_USER=username (optional)
+PROXY_PASS=password (optional)</code></pre>
+                
+                <div class="alert alert-success mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>TinyProxy Benefits:</strong> Transparent HTTP proxy, lightweight, secure, 
+                    and uses your VPS's whitelisted IP address.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Test SAMO endpoints with TinyProxy
+async function testWithProxy(endpoint) {
+    try {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Testing...';
+        
+        const response = await fetch(`/api/samo/test-with-proxy/${endpoint}`, { method: 'POST' });
+        const result = await response.json();
+        
+        // Create result display
+        let resultHTML = '';
+        if (result.status === 'success') {
+            const dataCount = result.result && typeof result.result === 'object' ? 
+                Object.keys(result.result).length : 0;
+            resultHTML = `
+                <div class="alert alert-success alert-dismissible fade show mt-2">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Success!</strong> ${endpoint} endpoint working via TinyProxy
+                    ${dataCount > 0 ? `<br><small>Retrieved ${dataCount} items</small>` : ''}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        } else {
+            resultHTML = `
+                <div class="alert alert-danger alert-dismissible fade show mt-2">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Failed:</strong> ${result.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+        
+        // Insert result after the button's parent
+        const container = button.closest('.col-md-6') || button.closest('.alert');
+        container.insertAdjacentHTML('afterend', resultHTML);
+        
+        // Remove result after 10 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(alert => {
+                if (alert.textContent.includes(endpoint)) {
+                    alert.remove();
+                }
+            });
+        }, 10000);
+        
+    } catch (error) {
+        console.error('Test failed:', error);
+    } finally {
+        const button = event.target;
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
 }
 
 // Update VPS config modal content
