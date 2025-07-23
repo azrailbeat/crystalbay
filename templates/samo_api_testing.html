@@ -36,13 +36,28 @@
                                 </div>
                             </div>
                             
-                            <!-- Solution Options -->
+                            <!-- VPS Proxy Solution -->
+                            <div class="alert alert-success">
+                                <h6><i class="bi bi-server me-2"></i>VPS Proxy Solution:</h6>
+                                <p class="mb-2">Your VPS server successfully connects to SAMO API! Route requests through your VPS.</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success btn-sm" onclick="testVPSProxy()">
+                                        <i class="bi bi-play-circle me-1"></i>Test VPS Proxy
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="showVPSConfig()">
+                                        <i class="bi bi-gear me-1"></i>VPS Config
+                                    </button>
+                                </div>
+                                <div id="vpsTestResult" class="mt-2"></div>
+                            </div>
+                            
+                            <!-- Alternative Solutions -->
                             <div class="alert alert-info">
-                                <h6><i class="bi bi-lightbulb me-2"></i>Solutions:</h6>
+                                <h6><i class="bi bi-lightbulb me-2"></i>Alternative Solutions:</h6>
                                 <ul class="mb-0">
                                     <li><strong>Quick Fix:</strong> Contact Crystal Bay to add current IP <code id="currentServerIP2">34.138.66.105</code></li>
                                     <li><strong>Long-term:</strong> Request whitelisting of Replit's IP range</li>
-                                    <li><strong>Enterprise:</strong> Use proxy service with static IP</li>
+                                    <li><strong>Recommended:</strong> Use your VPS as proxy (most reliable)</li>
                                 </ul>
                             </div>
                             <div class="row">
@@ -588,6 +603,134 @@ async function getServerIP() {
             }
         }, 5000);
     }
+}
+
+// Test VPS proxy connection
+async function testVPSProxy() {
+    try {
+        const button = document.querySelector('button[onclick="testVPSProxy()"]');
+        const resultDiv = document.getElementById('vpsTestResult');
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Testing...';
+        
+        const response = await fetch('/api/vps/test', { method: 'POST' });
+        const result = await response.json();
+        
+        let alertClass = 'alert-info';
+        let icon = 'bi-info-circle';
+        
+        if (result.status === 'connected') {
+            alertClass = 'alert-success';
+            icon = 'bi-check-circle';
+        } else if (result.status === 'error') {
+            alertClass = 'alert-danger';
+            icon = 'bi-exclamation-triangle';
+        } else if (result.status === 'not_configured') {
+            alertClass = 'alert-warning';
+            icon = 'bi-gear';
+        }
+        
+        resultDiv.innerHTML = `
+            <div class="alert ${alertClass} alert-dismissible fade show">
+                <i class="${icon} me-2"></i>
+                <strong>VPS Test Result:</strong> ${result.message}
+                ${result.data_count ? `<br><small>Found ${result.data_count} departure cities</small>` : ''}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+    } catch (error) {
+        document.getElementById('vpsTestResult').innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Test Failed:</strong> ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    } finally {
+        const button = document.querySelector('button[onclick="testVPSProxy()"]');
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-play-circle me-1"></i>Test VPS Proxy';
+    }
+}
+
+// Show VPS configuration
+async function showVPSConfig() {
+    try {
+        const response = await fetch('/api/vps/config');
+        const config = await response.json();
+        
+        const modal = new bootstrap.Modal(document.getElementById('vpsConfigModal') || createVPSConfigModal());
+        updateVPSConfigModal(config);
+        modal.show();
+        
+    } catch (error) {
+        console.error('Failed to get VPS config:', error);
+    }
+}
+
+// Create VPS config modal
+function createVPSConfigModal() {
+    const modalHTML = `
+        <div class="modal fade" id="vpsConfigModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-server me-2"></i>VPS Proxy Configuration</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="vpsConfigBody">
+                        <!-- Content will be inserted here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="/vps-setup-guide" class="btn btn-primary" target="_blank">Setup Guide</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    return document.getElementById('vpsConfigModal');
+}
+
+// Update VPS config modal content
+function updateVPSConfigModal(config) {
+    const body = document.getElementById('vpsConfigBody');
+    
+    const statusBadge = config.configured ? 
+        '<span class="badge bg-success">Configured</span>' : 
+        '<span class="badge bg-warning">Not Configured</span>';
+    
+    body.innerHTML = `
+        <div class="row">
+            <div class="col-12">
+                <h6>Configuration Status ${statusBadge}</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>VPS Proxy URL:</strong></td>
+                        <td><code>${config.vps_url}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Key:</strong></td>
+                        <td>${config.api_key_set ? '✅ Set' : '❌ Not Set'}</td>
+                    </tr>
+                </table>
+                
+                <h6 class="mt-3">Environment Variables Needed:</h6>
+                <pre class="bg-light p-2 rounded"><code>VPS_PROXY_URL=https://your-vps-domain.com/samo-proxy
+VPS_API_KEY=your-secret-api-key</code></pre>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Your VPS works!</strong> We confirmed your server can access SAMO API. 
+                    Set up the proxy script to route requests through your VPS.
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // Auto-refresh status every 30 seconds

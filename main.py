@@ -563,6 +563,51 @@ def get_ip_solutions():
             'message': 'Failed to get IP solutions'
         }), 500
 
+@app.route('/api/vps/test', methods=['POST'])
+def test_vps_proxy():
+    """Test VPS proxy connection"""
+    try:
+        from vps_proxy import get_vps_proxy
+        proxy = get_vps_proxy()
+        result = proxy.test_connection()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"VPS proxy test error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/vps/config', methods=['GET'])
+def get_vps_config():
+    """Get VPS proxy configuration status"""
+    try:
+        vps_url = os.environ.get('VPS_PROXY_URL', '')
+        vps_key = os.environ.get('VPS_API_KEY', '')
+        
+        return jsonify({
+            'configured': bool(vps_url and vps_url != 'http://your-vps-server.com/samo-proxy'),
+            'vps_url': vps_url if vps_url else 'Not configured',
+            'api_key_set': bool(vps_key),
+            'setup_guide': '/vps-setup-guide'
+        })
+    except Exception as e:
+        logger.error(f"VPS config error: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to get VPS configuration'
+        }), 500
+
+@app.route('/vps-setup-guide')
+def vps_setup_guide():
+    """Show VPS setup guide"""
+    try:
+        with open('vps_setup_guide.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return f'<pre style="white-space: pre-wrap; padding: 20px; font-family: monospace;">{content}</pre>'
+    except Exception as e:
+        return f'<h3>VPS Setup Guide</h3><p>Error loading guide: {e}</p><p>Please check vps_setup_guide.md file</p>'
+
 @app.route('/bot_logs')
 def bot_logs():
     """Show bot logs (this would need to be implemented with proper log file handling)"""

@@ -1,0 +1,19 @@
+crystalbay.com/export/default.php`.
+3. Include parameters:
+   - `samo_action=api`
+   - `oauth_token=27bd59a7ac67422189789f0188167379`
+   - `type=json`
+   - `action=SearchTour_TOWNFROMS`
+4. Execute the request to receive tour data in JSON format.
+
+•
+│
+◇  Run this script?
+│  ✅ Yes
+│
+└  Running: curl "https://booking.crystalbay.com/export/default.php?samo_action=api&oauth_token=27bd59a7ac67422189789f0188167379&type=json&action=SearchTour_TOWNFROMS"
+
+
+(node:643188) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"SearchTour_TOWNFROMS":[{"id":1344,"name":"\u0410\u043b\u043c\u0430\u0442\u044b","nameAlt":"ALMATY","stateFromKey":21,"stateFromName":"\u041a\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043d","stateFromNameAlt":"KAZAKHSTAN","packet_type":0,"selected":0,"default":0},{"id":1937,"name":"\u0410\u0441\u0442\u0430\u043d\u0430","nameAlt":"ASTANA","stateFromKey":21,"stateFromName":"\u041a\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043d","stateFromNameAlt":"KAZAKHSTAN","packet_type":0,"selected":0,"default":0},{"id":1998,"name":"\u0428\u044b\u043c\u043a\u0435\u043d\u0442","nameAlt":"Shymkent","stateFromKey":21,"stateFromName":"\u041a\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043d","stateFromNameAlt":"KAZAKHSTAN","packet_type":0,"selected":0,"default":0},{"id":2010,"name":"\u0411\u0438\u0448\u043a\u0435\u043a","nameAlt":"BISHKEK","stateFromKey":38,"stateFromName":"\u041a\u044b\u0440\u0433\u044b\u0437\u0441\u0442\u0430\u043d","stateFromNameAlt":"Kyrgyzstan","packet_type":0,"selected":0,"default":0},{"id":2,"name":"\u041c\u043e\u0441\u043a\u0432\u0430","nameAlt":"Moscow","stateFromKey":2,"stateFromName":"\u0420\u043e\u0441\u0441\u0438\u044f","stateFromNameAlt":"RUSSIA","packet_type":0,"selected":0,"default":0},{"id":1853,"name":"\u0422\u0430\u0448\u043a\u0435\u043d\u0442","nameAlt":"TASHKENT","stateFromKey":35,"stateFromName":"\u0423\u0437\u0431\u0435\u043a\u0438\u0441\u0442\u0430\u043d","stateFromNameAlt":"UZBEKISTAN","packet_root@vmi2118687:~#
