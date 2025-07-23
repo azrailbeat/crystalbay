@@ -1,55 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wazzup24.ru Integration - Crystal Bay Travel</title>
+    <title>Wazzup24 Integration - Crystal Bay Travel</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .chat-message {
+            border-radius: 10px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .message-incoming {
+            background-color: var(--bs-secondary-bg);
+            margin-right: 20%;
+        }
+        .message-outgoing {
+            background-color: var(--bs-primary-bg);
+            margin-left: 20%;
+            text-align: right;
+        }
+        .message-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-badge {
+            font-size: 0.8em;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container my-4">
         <div class="row">
             <div class="col-12">
-                <h1 class="mb-4">
-                    <i class="fas fa-comments me-2"></i>
-                    Интеграция с Wazzup24.ru
-                </h1>
-                <p class="text-muted mb-4">
-                    Настройте интеграцию с Wazzup24.ru для управления чатами и автоматической синхронизации лидов
-                </p>
+                <h2><i class="bi bi-chat-dots me-2"></i>Wazzup24 Integration</h2>
+                <p class="text-muted">Управление сообщениями и автоматические ответы с ИИ</p>
             </div>
         </div>
 
-        <!-- Integration Status -->
+        <!-- API Connection Status -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-signal me-2"></i>
-                            Статус интеграции
-                        </h5>
+                        <h5><i class="bi bi-plug me-2"></i>API Connection Status</h5>
                     </div>
                     <div class="card-body">
-                        <div id="integration-status" class="d-flex align-items-center mb-3">
-                            <div class="spinner-border spinner-border-sm me-2" role="status">
-                                <span class="visually-hidden">Загрузка...</span>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div id="connection-status">
+                                <span class="badge bg-secondary">Not tested</span>
+                                <span id="connection-details" class="ms-2 text-muted">Click test to check API connection</span>
                             </div>
-                            <span>Проверка подключения...</span>
+                            <button class="btn btn-primary" onclick="testConnection()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Test Connection
+                            </button>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <button id="test-connection-btn" class="btn btn-outline-primary" disabled>
-                                    <i class="fas fa-plug me-2"></i>
-                                    Проверить подключение
-                                </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <button class="btn btn-success w-100" onclick="loadMessages()">
+                    <i class="bi bi-envelope me-1"></i>Load Messages
+                </button>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-warning w-100" onclick="processMessages()">
+                    <i class="bi bi-robot me-1"></i>Process with AI
+                </button>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-info w-100" onclick="autoRefresh()">
+                    <i class="bi bi-arrow-repeat me-1"></i>Auto Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Display -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-chat-left-text me-2"></i>Recent Messages</h5>
+                        <span id="messages-count" class="badge bg-primary">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="messages-container" class="chat-container">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-chat-dots fs-1"></i>
+                                <p>Click "Load Messages" to see recent chats</p>
                             </div>
-                            <div class="col-md-6">
-                                <div id="unread-count" class="text-end">
-                                    <span class="badge bg-secondary">Непрочитанных: --</span>
-                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Results -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-gear me-2"></i>Processing Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="processing-log" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-muted text-center">
+                                <i class="bi bi-journal-text fs-2"></i>
+                                <p>Processing results will appear here</p>
                             </div>
                         </div>
                     </div>
@@ -57,209 +121,30 @@
             </div>
         </div>
 
-        <!-- Configuration -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-cog me-2"></i>
-                            Конфигурация API
-                        </h5>
+        <!-- Send Message Modal -->
+        <div class="modal fade" id="sendMessageModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Send Message</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Для настройки интеграции вам понадобятся API ключи от Wazzup24.ru. 
-                            Получите их в <a href="https://app.wazzup24.com/settings/api" target="_blank">настройках API</a>.
-                        </div>
-                        
-                        <form id="config-form">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="api-key" class="form-label">API Key *</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="api-key" placeholder="Введите API ключ">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('api-key')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="api-secret" class="form-label">API Secret *</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="api-secret" placeholder="Введите API секрет">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('api-secret')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                    <div class="modal-body">
+                        <form id="sendMessageForm">
+                            <div class="mb-3">
+                                <label for="chatId" class="form-label">Chat ID</label>
+                                <input type="text" class="form-control" id="chatId" required>
                             </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="webhook-secret" class="form-label">Webhook Secret</label>
-                                    <input type="text" class="form-control" id="webhook-secret" placeholder="Секрет для вебхуков (опционально)">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="webhook-url" class="form-label">Webhook URL</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="webhook-url" readonly>
-                                        <button type="button" class="btn btn-outline-secondary" onclick="copyWebhookUrl()">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                    <div class="form-text">Скопируйте этот URL в настройки вебхуков Wazzup24.ru</div>
-                                </div>
+                            <div class="mb-3">
+                                <label for="messageText" class="form-label">Message</label>
+                                <textarea class="form-control" id="messageText" rows="3" required></textarea>
                             </div>
-                            
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>
-                                Сохранить настройки
-                            </button>
                         </form>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Setup Actions -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-rocket me-2"></i>
-                            Быстрая настройка
-                        </h5>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="sendMessage()">Send</button>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-users fa-2x mb-3 text-primary"></i>
-                                        <h6>Синхронизация пользователей</h6>
-                                        <p class="text-muted small">Синхронизировать пользователей Crystal Bay с Wazzup</p>
-                                        <button id="sync-users-btn" class="btn btn-outline-primary btn-sm">
-                                            Синхронизировать
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-project-diagram fa-2x mb-3 text-success"></i>
-                                        <h6>Создать воронку</h6>
-                                        <p class="text-muted small">Создать воронку для туристических бронирований</p>
-                                        <button id="setup-pipeline-btn" class="btn btn-outline-success btn-sm">
-                                            Создать воронку
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-sync fa-2x mb-3 text-warning"></i>
-                                        <h6>Синхронизация лидов</h6>
-                                        <p class="text-muted small">Синхронизировать существующие лиды с Wazzup</p>
-                                        <button id="sync-leads-btn" class="btn btn-outline-warning btn-sm">
-                                            Синхронизировать
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat Interface -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-comments me-2"></i>
-                            Интерфейс чатов
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <button id="open-global-chat-btn" class="btn btn-primary w-100">
-                                    <i class="fas fa-globe me-2"></i>
-                                    Открыть все чаты
-                                </button>
-                                <div class="form-text">Открыть окно со всеми доступными чатами</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="contact-id" placeholder="ID контакта">
-                                    <button id="open-contact-chat-btn" class="btn btn-secondary">
-                                        <i class="fas fa-user me-2"></i>
-                                        Открыть чат контакта
-                                    </button>
-                                </div>
-                                <div class="form-text">Открыть чат с конкретным контактом</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Integration Stats -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Статистика интеграции
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="integration-stats">
-                            <p class="text-muted">Загрузка статистики...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-history me-2"></i>
-                            Последние события
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="recent-events">
-                            <p class="text-muted">События не найдены</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chat Modal -->
-    <div class="modal fade" id="chatModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Чаты Wazzup24.ru</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-0">
-                    <iframe id="chat-iframe" src="" width="100%" height="600" frameborder="0"></iframe>
                 </div>
             </div>
         </div>
@@ -267,211 +152,190 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Global variables
-        let integrationConfig = {};
-        
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            loadIntegrationStatus();
-            setWebhookUrl();
-        });
-        
-        // Load integration status
-        async function loadIntegrationStatus() {
-            try {
-                const response = await fetch('/api/wazzup/config');
-                const data = await response.json();
-                
-                const statusElement = document.getElementById('integration-status');
-                const testBtn = document.getElementById('test-connection-btn');
-                
-                if (data.configured) {
-                    statusElement.innerHTML = `
-                        <i class="fas fa-check-circle text-success me-2"></i>
-                        <span>Интеграция настроена и готова к работе</span>
-                    `;
-                    testBtn.disabled = false;
-                    loadUnreadCount();
-                } else {
-                    statusElement.innerHTML = `
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                        <span>Интеграция не настроена - введите API ключи</span>
-                    `;
-                }
-                
-                integrationConfig = data;
-                
-            } catch (error) {
-                console.error('Error loading integration status:', error);
-                document.getElementById('integration-status').innerHTML = `
-                    <i class="fas fa-times-circle text-danger me-2"></i>
-                    <span>Ошибка загрузки статуса интеграции</span>
-                `;
-            }
-        }
-        
-        // Load unread count
-        async function loadUnreadCount() {
-            try {
-                const response = await fetch('/api/wazzup/unread-count');
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    document.getElementById('unread-count').innerHTML = `
-                        <span class="badge bg-${data.unread_count > 0 ? 'danger' : 'secondary'}">
-                            Непрочитанных: ${data.unread_count}
-                        </span>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading unread count:', error);
-            }
-        }
-        
-        // Set webhook URL
-        function setWebhookUrl() {
-            const webhookUrl = `${window.location.origin}/api/wazzup/webhook`;
-            document.getElementById('webhook-url').value = webhookUrl;
-        }
-        
-        // Toggle password visibility
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const button = field.nextElementSibling.querySelector('i');
+        let autoRefreshInterval = null;
+
+        function testConnection() {
+            const statusDiv = document.getElementById('connection-status');
+            const detailsSpan = document.getElementById('connection-details');
             
-            if (field.type === 'password') {
-                field.type = 'text';
-                button.className = 'fas fa-eye-slash';
-            } else {
-                field.type = 'password';
-                button.className = 'fas fa-eye';
-            }
-        }
-        
-        // Copy webhook URL
-        function copyWebhookUrl() {
-            const webhookUrl = document.getElementById('webhook-url');
-            webhookUrl.select();
-            document.execCommand('copy');
-            
-            // Show feedback
-            const button = event.target.closest('button');
-            const originalIcon = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                button.innerHTML = originalIcon;
-            }, 2000);
-        }
-        
-        // Test connection
-        document.getElementById('test-connection-btn').addEventListener('click', async function() {
-            const btn = this;
-            const originalText = btn.innerHTML;
-            
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверка...';
-            btn.disabled = true;
-            
-            try {
-                const response = await fetch('/api/wazzup/test-connection', {
-                    method: 'POST'
+            statusDiv.innerHTML = '<span class="badge bg-warning">Testing...</span>';
+            detailsSpan.textContent = 'Checking API connection...';
+
+            fetch('/api/wazzup/test', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        statusDiv.innerHTML = '<span class="badge bg-success">Connected</span>';
+                        detailsSpan.textContent = `${data.message} | Users: ${data.users_count} | Chats: ${data.chats_count}`;
+                    } else {
+                        statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
+                        detailsSpan.textContent = data.message || 'Connection failed';
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
+                    detailsSpan.textContent = 'Network error: ' + error.message;
                 });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    showAlert('Подключение к Wazzup API успешно!', 'success');
-                } else {
-                    showAlert('Ошибка подключения: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Ошибка тестирования подключения: ' + error.message, 'danger');
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        });
-        
-        // Setup pipeline
-        document.getElementById('setup-pipeline-btn').addEventListener('click', async function() {
-            const btn = this;
-            const originalText = btn.innerHTML;
+        }
+
+        function loadMessages() {
+            const container = document.getElementById('messages-container');
+            const countSpan = document.getElementById('messages-count');
             
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Создание...';
-            btn.disabled = true;
-            
-            try {
-                const response = await fetch('/api/wazzup/setup-pipeline', {
-                    method: 'POST'
+            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">Loading messages...</p></div>';
+
+            fetch('/api/wazzup/messages?limit=30')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayMessages(data.messages);
+                        countSpan.textContent = data.messages_count;
+                    } else {
+                        container.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    container.innerHTML = `<div class="alert alert-danger">Network error: ${error.message}</div>`;
                 });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    showAlert('Воронка для туристических бронирований создана!', 'success');
-                } else {
-                    showAlert('Ошибка создания воронки: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Ошибка создания воронки: ' + error.message, 'danger');
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        });
-        
-        // Open global chat
-        document.getElementById('open-global-chat-btn').addEventListener('click', async function() {
-            await openChat('global');
-        });
-        
-        // Open contact chat
-        document.getElementById('open-contact-chat-btn').addEventListener('click', async function() {
-            const contactId = document.getElementById('contact-id').value;
-            if (!contactId) {
-                showAlert('Введите ID контакта', 'warning');
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('messages-container');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><p>No messages found</p></div>';
                 return;
             }
-            await openChat('card', contactId);
-        });
-        
-        // Open chat modal
-        async function openChat(scope, contactId = null) {
-            try {
-                const params = new URLSearchParams({ scope });
-                if (contactId) {
-                    params.append('contact_id', contactId);
+
+            let html = '';
+            messages.forEach(message => {
+                const isOutgoing = message.fromMe;
+                const messageClass = isOutgoing ? 'message-outgoing' : 'message-incoming';
+                const time = new Date(message.createdAt || message.timestamp).toLocaleString();
+                const chatName = message.chat_info?.chatName || message.chatName || 'Unknown Chat';
+                const senderName = message.senderName || (isOutgoing ? 'You' : 'Client');
+
+                html += `
+                    <div class="chat-message ${messageClass}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${senderName}</strong>
+                                <small class="text-muted">(${chatName})</small>
+                            </div>
+                            <small class="message-time">${time}</small>
+                        </div>
+                        <div class="mt-1">${message.text || message.content || '[No text]'}</div>
+                        ${message.chat_info?.chatId ? `
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="openSendModal('${message.chat_info.chatId}')">
+                                    <i class="bi bi-reply"></i> Reply
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function processMessages() {
+            const logDiv = document.getElementById('processing-log');
+            
+            logDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Processing messages with AI...</div>';
+
+            fetch('/api/wazzup/process-messages', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayProcessingResults(data);
+                    // Reload messages to see new replies
+                    setTimeout(loadMessages, 2000);
+                })
+                .catch(error => {
+                    logDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                });
+        }
+
+        function displayProcessingResults(data) {
+            const logDiv = document.getElementById('processing-log');
+            
+            if (data.status === 'success') {
+                let html = `<div class="alert alert-success">Processed: ${data.processed_count} messages</div>`;
+                
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(result => {
+                        const statusClass = result.status === 'success' ? 'success' : 
+                                          result.status === 'error' ? 'danger' : 'info';
+                        
+                        html += `
+                            <div class="alert alert-${statusClass} p-2 mb-2">
+                                <small><strong>${result.status.toUpperCase()}</strong></small><br>
+                                ${result.original_message ? `<small>Message: ${result.original_message.substring(0, 50)}...</small><br>` : ''}
+                                ${result.ai_response ? `<small>AI Reply: ${result.ai_response.substring(0, 100)}...</small>` : ''}
+                            </div>
+                        `;
+                    });
                 }
                 
-                const response = await fetch(`/api/wazzup/chat-url?${params}`);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    document.getElementById('chat-iframe').src = data.chat_url;
-                    new bootstrap.Modal(document.getElementById('chatModal')).show();
-                } else {
-                    showAlert('Ошибка получения URL чата: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Ошибка открытия чата: ' + error.message, 'danger');
+                logDiv.innerHTML = html;
+            } else {
+                logDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
             }
         }
-        
-        // Show alert
-        function showAlert(message, type) {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
-            alert.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.querySelector('.container').insertBefore(alert, document.querySelector('.container').firstChild);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
+
+        function openSendModal(chatId) {
+            document.getElementById('chatId').value = chatId;
+            new bootstrap.Modal(document.getElementById('sendMessageModal')).show();
         }
-        
-        // Refresh unread count every 30 seconds
-        setInterval(loadUnreadCount, 30000);
+
+        function sendMessage() {
+            const chatId = document.getElementById('chatId').value;
+            const message = document.getElementById('messageText').value;
+
+            if (!chatId || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            fetch('/api/wazzup/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Message sent successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('sendMessageModal')).hide();
+                    document.getElementById('sendMessageForm').reset();
+                    setTimeout(loadMessages, 1000);
+                } else {
+                    alert('Error sending message: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error.message);
+            });
+        }
+
+        function autoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                document.querySelector('[onclick="autoRefresh()"]').innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Auto Refresh';
+            } else {
+                autoRefreshInterval = setInterval(() => {
+                    loadMessages();
+                    processMessages();
+                }, 30000); // Every 30 seconds
+                document.querySelector('[onclick="autoRefresh()"]').innerHTML = '<i class="bi bi-stop me-1"></i>Stop Auto Refresh';
+            }
+        }
+
+        // Auto-test connection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            testConnection();
+        });
     </script>
 </body>
 </html>

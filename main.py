@@ -393,8 +393,13 @@ def widget_demo():
     return render_template('widget_demo.html')
 
 @app.route('/wazzup-integration')
+def wazzup_integration_old():
+    """Old Wazzup24.ru integration - redirect to new"""
+    return redirect(url_for('wazzup_integration'))
+
+@app.route('/wazzup')
 def wazzup_integration():
-    """Render the Wazzup24.ru integration management page"""
+    """Wazzup24 Integration Dashboard with AI message processing"""
     return render_template('wazzup_integration.html')
 
 @app.route('/settings')
@@ -788,6 +793,98 @@ def vps_script_setup():
         return jsonify({
             'error': str(e),
             'message': 'Failed to setup VPS script configuration'
+        }), 500
+
+# === WAZZUP24 API ENDPOINTS ===
+
+@app.route('/api/wazzup/test', methods=['POST'])
+def test_wazzup_api():
+    """Тестирование подключения к Wazzup24 API"""
+    try:
+        from wazzup_message_processor import WazzupMessageProcessor
+        
+        processor = WazzupMessageProcessor()
+        result = processor.test_connection()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Wazzup test error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/wazzup/messages', methods=['GET'])
+def get_wazzup_messages():
+    """Получить последние сообщения из Wazzup24"""
+    try:
+        from wazzup_message_processor import WazzupMessageProcessor
+        
+        limit = request.args.get('limit', 20, type=int)
+        processor = WazzupMessageProcessor()
+        messages = processor.get_recent_messages(limit=limit)
+        
+        return jsonify({
+            'status': 'success',
+            'messages_count': len(messages),
+            'messages': messages
+        })
+        
+    except Exception as e:
+        logger.error(f"Wazzup messages error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/wazzup/process-messages', methods=['POST'])
+def process_wazzup_messages():
+    """Обработать все новые сообщения с ИИ ответами"""
+    try:
+        from wazzup_message_processor import WazzupMessageProcessor
+        
+        processor = WazzupMessageProcessor()
+        result = processor.process_all_recent_messages()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Wazzup process error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/wazzup/send-message', methods=['POST'])
+def send_wazzup_message():
+    """Отправить сообщение в Wazzup24 чат"""
+    try:
+        from wazzup_message_processor import WazzupMessageProcessor
+        
+        data = request.get_json()
+        chat_id = data.get('chat_id')
+        message = data.get('message')
+        
+        if not chat_id or not message:
+            return jsonify({
+                'status': 'error',
+                'message': 'chat_id and message are required'
+            }), 400
+        
+        processor = WazzupMessageProcessor()
+        result = processor.send_reply(chat_id, message)
+        
+        return jsonify({
+            'status': 'success' if not result.get('error') else 'error',
+            'result': result
+        })
+        
+    except Exception as e:
+        logger.error(f"Wazzup send error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
         }), 500
 
 @app.route('/vps-setup-guide')
@@ -2667,19 +2764,7 @@ def create_wazzup_users():
         logger.error(f"Error creating Wazzup users: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/wazzup/test', methods=['GET'])
-def test_wazzup_connection():
-    """Тест подключения к Wazzup24 API"""
-    try:
-        from wazzup_api_v3 import get_wazzup_client
-        client = get_wazzup_client()
-        
-        result = client.test_connection()
-        return jsonify(result)
-        
-    except Exception as e:
-        logger.error(f"Error testing Wazzup connection: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+# Removed duplicate test_wazzup_connection - using the one from WAZZUP24 API ENDPOINTS section
 
 @app.route('/api/wazzup/webhook', methods=['POST'])
 def handle_wazzup_webhook():

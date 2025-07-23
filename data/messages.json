@@ -30,12 +30,23 @@
     "content": "Можно ли забронировать тур в рассрочку?",
     "timestamp": "2025-07-19T16:57:10.694955",
     "status": "unread",
-    "priority": "low",
-    "ai_processed": false,
-    "ai_confidence": 0.0,
-    "ai_suggestions": [],
+    "priority": "medium",
+    "ai_processed": true,
+    "ai_confidence": 0.1,
+    "ai_suggestions": [
+      "Спасибо за ваше обращение. Наш менеджер свяжется с вами в ближайшее время.",
+      "Благодарим за интерес к нашим услугам. Мы обработаем ваш запрос и ответим в течение дня.",
+      "Здравствуйте! Ваше сообщение получено. Пожалуйста, ожидайте ответа от нашего специалиста."
+    ],
     "metadata": {
-      "payment_inquiry": true
+      "ai_analysis": {
+        "request_type": "general_info",
+        "keywords": [],
+        "extracted_info": {},
+        "requires_escalation": true,
+        "notes": "AI analysis failed: Invalid format specifier ' \"направление\",\n    \"dates\": \"даты\",\n    \"budget\": \"бюджет\",\n    \"pax\": \"количество человек\"\n  ' for object of type 'str'",
+        "processed_at": "2025-07-23T17:58:46.772369"
+      }
     }
   },
   {
