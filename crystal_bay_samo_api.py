@@ -21,8 +21,30 @@ class CrystalBaySamoAPI:
         logger.info(f"Crystal Bay SAMO API инициализирован: {base_url}")
     
     def _make_request(self, action: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Выполняет запрос к SAMO API"""
+        """Выполняет запрос к SAMO API через TinyProxy или напрямую"""
         try:
+            # Try using TinyProxy client first if configured
+            try:
+                from proxy_client import get_proxy_client
+                proxy_client = get_proxy_client()
+                
+                if proxy_client.is_configured():
+                    logger.info(f"Using TinyProxy for SAMO API request: {action}")
+                    result = proxy_client.make_samo_request(action, 'GET', params)
+                    
+                    # If proxy request successful, return result
+                    if 'error' not in result:
+                        logger.info(f"SAMO API via proxy success: {action}")
+                        return result
+                    else:
+                        logger.warning(f"Proxy request failed, trying direct: {result.get('message', '')}")
+                        
+            except ImportError:
+                logger.debug("TinyProxy client not available, using direct connection")
+            except Exception as e:
+                logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
+            
+            # Fallback to direct request (will likely get 403)
             # Базовые параметры для всех запросов
             request_params = {
                 'samo_action': 'api',
@@ -36,7 +58,7 @@ class CrystalBaySamoAPI:
             if params:
                 request_params.update(params)
             
-            logger.info(f"SAMO API запрос: {action}")
+            logger.info(f"SAMO API запрос (direct): {action}")
             logger.info(f"Параметры: {json.dumps(request_params, indent=2)}")
             
             # Headers for production deployment

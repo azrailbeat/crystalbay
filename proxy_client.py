@@ -122,20 +122,28 @@ class TinyProxyClient:
             if params:
                 samo_params.update(params)
             
-            # Make request through proxy
-            if method.upper() == 'GET':
-                response = requests.get(
-                    self.samo_base_url,
-                    params=samo_params,
-                    proxies=self.proxies,
-                    timeout=30
-                )
-            else:
-                headers = {'Content-Type': 'application/xml'} if xml_data else {}
+            # Make request through proxy (use POST for SAMO API)
+            headers = {
+                'User-Agent': 'Crystal Bay Travel Integration/1.0',
+                'Accept': 'application/json, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            if xml_data:
+                headers['Content-Type'] = 'application/xml'
                 response = requests.post(
                     self.samo_base_url,
                     params=samo_params,
                     data=xml_data,
+                    headers=headers,
+                    proxies=self.proxies,
+                    timeout=30
+                )
+            else:
+                # Use POST with data for SAMO API
+                response = requests.post(
+                    self.samo_base_url,
+                    data=samo_params,
                     headers=headers,
                     proxies=self.proxies,
                     timeout=30
