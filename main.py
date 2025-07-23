@@ -488,6 +488,60 @@ def samo_api_status():
             'message': str(e)
         }), 500
 
+@app.route('/api/server/ip', methods=['GET'])
+def get_server_ip():
+    """Get server's public IP address"""
+    try:
+        import requests
+        
+        # Try multiple IP detection services for reliability
+        ip_services = [
+            'https://api.ipify.org?format=json',
+            'https://httpbin.org/ip',
+            'https://api.my-ip.io/ip.json',
+            'https://ipinfo.io/json'
+        ]
+        
+        for service in ip_services:
+            try:
+                response = requests.get(service, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Different services return IP in different formats
+                    ip = None
+                    if 'ip' in data:
+                        ip = data['ip']
+                    elif 'origin' in data:
+                        ip = data['origin']
+                    elif 'IP' in data:
+                        ip = data['IP']
+                    
+                    if ip:
+                        logger.info(f"Server IP detected: {ip}")
+                        return jsonify({
+                            'ip': ip,
+                            'service': service,
+                            'timestamp': datetime.now().isoformat()
+                        })
+                        
+            except Exception as e:
+                logger.warning(f"IP service {service} failed: {e}")
+                continue
+        
+        # If all services fail, return error
+        return jsonify({
+            'error': 'Unable to detect server IP',
+            'message': 'All IP detection services failed'
+        }), 500
+        
+    except Exception as e:
+        logger.error(f"Error getting server IP: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to get server IP address'
+        }), 500
+
 @app.route('/bot_logs')
 def bot_logs():
     """Show bot logs (this would need to be implemented with proper log file handling)"""
