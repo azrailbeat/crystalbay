@@ -519,10 +519,18 @@ def get_server_ip():
                     
                     if ip:
                         logger.info(f"Server IP detected: {ip}")
+                        
+                        # Check if IP matches approved IP
+                        approved_ip = "34.117.33.233"
+                        ip_status = "approved" if ip == approved_ip else "needs_whitelist"
+                        
                         return jsonify({
                             'ip': ip,
                             'service': service,
-                            'timestamp': datetime.now().isoformat()
+                            'timestamp': datetime.now().isoformat(),
+                            'approved_ip': approved_ip,
+                            'status': ip_status,
+                            'message': f"Current IP {'matches' if ip_status == 'approved' else 'differs from'} approved IP"
                         })
                         
             except Exception as e:
@@ -540,6 +548,19 @@ def get_server_ip():
         return jsonify({
             'error': str(e),
             'message': 'Failed to get server IP address'
+        }), 500
+
+@app.route('/api/server/ip-solutions', methods=['GET'])
+def get_ip_solutions():
+    """Get information about static IP solutions"""
+    try:
+        from proxy_config import get_static_ip_solutions
+        return jsonify(get_static_ip_solutions())
+    except Exception as e:
+        logger.error(f"Error getting IP solutions: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to get IP solutions'
         }), 500
 
 @app.route('/bot_logs')

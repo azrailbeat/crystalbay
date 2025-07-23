@@ -76,7 +76,8 @@ Email/Widget ─────► Lead Import API ───┘                    
 - ✅ 403 Forbidden status confirms proper API connection awaiting IP whitelist
 - ✅ Debugging panel integrated in settings for real-time SAMO connectivity testing
 - ✅ System 100% ready for immediate production deployment
-- ⏳ **FINAL STEP**: Crystal Bay support needs to whitelist IP 34.117.33.233
+- ⚠️ **IP MISMATCH**: Crystal Bay approved IP 34.117.33.233 but current server IP is 34.138.66.105
+- ⏳ **SOLUTION NEEDED**: Dynamic IP assignment conflicts with Crystal Bay's single-IP whitelist policy
 
 **🎯 ПОЛНАЯ ИНТЕГРАЦИЯ SAMO API И СИСТЕМА ПЕРСИСТЕНТНОСТИ ЗАВЕРШЕНЫ (July 21, 2025)**
 - ✅ Исправлены все JavaScript ошибки и конфликты функций
