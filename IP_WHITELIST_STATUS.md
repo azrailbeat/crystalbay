@@ -1,75 +1,70 @@
-# IP Whitelist Status - Crystal Bay SAMO API
+# IP Whitelist Status and TinyProxy Solution
 
-## Current Status: ⏳ PENDING IP WHITELIST
+## Current Status
+- **Crystal Bay Approved IP**: 34.117.33.233
+- **Current Replit Server IP**: 34.138.66.105 (changes dynamically)
+- **Problem**: IP mismatch causing 403 Forbidden errors
+- **Solution**: TinyProxy on user's VPS server
 
-**Date**: July 22, 2025  
-**Server IP**: `34.117.33.233`  
-**Status**: Blocked by Crystal Bay firewall  
+## VPS Server Confirmation
+✅ **User's VPS successfully connects to SAMO API**
+- Confirmed working with test request to SearchTour_TOWNFROMS
+- Returns actual tour data in JSON format
+- No IP restrictions on VPS server
 
-## Evidence of Proper Integration
+## TinyProxy Implementation
 
-### ✅ Working Components
-1. **OAuth Token Valid**: `27bd59a7ac67422189789f0188167379`
-2. **API Endpoint Reachable**: `https://booking-kz.crystalbay.com/export/default.php`
-3. **Request Format Correct**: Following SAMO API documentation
-4. **System Deployed**: Production system operational on Replit
+### Setup on VPS
+```bash
+# Install TinyProxy
+sudo apt update
+sudo apt install tinyproxy
 
-### 🚫 Expected 403 Forbidden Response
-```
-HTTP 403 Client Error: Forbidden for url: 
-https://booking-kz.crystalbay.com/export/default.php
-```
+# Configure to listen on port 8888
+sudo nano /etc/tinyproxy/tinyproxy.conf
 
-**This is NORMAL and EXPECTED** - The 403 error confirms:
-- System is reaching Crystal Bay servers
-- Authentication token is being processed
-- IP-based access control is functioning
-- Our integration is working correctly
+# Key settings:
+Port 8888
+Allow 127.0.0.1
+Allow 34.0.0.0/8    # Allow Replit IP ranges
+Allow 35.0.0.0/8
 
-## What Happens Next
-
-### When IP is Whitelisted
-Crystal Bay support will add `34.117.33.233` to their allowlist, then we'll see:
-
-**Before (Current):**
-```
-HTTP 403 Forbidden - Access Denied
+# Start service
+sudo systemctl start tinyproxy
+sudo systemctl enable tinyproxy
 ```
 
-**After (Expected):**
-```json
-{
-  "result": "success", 
-  "data": [...tour data...],
-  "error": ""
-}
+### Replit Configuration
+Set environment variables:
+```
+PROXY_HOST=your-vps-ip
+PROXY_PORT=8888
+PROXY_USER=username (optional)
+PROXY_PASS=password (optional)
 ```
 
-### Testing Steps After Whitelist
-1. **Departure Cities** - SearchTour_TOWNFROMS will return city list
-2. **Countries** - SearchTour_COUNTRIES will return available countries  
-3. **Tours Search** - SearchTour_TOURS will return tour availability
-4. **Full Integration** - Complete booking system operational
+## Benefits of TinyProxy Solution
 
-## Timeline
-- **Request Submitted**: July 22, 2025
-- **Expected Response**: 24-48 hours
-- **Full System Active**: Once IP whitelisted
+1. **Transparent**: No code changes needed
+2. **Reliable**: Uses VPS's whitelisted IP
+3. **Lightweight**: Minimal resource usage
+4. **Secure**: Optional authentication
+5. **Permanent**: Solves dynamic IP issues
 
-## System Readiness
+## Testing Interface
 
-### ✅ Ready Components
-- SAMO API integration module
-- Testing interface with 6 endpoints
-- Error handling and logging
-- Production deployment configuration
-- Authentication with valid OAuth token
+The system includes comprehensive testing tools:
+- TinyProxy connectivity test
+- SAMO API endpoint testing via proxy
+- Configuration status monitoring
+- Real-time error reporting
 
-### ⏳ Waiting For
-- Crystal Bay IP whitelist approval
-- Final system validation with real data
-- Production booking confirmations
+## Next Steps
 
----
+1. User installs TinyProxy on VPS
+2. Configure port 8888 and IP allowlist
+3. Set PROXY_HOST environment variable in Replit
+4. Test using the built-in testing interface
+5. All SAMO API requests automatically route through VPS
 
-**The system is 100% ready - we're just waiting for Crystal Bay to approve our server IP.**
+This solution eliminates the IP whitelist issue permanently while maintaining security and performance.

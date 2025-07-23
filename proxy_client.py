@@ -14,11 +14,15 @@ class TinyProxyClient:
     """Client for making SAMO API requests through TinyProxy on VPS"""
     
     def __init__(self):
-        # Proxy configuration from environment
+        # Proxy configuration from environment (TinyProxy on VPS port 8888)
         self.proxy_host = os.environ.get('PROXY_HOST', '')
         self.proxy_port = os.environ.get('PROXY_PORT', '8888')
         self.proxy_user = os.environ.get('PROXY_USER', '')
         self.proxy_pass = os.environ.get('PROXY_PASS', '')
+        
+        # Default port 8888 for TinyProxy
+        if not self.proxy_port:
+            self.proxy_port = '8888'
         
         # SAMO API configuration
         self.samo_base_url = "https://booking.crystalbay.com/export/default.php"

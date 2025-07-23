@@ -648,6 +648,66 @@ def test_samo_with_proxy(endpoint_name):
             'message': str(e)
         }), 500
 
+@app.route('/api/proxy/quick-setup', methods=['POST'])
+def proxy_quick_setup():
+    """Quick setup helper for TinyProxy configuration"""
+    try:
+        data = request.get_json()
+        vps_ip = data.get('vps_ip', '').strip()
+        
+        if not vps_ip:
+            return jsonify({
+                'error': 'VPS IP address required'
+            }), 400
+        
+        # Create configuration suggestions
+        config_vars = {
+            'PROXY_HOST': vps_ip,
+            'PROXY_PORT': '8888',
+            'PROXY_USER': '',  # Optional
+            'PROXY_PASS': ''   # Optional
+        }
+        
+        # Test basic connectivity
+        import socket
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((vps_ip, 8888))
+            sock.close()
+            
+            if result == 0:
+                connectivity_status = 'reachable'
+                connectivity_message = f'Port 8888 is open on {vps_ip}'
+            else:
+                connectivity_status = 'unreachable'
+                connectivity_message = f'Port 8888 is not accessible on {vps_ip}. Make sure TinyProxy is running.'
+        except Exception as e:
+            connectivity_status = 'error'
+            connectivity_message = f'Could not test connectivity: {str(e)}'
+        
+        return jsonify({
+            'status': 'success',
+            'config_vars': config_vars,
+            'connectivity': {
+                'status': connectivity_status,
+                'message': connectivity_message
+            },
+            'next_steps': [
+                'Set the environment variables in Replit Secrets',
+                'Install TinyProxy on your VPS: sudo apt install tinyproxy',
+                'Configure TinyProxy to allow connections from Replit',
+                'Test the connection using the Test TinyProxy button'
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"Proxy quick setup error: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to setup proxy configuration'
+        }), 500
+
 @app.route('/api/vps/config', methods=['GET'])
 def get_vps_config():
     """Get VPS proxy configuration status"""
