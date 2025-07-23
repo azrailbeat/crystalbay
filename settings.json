@@ -1,0 +1,117 @@
+{
+  "system": {
+    "name": "Crystal Bay Travel",
+    "version": "1.2.0",
+    "language": "ru",
+    "timezone": "Asia/Almaty",
+    "debug_mode": false,
+    "auto_backup": true,
+    "backup_interval": 24,
+    "environment": "production"
+  },
+  "integrations": {
+    "samo_api": {
+      "enabled": true,
+      "endpoint": "https://booking-kz.crystalbay.com/export/default.php",
+      "oauth_token": "27bd59a7ac67422189789f0188167379",
+      "timeout": 30,
+      "max_retries": 3,
+      "default_currency": "USD",
+      "default_departure": "1",
+      "status": "connected"
+    },
+    "telegram_bot": {
+      "enabled": true,
+      "token": "7880836446:AAEQ09MFgpqDRzJVz5ijzUtE3g4SZ4Fiul8",
+      "welcome_message": "Добро пожаловать в Crystal Bay Travel! 🌊\nМы поможем вам найти идеальный тур.",
+      "auto_respond": true,
+      "response_timeout": 30,
+      "status": "active"
+    },
+    "openai": {
+      "enabled": true,
+      "api_key": "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",
+      "model": "gpt-4o",
+      "temperature": 0.7,
+      "max_tokens": 1500,
+      "language": "ru",
+      "status": "active"
+    },
+    "wazzup24": {
+      "enabled": false,
+      "api_key": "",
+      "api_secret": "",
+      "base_url": "https://api.wazzup24.com/v3",
+      "webhook_url": "",
+      "auto_create_contacts": true,
+      "auto_create_deals": true,
+      "status": "not_configured"
+    },
+    "bitrix24": {
+      "enabled": false,
+      "webhook_url": "",
+      "pipeline_id": "7",
+      "auto_sync": true,
+      "lead_source": "Crystal Bay CRM",
+      "status": "not_configured"
+    },
+    "sendgrid": {
+      "enabled": false,
+      "api_key": "",
+      "from_email": "noreply@crystalbay.travel",
+      "templates": {
+        "booking_confirmation": "",
+        "booking_reminder": "",
+        "lead_notification": ""
+      },
+      "auto_notify": true,
+      "status": "not_configured"
+    },
+    "supabase": {
+      "enabled": true,
+      "url": "https://lqjwwzvwqorfqeurerrw.supabase.co",
+      "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxxand3enZ3cW9yZnFldXJlcnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NjQyMTEsImV4cCI6MjA2MDU0MDIxMX0.nl6UXDsjTKklR-eY4XUSFnpUcKWwNz20CV068hal2s0",
+      "auto_sync": true,
+      "sync_interval": 5,
+      "status": "connected"
+    }
+  },
+  "business": {
+    "company_name": "Crystal Bay Travel",
+    "company_phone": "+7 (777) 123-45-67",
+    "company_email": "info@crystalbay.travel",
+    "company_address": "Алматы, Казахстан",
+    "working_hours": "9:00 - 18:00",
+    "timezone": "Asia/Almaty",
+    "currency": "USD",
+    "language": "ru",
+    "auto_lead_assignment": true,
+    "lead_response_time": 60,
+    "booking_confirmation_required": true
+  },
+  "notifications": {
+    "email_notifications": false,
+    "sms_notifications": false,
+    "telegram_notifications": true,
+    "new_lead_notification": true,
+    "booking_confirmation_notification": true,
+    "payment_notification": true,
+    "system_alerts": true,
+    "daily_reports": true,
+    "weekly_reports": false
+  },
+  "logging": {
+    "level": "INFO",
+    "enable_file_logging": true,
+    "log_file": "crystal_bay.log",
+    "max_log_size": "10MB",
+    "backup_count": 5,
+    "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "log_to_console": true
+  },
+  "_metadata": {
+    "created": "2025-07-23T08:12:06.139222",
+    "last_updated": "2025-07-23T08:12:06.139236",
+    "version": "1.2.0"
+  }
+}
