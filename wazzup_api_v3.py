@@ -74,6 +74,26 @@ class WazzupAPIv3:
             
         return self._make_request("POST", "/users", data=users)
     
+    # ===================== ЧАТЫ =====================
+    
+    def get_chats(self, limit: int = 50) -> Dict:
+        """Получить список чатов"""
+        params = {"limit": limit}
+        return self._make_request("GET", "/chats", params=params)
+    
+    def get_messages(self, chat_id: str, limit: int = 20) -> Dict:
+        """Получить сообщения из чата"""
+        params = {"limit": limit}
+        return self._make_request("GET", f"/chats/{chat_id}/messages", params=params)
+    
+    def send_message(self, chat_id: str, text: str) -> Dict:
+        """Отправить сообщение в чат"""
+        data = {
+            "chatId": chat_id,
+            "text": text
+        }
+        return self._make_request("POST", "/messages", data=data)
+    
     def delete_user(self, user_id: str) -> Dict:
         """Удалить пользователя"""
         return self._make_request("DELETE", f"/users/{user_id}")
@@ -134,23 +154,7 @@ class WazzupAPIv3:
         """
         return self._make_request("PATCH", "/funnels", data=funnels)
     
-    # ===================== СООБЩЕНИЯ =====================
-    
-    def send_message(self, chat_id: str, message_data: Dict) -> Dict:
-        """
-        Отправить сообщение
-        
-        chat_id: ID чата
-        message_data: данные сообщения с полями:
-        - text (str): Текст сообщения
-        - type (str): Тип сообщения (text, image, etc.)
-        """
-        return self._make_request("POST", f"/chats/{chat_id}/messages", data=message_data)
-    
-    def get_messages(self, chat_id: str, limit: int = 50) -> Any:
-        """Получить сообщения из чата"""
-        params = {"limit": limit}
-        return self._make_request("GET", f"/chats/{chat_id}/messages", params=params)
+    # ===================== ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ =====================
     
     # ===================== ВЕБХУКИ =====================
     

@@ -166,7 +166,7 @@
                 .then(data => {
                     if (data.status === 'success') {
                         statusDiv.innerHTML = '<span class="badge bg-success">Connected</span>';
-                        detailsSpan.textContent = `${data.message} | Users: ${data.users_count} | Chats: ${data.chats_count}`;
+                        detailsSpan.textContent = `${data.message} | Users: ${data.users_count || 0} | Chats: ${data.chats_count || 0}`;
                     } else {
                         statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
                         detailsSpan.textContent = data.message || 'Connection failed';

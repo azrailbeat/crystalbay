@@ -37,7 +37,8 @@ class WazzupMessageProcessor:
                 return []
             
             messages = []
-            chats = chats_response.get('chats', [])
+            # chats_response может быть списком напрямую или содержать ключ 'chats'
+            chats = chats_response if isinstance(chats_response, list) else chats_response.get('chats', [])
             
             for chat in chats[:10]:  # Берем первые 10 чатов
                 chat_id = chat.get('chatId')
@@ -48,7 +49,9 @@ class WazzupMessageProcessor:
                 chat_messages = self.wazzup.get_messages(chat_id, limit=20)
                 
                 if not chat_messages.get('error'):
-                    for msg in chat_messages.get('messages', []):
+                    # chat_messages может быть списком напрямую или содержать ключ 'messages'
+                    messages_list = chat_messages if isinstance(chat_messages, list) else chat_messages.get('messages', [])
+                    for msg in messages_list:
                         # Добавляем информацию о чате к сообщению
                         msg['chat_info'] = {
                             'chatId': chat_id,
@@ -216,21 +219,38 @@ class WazzupMessageProcessor:
             # Тест получения пользователей
             users_response = self.wazzup.get_users()
             
-            if users_response.get('error'):
+            # Проверяем на ошибки только если это словарь
+            if isinstance(users_response, dict) and users_response.get('error'):
                 return {
                     'status': 'error',
                     'message': 'Ошибка подключения к Wazzup24 API',
                     'details': users_response
                 }
             
-            # Тест получения чатов
-            chats_response = self.wazzup.get_chats(limit=5)
+            # users_response может быть списком напрямую
+            if isinstance(users_response, list):
+                users_list = users_response
+            elif isinstance(users_response, dict):
+                users_list = users_response.get('users', [])
+            else:
+                users_list = []
+            
+            # Тест получения чатов (опционально, может не поддерживаться)
+            chats_count = 0
+            try:
+                chats_response = self.wazzup.get_chats(limit=5)
+                if not chats_response.get('error'):
+                    chats_list = chats_response if isinstance(chats_response, list) else chats_response.get('chats', [])
+                    chats_count = len(chats_list)
+            except Exception as e:
+                logger.warning(f"Chats API не поддерживается: {e}")
+                chats_count = 0
             
             return {
                 'status': 'success',
                 'message': 'Подключение к Wazzup24 API успешно',
-                'users_count': len(users_response.get('users', [])),
-                'chats_count': len(chats_response.get('chats', [])) if not chats_response.get('error') else 0,
+                'users_count': len(users_list),
+                'chats_count': chats_count,
                 'api_key_valid': True
             }
             
