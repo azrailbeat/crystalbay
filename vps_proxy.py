@@ -16,7 +16,7 @@ class VPSProxy:
     
     def __init__(self):
         # VPS server configuration
-        self.vps_endpoint = os.environ.get('VPS_PROXY_URL', 'http://your-vps-server.com/samo-proxy')
+        self.vps_endpoint = os.environ.get('VPS_SCRIPT_URL', 'http://your-vps-server.com/samo_proxy.php')
         self.vps_api_key = os.environ.get('VPS_API_KEY', '')
         
         # SAMO API configuration
@@ -50,8 +50,8 @@ class VPSProxy:
             if params:
                 samo_params.update(params)
             
-            # Check if VPS proxy is configured
-            if self.vps_endpoint and self.vps_endpoint != 'http://your-vps-server.com/samo-proxy':
+            # Check if VPS script is configured
+            if self.vps_endpoint and self.vps_endpoint != 'http://your-vps-server.com/samo_proxy.php':
                 return self._request_via_vps(samo_params, method, xml_data)
             else:
                 # Fallback to direct request (will likely get 403)
@@ -65,37 +65,52 @@ class VPSProxy:
             }
     
     def _request_via_vps(self, params: Dict, method: str, xml_data: str = None) -> Dict[str, Any]:
-        """Make request through VPS proxy"""
+        """Make request through VPS script"""
         try:
-            proxy_payload = {
-                'target_url': self.samo_base_url,
-                'method': method,
-                'params': params,
-                'headers': {'Content-Type': 'application/xml'} if xml_data else {},
-                'data': xml_data,
-                'api_key': self.vps_api_key
+            # Extract action from params
+            action = params.get('action', 'SearchTour_TOWNFROMS')
+            
+            # Remove standard params to get extra params
+            extra_params = {k: v for k, v in params.items() 
+                          if k not in ['samo_action', 'version', 'type', 'action', 'oauth_token']}
+            
+            # Prepare request payload for VPS script
+            script_params = {
+                'action': action
             }
             
-            response = requests.post(
+            if extra_params:
+                script_params['params'] = json.dumps(extra_params)
+            
+            logger.info(f"Calling VPS script with action: {action}")
+            
+            # Make request to VPS script
+            response = requests.get(
                 self.vps_endpoint,
-                json=proxy_payload,
+                params=script_params,
                 timeout=30,
-                headers={'Content-Type': 'application/json'}
+                headers={'User-Agent': 'Crystal Bay Travel Integration/1.0'}
             )
             
             if response.status_code == 200:
-                return response.json()
+                try:
+                    return response.json()
+                except json.JSONDecodeError:
+                    return {
+                        'error': 'Invalid JSON response from VPS script',
+                        'response_text': response.text[:200]
+                    }
             else:
                 return {
-                    'error': f'VPS proxy returned {response.status_code}',
+                    'error': f'VPS script returned {response.status_code}',
                     'message': response.text[:200]
                 }
                 
         except Exception as e:
-            logger.error(f"VPS request failed: {e}")
+            logger.error(f"VPS script request failed: {e}")
             return {
                 'error': str(e),
-                'message': 'VPS proxy request failed'
+                'message': 'VPS script request failed'
             }
     
     def _direct_request(self, params: Dict, method: str, xml_data: str = None) -> Dict[str, Any]:
@@ -132,10 +147,10 @@ class VPSProxy:
     def test_connection(self) -> Dict[str, Any]:
         """Test VPS proxy connection"""
         try:
-            if not self.vps_endpoint or self.vps_endpoint == 'http://your-vps-server.com/samo-proxy':
+            if not self.vps_endpoint or self.vps_endpoint == 'http://your-vps-server.com/samo_proxy.php':
                 return {
                     'status': 'not_configured',
-                    'message': 'VPS proxy not configured. Set VPS_PROXY_URL environment variable.'
+                    'message': 'VPS script not configured. Set VPS_SCRIPT_URL environment variable.'
                 }
             
             # Test with simple TOWNFROMS request
@@ -144,14 +159,16 @@ class VPSProxy:
             if 'error' not in result and 'SearchTour_TOWNFROMS' in result:
                 return {
                     'status': 'connected',
-                    'message': 'VPS proxy working correctly',
-                    'data_count': len(result.get('SearchTour_TOWNFROMS', []))
+                    'message': 'VPS script working correctly',
+                    'data_count': len(result.get('SearchTour_TOWNFROMS', [])),
+                    'script_url': self.vps_endpoint
                 }
             else:
                 return {
                     'status': 'error',
                     'message': result.get('message', 'Unknown error'),
-                    'error': result.get('error', 'No error details')
+                    'error': result.get('error', 'No error details'),
+                    'script_url': self.vps_endpoint
                 }
                 
         except Exception as e:

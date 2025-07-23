@@ -715,9 +715,14 @@ def get_vps_config():
         vps_url = os.environ.get('VPS_PROXY_URL', '')
         vps_key = os.environ.get('VPS_API_KEY', '')
         
+        # Check both VPS_PROXY_URL and VPS_SCRIPT_URL
+        vps_script_url = os.environ.get('VPS_SCRIPT_URL', '')
+        
         return jsonify({
-            'configured': bool(vps_url and vps_url != 'http://your-vps-server.com/samo-proxy'),
+            'configured': bool((vps_url and vps_url != 'http://your-vps-server.com/samo-proxy') or 
+                             (vps_script_url and vps_script_url != 'http://your-vps-server.com/samo_proxy.php')),
             'vps_url': vps_url if vps_url else 'Not configured',
+            'vps_script_url': vps_script_url if vps_script_url else 'Not configured',
             'api_key_set': bool(vps_key),
             'setup_guide': '/vps-setup-guide'
         })
@@ -726,6 +731,63 @@ def get_vps_config():
         return jsonify({
             'error': str(e),
             'message': 'Failed to get VPS configuration'
+        }), 500
+
+@app.route('/api/vps/script-setup', methods=['POST'])
+def vps_script_setup():
+    """Quick setup helper for VPS script"""
+    try:
+        data = request.get_json()
+        vps_ip = data.get('vps_ip', '').strip()
+        script_path = data.get('script_path', 'samo_proxy.php').strip()
+        
+        if not vps_ip:
+            return jsonify({
+                'error': 'VPS IP address required'
+            }), 400
+        
+        # Create script URL
+        script_url = f"http://{vps_ip}/{script_path}"
+        
+        # Test basic connectivity
+        import socket
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((vps_ip, 80))
+            sock.close()
+            
+            if result == 0:
+                connectivity_status = 'reachable'
+                connectivity_message = f'Port 80 is open on {vps_ip}'
+            else:
+                connectivity_status = 'unreachable'
+                connectivity_message = f'Port 80 is not accessible on {vps_ip}. Check web server.'
+        except Exception as e:
+            connectivity_status = 'error'
+            connectivity_message = f'Could not test connectivity: {str(e)}'
+        
+        return jsonify({
+            'status': 'success',
+            'script_url': script_url,
+            'env_var': f'VPS_SCRIPT_URL={script_url}',
+            'connectivity': {
+                'status': connectivity_status,
+                'message': connectivity_message
+            },
+            'next_steps': [
+                f'Upload script to {vps_ip}:{script_path}',
+                f'Set VPS_SCRIPT_URL environment variable to {script_url}',
+                'Test the connection using the Test VPS Script button',
+                'All SAMO API requests will route through your VPS'
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"VPS script setup error: {e}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to setup VPS script configuration'
         }), 500
 
 @app.route('/vps-setup-guide')

@@ -23,7 +23,30 @@ class CrystalBaySamoAPI:
     def _make_request(self, action: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Выполняет запрос к SAMO API через TinyProxy или напрямую"""
         try:
-            # Try using TinyProxy client first if configured
+            # Try using VPS script first if configured
+            try:
+                from vps_proxy import VPSProxy
+                vps_proxy = VPSProxy()
+                
+                # Check if VPS script is configured
+                if (vps_proxy.vps_endpoint and 
+                    vps_proxy.vps_endpoint != 'http://your-vps-server.com/samo_proxy.php'):
+                    logger.info(f"Using VPS script for SAMO API request: {action}")
+                    result = vps_proxy.make_samo_request(action, 'GET', params)
+                    
+                    # If VPS script request successful, return result
+                    if 'error' not in result:
+                        logger.info(f"SAMO API via VPS script success: {action}")
+                        return result
+                    else:
+                        logger.warning(f"VPS script failed, trying TinyProxy: {result.get('message', '')}")
+                        
+            except ImportError:
+                logger.debug("VPS proxy not available")
+            except Exception as e:
+                logger.warning(f"VPS script request failed: {e}")
+            
+            # Try TinyProxy as fallback
             try:
                 from proxy_client import get_proxy_client
                 proxy_client = get_proxy_client()
@@ -34,13 +57,13 @@ class CrystalBaySamoAPI:
                     
                     # If proxy request successful, return result
                     if 'error' not in result:
-                        logger.info(f"SAMO API via proxy success: {action}")
+                        logger.info(f"SAMO API via TinyProxy success: {action}")
                         return result
                     else:
-                        logger.warning(f"Proxy request failed, trying direct: {result.get('message', '')}")
+                        logger.warning(f"TinyProxy failed, trying direct: {result.get('message', '')}")
                         
             except ImportError:
-                logger.debug("TinyProxy client not available, using direct connection")
+                logger.debug("TinyProxy client not available")
             except Exception as e:
                 logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
             

@@ -43,9 +43,13 @@ Email/Widget ─────► Lead Import API ───┘                    
 - ✅ User confirmed VPS server works with SAMO API (successful test data received)
 - ✅ Lightweight solution using VPS's whitelisted IP address (transparent to application)
 - ✅ Quick setup helper with connectivity testing and configuration guidance
-- ⏳ **USER ACTION**: Install TinyProxy on VPS port 8888, then set PROXY_HOST in environment
+- ✅ **VPS SCRIPT SOLUTION**: User can run scripts directly on VPS server
+- ✅ Created PHP/bash script solution as simpler alternative to TinyProxy
+- ✅ VPS proxy client updated to call scripts via HTTP GET requests
+- ✅ API endpoint for VPS script setup and configuration testing
+- ⏳ **USER ACTION**: Upload script to VPS web directory, set VPS_SCRIPT_URL environment variable
 
-**Benefits**: Permanent solution to IP whitelist issues, no code changes required, secure and reliable.
+**Benefits**: Multiple solutions available - TinyProxy and VPS script options, both bypass IP restrictions permanently.
 
 ## Previous Progress (July 22, 2025)
 
