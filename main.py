@@ -411,6 +411,83 @@ def unified_settings():
         logger.error(f"Error loading unified settings page: {e}")
         return render_template('error.html', error=str(e)), 500
 
+@app.route('/samo-testing')
+def samo_testing():
+    """SAMO API Testing Interface"""
+    return render_template('samo_api_testing.html', active_page='samo-testing')
+
+@app.route('/api/samo/test', methods=['POST'])
+def test_samo_endpoint():
+    """Test specific SAMO API endpoint"""
+    try:
+        data = request.json
+        action = data.get('action')
+        params = data.get('params', {})
+        
+        from crystal_bay_samo_api import get_crystal_bay_api
+        api = get_crystal_bay_api()
+        
+        # Call the specific endpoint
+        if action == 'SearchTour_CURRENCIES':
+            result = api.get_currencies()
+        elif action == 'SearchTour_TOWNFROMS':
+            result = api.get_townfroms()
+        elif action == 'SearchTour_STATES':
+            result = api.get_states()
+        elif action == 'SearchTour_HOTELS':
+            result = api.get_hotels()
+        elif action == 'SearchTour_TOURS':
+            result = api.search_tours(params)
+        elif action == 'SearchTour_PRICES':
+            result = api.get_tour_prices(params)
+        else:
+            # Generic endpoint call
+            result = api._make_request(action, params)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"SAMO API test error: {e}")
+        return jsonify({
+            'error': str(e),
+            'status': 'error',
+            'message': 'Failed to test SAMO API endpoint'
+        }), 500
+
+@app.route('/api/samo/status', methods=['GET'])
+def samo_api_status():
+    """Get SAMO API connection status"""
+    try:
+        from crystal_bay_samo_api import get_crystal_bay_api
+        api = get_crystal_bay_api()
+        
+        # Test basic connectivity
+        result = api.get_currencies()
+        
+        if 'error' in result:
+            if '403' in str(result.get('error', '')):
+                return jsonify({
+                    'status': 'ip_blocked',
+                    'message': '403 Forbidden - IP whitelist required',
+                    'expected': True
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': result.get('error', 'Unknown error')
+                })
+        else:
+            return jsonify({
+                'status': 'connected',
+                'message': 'SAMO API accessible'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.route('/bot_logs')
 def bot_logs():
     """Show bot logs (this would need to be implemented with proper log file handling)"""
@@ -2315,7 +2392,7 @@ def handle_wazzup_webhook():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/samo/test-endpoint/<endpoint_name>', methods=['POST'])
-def test_samo_endpoint(endpoint_name):
+def test_specific_samo_endpoint(endpoint_name):
     """Test specific SAMO API endpoints for deployment validation"""
     import requests
     
