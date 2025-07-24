@@ -29,51 +29,52 @@ class WazzupMessageProcessor:
     def get_recent_messages(self, limit: int = 50) -> List[Dict]:
         """Получить последние сообщения"""
         try:
-            # Получаем последние чаты
-            chats_response = self.wazzup.get_chats(limit=limit)
+            # Wazzup24 использует webhook-подход, загружаем сохраненные сообщения
+            webhook_data_file = os.path.join('data', 'wazzup_webhook_messages.json')
             
-            if chats_response.get('error'):
-                logger.error(f"Ошибка получения чатов: {chats_response}")
-                return []
-            
-            messages = []
-            # chats_response может быть списком напрямую или содержать ключ 'chats'/'conversations'/'dialogs'
-            if isinstance(chats_response, list):
-                chats = chats_response
-            else:
-                chats = (chats_response.get('chats', []) or 
-                        chats_response.get('conversations', []) or 
-                        chats_response.get('dialogs', []) or
-                        chats_response.get('data', []))
-            
-            for chat in chats[:10]:  # Берем первые 10 чатов
-                chat_id = chat.get('chatId')
-                if not chat_id:
-                    continue
+            if os.path.exists(webhook_data_file):
+                try:
+                    with open(webhook_data_file, 'r', encoding='utf-8') as f:
+                        webhook_messages = json.load(f)
                     
-                # Получаем сообщения из чата
-                chat_messages = self.wazzup.get_messages(chat_id, limit=20)
-                
-                if not chat_messages.get('error'):
-                    # chat_messages может быть списком напрямую или содержать ключ 'messages'
-                    messages_list = chat_messages if isinstance(chat_messages, list) else chat_messages.get('messages', [])
-                    for msg in messages_list:
-                        # Добавляем информацию о чате к сообщению
-                        msg['chat_info'] = {
-                            'chatId': chat_id,
-                            'chatName': chat.get('chatName', ''),
-                            'lastActivity': chat.get('lastActivity')
-                        }
-                        messages.append(msg)
+                    logger.info(f"Загружено {len(webhook_messages)} сообщений из webhook данных")
+                    return webhook_messages[-limit:]  # Последние N сообщений
+                except Exception as e:
+                    logger.error(f"Ошибка чтения webhook данных: {e}")
             
-            # Сортируем по времени (новые сначала)
-            messages.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
-            
-            logger.info(f"Получено {len(messages)} сообщений из {len(chats)} чатов")
-            return messages[:limit]
+            # Если нет webhook данных, создаем информационное сообщение
+            logger.info("Webhook сообщения не найдены. Настройте webhook для получения реальных сообщений.")
+            return [{
+                'messageId': 'setup_info',
+                'text': 'Для получения реальных сообщений настройте webhook в Wazzup24. Ваши 4 активных чата будут отображаться здесь после настройки.',
+                'timestamp': datetime.now().isoformat(),
+                'fromMe': False,
+                'chatId': 'system',
+                'chatType': 'info',
+                'status': 'info',
+                'senderName': 'Система',
+                'chat_info': {
+                    'chatName': 'Настройка системы',
+                    'chatType': 'system'
+                }
+            }]
             
         except Exception as e:
             logger.error(f"Ошибка получения сообщений: {e}")
+            return []
+    
+    def load_webhook_messages_from_file(self) -> List[Dict]:
+        """Загрузить сообщения из файла webhook данных"""
+        webhook_data_file = os.path.join('data', 'wazzup_webhook_messages.json')
+        
+        if not os.path.exists(webhook_data_file):
+            return []
+        
+        try:
+            with open(webhook_data_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Ошибка загрузки webhook сообщений: {e}")
             return []
     
     def process_incoming_message(self, message: Dict) -> Dict:
