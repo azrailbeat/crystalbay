@@ -158,23 +158,27 @@
             const statusDiv = document.getElementById('connection-status');
             const detailsSpan = document.getElementById('connection-details');
             
-            statusDiv.innerHTML = '<span class="badge bg-warning">Testing...</span>';
-            detailsSpan.textContent = 'Checking API connection...';
+            if (statusDiv) {
+                statusDiv.innerHTML = '<span class="badge bg-warning">Testing...</span>';
+            }
+            if (detailsSpan) {
+                detailsSpan.textContent = 'Checking API connection...';
+            }
 
             fetch('/api/wazzup/test', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        statusDiv.innerHTML = '<span class="badge bg-success">Connected</span>';
-                        detailsSpan.textContent = `${data.message} | Users: ${data.users_count || 0} | Chats: ${data.chats_count || 0}`;
+                        if (statusDiv) statusDiv.innerHTML = '<span class="badge bg-success">Connected</span>';
+                        if (detailsSpan) detailsSpan.textContent = `${data.message} | Users: ${data.users_count || 0} | Chats: ${data.chats_count || 0}`;
                     } else {
-                        statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
-                        detailsSpan.textContent = data.message || 'Connection failed';
+                        if (statusDiv) statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
+                        if (detailsSpan) detailsSpan.textContent = data.message || 'Connection failed';
                     }
                 })
                 .catch(error => {
-                    statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
-                    detailsSpan.textContent = 'Network error: ' + error.message;
+                    if (statusDiv) statusDiv.innerHTML = '<span class="badge bg-danger">Error</span>';
+                    if (detailsSpan) detailsSpan.textContent = 'Network error: ' + error.message;
                 });
         }
 
@@ -182,20 +186,22 @@
             const container = document.getElementById('messages-container');
             const countSpan = document.getElementById('messages-count');
             
-            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">Loading messages...</p></div>';
+            if (container) {
+                container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">Loading messages...</p></div>';
+            }
 
             fetch('/api/wazzup/messages?limit=30')
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         displayMessages(data.messages);
-                        countSpan.textContent = data.messages_count;
+                        if (countSpan) countSpan.textContent = data.messages_count;
                     } else {
-                        container.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+                        if (container) container.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
                     }
                 })
                 .catch(error => {
-                    container.innerHTML = `<div class="alert alert-danger">Network error: ${error.message}</div>`;
+                    if (container) container.innerHTML = `<div class="alert alert-danger">Network error: ${error.message}</div>`;
                 });
         }
 
@@ -287,13 +293,23 @@
         }
 
         function openSendModal(chatId) {
-            document.getElementById('chatId').value = chatId;
-            new bootstrap.Modal(document.getElementById('sendMessageModal')).show();
+            const chatIdInput = document.getElementById('chatId');
+            const modal = document.getElementById('sendMessageModal');
+            
+            if (chatIdInput) {
+                chatIdInput.value = chatId;
+            }
+            if (modal) {
+                new bootstrap.Modal(modal).show();
+            }
         }
 
         function sendMessage() {
-            const chatId = document.getElementById('chatId').value;
-            const message = document.getElementById('messageText').value;
+            const chatIdInput = document.getElementById('chatId');
+            const messageInput = document.getElementById('messageText');
+            
+            const chatId = chatIdInput ? chatIdInput.value : '';
+            const message = messageInput ? messageInput.value : '';
 
             if (!chatId || !message) {
                 alert('Please fill in all fields');
@@ -333,6 +349,37 @@
                 }, 30000); // Every 30 seconds
                 document.querySelector('[onclick="autoRefresh()"]').innerHTML = '<i class="bi bi-stop me-1"></i>Stop Auto Refresh';
             }
+        }
+
+        // Add webhook setup function per official Wazzup24 documentation
+        function setupWebhook() {
+            const statusDiv = document.getElementById('webhook-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="text-info"><small>Setting up webhook...</small></div>';
+            }
+            
+            const webhookUrl = `${window.location.origin}/api/wazzup/webhook`;
+            
+            fetch('/api/wazzup/setup-webhook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhook_url: webhookUrl })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (statusDiv) {
+                    if (data.status === 'success') {
+                        statusDiv.innerHTML = '<div class="text-success"><small>✓ Webhook configured successfully</small></div>';
+                    } else {
+                        statusDiv.innerHTML = `<div class="text-danger"><small>✗ Error: ${data.message}</small></div>`;
+                    }
+                }
+            })
+            .catch(error => {
+                if (statusDiv) {
+                    statusDiv.innerHTML = `<div class="text-danger"><small>✗ Network error: ${error.message}</small></div>`;
+                }
+            });
         }
 
         // Add missing selectMessage function
