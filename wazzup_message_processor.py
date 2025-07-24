@@ -37,8 +37,14 @@ class WazzupMessageProcessor:
                 return []
             
             messages = []
-            # chats_response может быть списком напрямую или содержать ключ 'chats'
-            chats = chats_response if isinstance(chats_response, list) else chats_response.get('chats', [])
+            # chats_response может быть списком напрямую или содержать ключ 'chats'/'conversations'/'dialogs'
+            if isinstance(chats_response, list):
+                chats = chats_response
+            else:
+                chats = (chats_response.get('chats', []) or 
+                        chats_response.get('conversations', []) or 
+                        chats_response.get('dialogs', []) or
+                        chats_response.get('data', []))
             
             for chat in chats[:10]:  # Берем первые 10 чатов
                 chat_id = chat.get('chatId')

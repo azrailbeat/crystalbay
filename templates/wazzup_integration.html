@@ -225,10 +225,13 @@
                             <small class="message-time">${time}</small>
                         </div>
                         <div class="mt-1">${message.text || message.content || '[No text]'}</div>
-                        ${message.chat_info?.chatId ? `
+                        ${message.chatId || message.chat_info?.chatId ? `
                             <div class="mt-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick="openSendModal('${message.chat_info.chatId}')">
+                                <button class="btn btn-sm btn-outline-primary" onclick="openSendModal('${message.chatId || message.chat_info?.chatId}')">
                                     <i class="bi bi-reply"></i> Reply
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary ms-1" onclick="selectMessage('${message.messageId || message.id}', '${message.chatId || message.chat_info?.chatId}', '${(message.text || '').replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-check-circle"></i> Select
                                 </button>
                             </div>
                         ` : ''}
@@ -330,6 +333,45 @@
                 }, 30000); // Every 30 seconds
                 document.querySelector('[onclick="autoRefresh()"]').innerHTML = '<i class="bi bi-stop me-1"></i>Stop Auto Refresh';
             }
+        }
+
+        // Add missing selectMessage function
+        function selectMessage(messageId, chatId, messageText) {
+            window.selectedMessage = {
+                id: messageId,
+                chatId: chatId,
+                text: messageText
+            };
+            
+            document.querySelectorAll('.message-card, .chat-message').forEach(card => {
+                card.classList.remove('border-primary');
+            });
+            
+            if (event && event.target) {
+                const messageElement = event.target.closest('.message-card') || event.target.closest('.chat-message');
+                if (messageElement) {
+                    messageElement.classList.add('border-primary');
+                }
+            }
+            
+            alert(`Selected message: "${messageText ? messageText.substring(0, 50) : 'Selected'}..."`);
+        }
+
+        function setupWebhook() {
+            fetch('/api/wazzup/setup-webhook', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`Webhook настроен успешно!\nURL: ${data.webhook_url}\n\nТеперь ваши реальные сообщения будут поступать автоматически.`);
+                        // Reload messages after setup
+                        setTimeout(loadMessages, 2000);
+                    } else {
+                        alert('Ошибка настройки webhook: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Network error: ' + error.message);
+                });
         }
 
         // Auto-test connection on page load

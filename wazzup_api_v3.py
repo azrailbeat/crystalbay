@@ -76,23 +76,48 @@ class WazzupAPIv3:
     
     # ===================== ЧАТЫ =====================
     
-    def get_chats(self, limit: int = 50) -> Dict:
-        """Получить список чатов"""
-        params = {"limit": limit}
-        return self._make_request("GET", "/chats", params=params)
+    def get_iframe_data(self, user_id: str = "default", user_name: str = "CRM User") -> Dict:
+        """Получить iFrame для просмотра чатов (Wazzup24 использует iFrame вместо прямого API чатов)"""
+        data = {
+            "user": {
+                "id": user_id,
+                "name": user_name
+            },
+            "scope": "card"
+        }
+        return self._make_request("POST", "/iframe", data=data)
+    
+    def setup_webhooks(self, webhook_url: str) -> Dict:
+        """Настроить вебхуки для получения сообщений"""
+        data = {
+            "webhooksUri": webhook_url,
+            "subscriptions": {
+                "messagesAndStatuses": True,
+                "contactsAndDealsCreation": True
+            }
+        }
+        return self._make_request("PATCH", "/webhooks", data=data)
+    
+    def get_webhooks(self) -> Dict:
+        """Получить текущие настройки вебхуков"""
+        return self._make_request("GET", "/webhooks")
     
     def get_messages(self, chat_id: str, limit: int = 20) -> Dict:
         """Получить сообщения из чата"""
         params = {"limit": limit}
         return self._make_request("GET", f"/chats/{chat_id}/messages", params=params)
     
-    def send_message(self, chat_id: str, text: str) -> Dict:
-        """Отправить сообщение в чат"""
+    def send_message(self, chat_id: str, text: str, chat_type: str = "whatsapp", channel_id: str = None) -> Dict:
+        """Отправить сообщение в чат (Wazzup24 API v3 format)"""
         data = {
             "chatId": chat_id,
+            "chatType": chat_type,
             "text": text
         }
-        return self._make_request("POST", "/messages", data=data)
+        if channel_id:
+            data["channelId"] = channel_id
+            
+        return self._make_request("POST", "/message", data=data)
     
     def delete_user(self, user_id: str) -> Dict:
         """Удалить пользователя"""
