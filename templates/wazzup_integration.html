@@ -208,6 +208,11 @@
         function displayMessages(messages) {
             const container = document.getElementById('messages-container');
             
+            if (!container) {
+                console.error('Messages container not found');
+                return;
+            }
+            
             if (messages.length === 0) {
                 container.innerHTML = '<div class="text-center text-muted"><p>No messages found</p></div>';
                 return;
@@ -245,7 +250,9 @@
                 `;
             });
 
-            container.innerHTML = html;
+            if (container) {
+                container.innerHTML = html;
+            }
         }
 
         function processMessages() {
