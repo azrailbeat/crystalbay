@@ -93,7 +93,7 @@ class WazzupMessageProcessor:
             if message.get('fromMe', False):
                 return {'status': 'outgoing_message', 'message_id': message_id}
             
-            if not message_text.strip():
+            if not message_text or not message_text.strip():
                 return {'status': 'empty_message', 'message_id': message_id}
             
             logger.info(f"Обрабатываем сообщение от {sender}: {message_text[:100]}...")
@@ -242,16 +242,10 @@ class WazzupMessageProcessor:
             else:
                 users_list = []
             
-            # Тест получения чатов (опционально, может не поддерживаться)
+            # Wazzup24 API v3 использует webhook-подход для получения сообщений
+            logger.info("Wazzup24 API v3 использует webhook-подход для получения сообщений")
+            logger.info("Для получения реальных сообщений настройте webhook в панели Wazzup24")
             chats_count = 0
-            try:
-                chats_response = self.wazzup.get_chats(limit=5)
-                if not chats_response.get('error'):
-                    chats_list = chats_response if isinstance(chats_response, list) else chats_response.get('chats', [])
-                    chats_count = len(chats_list)
-            except Exception as e:
-                logger.warning(f"Chats API не поддерживается: {e}")
-                chats_count = 0
             
             return {
                 'status': 'success',
