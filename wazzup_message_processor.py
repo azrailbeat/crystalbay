@@ -168,7 +168,7 @@ class WazzupMessageProcessor:
                 temperature=0.7
             )
             
-            ai_response = response.choices[0].message.content.strip()
+            ai_response = (response.choices[0].message.content or "").strip()
             logger.info(f"ИИ ответ сгенерирован: {ai_response[:100]}...")
             
             return ai_response
