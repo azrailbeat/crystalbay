@@ -1566,7 +1566,11 @@ def api_create_lead_from_message(message_id):
     """Создать лид в Bitrix24 из сообщения"""
     try:
         from message_processor import message_manager
-        from bitrix_integration import bitrix_client
+        try:
+            from bitrix_integration import bitrix_client
+        except ImportError:
+            logger.warning("Bitrix integration not available")
+            bitrix_client = None
         
         message_data = message_manager.storage.get_message_by_id(message_id)
         if not message_data:

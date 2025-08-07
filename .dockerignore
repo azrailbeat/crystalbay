@@ -1,0 +1,45 @@
+# Development files
+attached_assets/
+backup/
+tests/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
+
+# Development configuration
+.replit
+replit.nix
+replit.md
+.env.example
+
+# Documentation
+*.md
+!README.md
+!DEPLOYMENT.md
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+tmp/
+temp/
+.tmp
+
+# Local development
+venv/
+.venv/
+node_modules/
