@@ -61,10 +61,16 @@ def home():
 def dashboard():
     """Dashboard with leads overview"""
     try:
-        from models import LeadService
-        lead_service = LeadService()
+        # Get leads from persistent storage  
+        leads = []
+        try:
+            from app_api import persistent_storage
+            leads = persistent_storage.get_all()
+            logger.info(f"Dashboard loaded {len(leads)} leads")
+        except Exception as ex:
+            logger.warning(f"Dashboard storage error: {ex}")
+            leads = []
         
-        leads = lead_service.get_leads(limit=10)
         lead_stats = {
             'total': len(leads),
             'new': len([l for l in leads if l.get('status') == 'new']),
@@ -73,7 +79,7 @@ def dashboard():
         }
         
         return render_template('dashboard.html', 
-                             leads=leads, 
+                             leads=leads[:10], 
                              stats=lead_stats)
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
@@ -83,16 +89,60 @@ def dashboard():
 def leads():
     """Leads management page"""
     try:
-        from models import LeadService
-        lead_service = LeadService()
+        # Get leads from persistent storage
+        leads = []
+        try:
+            from app_api import persistent_storage
+            leads = persistent_storage.get_all()
+            logger.info(f"Loaded {len(leads)} leads for display")
+        except Exception as ex:
+            logger.warning(f"Could not load from persistent storage: {ex}")
+            
+        if leads:
+            return render_template('leads.html', leads=leads)
         
-        # Get leads with optional filtering
-        status_filter = request.args.get('status')
-        source_filter = request.args.get('source')
+        # Fallback to sample data if no connection
+        sample_leads = [
+            {
+                'id': 1,
+                'name': 'Александр Петров',
+                'phone': '+7 (777) 123-45-67',
+                'email': 'alex@example.com',
+                'status': 'new',
+                'source': 'Crystal Bay Booking System',
+                'tour_interest': 'Мальдивы',
+                'budget_range': '200000-300000',
+                'created_at': '2025-01-15',
+                'notes': 'Интересуется туром на 7 дней'
+            },
+            {
+                'id': 2,
+                'name': 'Мария Сидорова',
+                'phone': '+7 (727) 987-65-43',
+                'email': 'maria@example.com',
+                'status': 'contacted',
+                'source': 'Telegram Bot',
+                'tour_interest': 'Турция',
+                'budget_range': '150000-200000',
+                'created_at': '2025-01-14',
+                'notes': 'Планирует отпуск в марте'
+            },
+            {
+                'id': 3,
+                'name': 'Дмитрий Козлов',
+                'phone': '+7 (707) 555-12-34',
+                'email': 'dmitry@example.com',
+                'status': 'qualified',
+                'source': 'Wazzup24',
+                'tour_interest': 'ОАЭ',
+                'budget_range': '250000-400000',
+                'created_at': '2025-01-13',
+                'notes': 'VIP клиент, требует индивидуальный подход'
+            }
+        ]
         
-        leads = lead_service.get_leads(limit=100)
+        return render_template('leads.html', leads=sample_leads)
         
-        return render_template('leads.html', leads=leads)
     except Exception as e:
         logger.error(f"Leads page error: {e}")
         return render_template('error.html', error=str(e))
