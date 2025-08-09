@@ -140,9 +140,9 @@ POST /api/leads/import/email
 Content-Type: application/json
 
 {
-    "from": "customer@example.com",
+    "from": "user@example.com",
     "subject": "Beach vacation inquiry",
-    "body": "Hi, I'm looking for a beach vacation to Turkey for 2 people in July. My budget is around $3000. Please send me some options. Best regards, John Smith",
+    "body": "Hi, I'm looking for a beach vacation to Turkey for 2 people in July. My budget is around $0. Please send me some options. Best regards, John Smith",
     "received_at": "2025-01-01T12:00:00Z"
 }
 </div>
@@ -166,8 +166,8 @@ Content-Type: application/json
 
 {
     "name": "Anna Petrova",
-    "email": "anna@example.com",
-    "phone": "+7 (999) 123-45-67",
+    "email": "user@example.com",
+    "phone": "+7 (XXX) XXX-XX-XX",
     "message": "Interested in honeymoon package to Maldives",
     "widget_id": "contact_form_1",
     "page_url": "https://crystalbaytours.com/honeymoon",
@@ -197,7 +197,7 @@ X-API-Key: partner_api_key_123
 {
     "customer": {
         "name": "Michael Johnson",
-        "email": "mike@example.com",
+        "email": "user@example.com",
         "phone": "+1-555-0123"
     },
     "inquiry": {
@@ -205,7 +205,7 @@ X-API-Key: partner_api_key_123
         "message": "Looking for family-friendly resort in Greece",
         "destination": "Greece",
         "budget": 5000,
-        "travel_date": "2025-08-15"
+        "travel_date": "2025-01-01"
     },
     "source_info": {
         "partner_name": "TravelHub API",
@@ -241,7 +241,7 @@ X-API-Key: partner_api_key_123
 
         async function testEmailImport() {
             const testData = {
-                from: "test@example.com",
+                from: "user@example.com",
                 subject: "Test email lead",
                 body: "This is a test email lead from the demo page. I'm interested in beach vacation to Turkey.",
                 received_at: new Date().toISOString()
@@ -268,8 +268,8 @@ X-API-Key: partner_api_key_123
             const testData = {
                 customer: {
                     name: "Test Customer",
-                    email: "test-api@example.com",
-                    phone: "+7 (999) 123-45-67"
+                    email: "test-user@example.com",
+                    phone: "+7 (XXX) XXX-XX-XX"
                 },
                 inquiry: {
                     type: "Test inquiry",
