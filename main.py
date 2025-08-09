@@ -61,14 +61,15 @@ def home():
 def dashboard():
     """Dashboard with leads overview"""
     try:
-        # Get leads from persistent storage  
+        # Get leads from database
         leads = []
         try:
-            from app_api import persistent_storage
-            leads = persistent_storage.get_all()
+            from models import LeadService
+            lead_service = LeadService()
+            leads = lead_service.get_leads(limit=10)
             logger.info(f"Dashboard loaded {len(leads)} leads")
         except Exception as ex:
-            logger.warning(f"Dashboard storage error: {ex}")
+            logger.warning(f"Database error: {ex}")
             leads = []
         
         lead_stats = {
@@ -89,59 +90,17 @@ def dashboard():
 def leads():
     """Leads management page"""
     try:
-        # Get leads from persistent storage
-        leads = []
+        # Get leads from database
         try:
-            from app_api import persistent_storage
-            leads = persistent_storage.get_all()
-            logger.info(f"Loaded {len(leads)} leads for display")
-        except Exception as ex:
-            logger.warning(f"Could not load from persistent storage: {ex}")
-            
-        if leads:
+            from models import LeadService
+            lead_service = LeadService()
+            leads = lead_service.get_leads(limit=100)
+            logger.info(f"Loaded {len(leads)} leads from database")
             return render_template('leads.html', leads=leads)
-        
-        # Fallback to sample data if no connection
-        sample_leads = [
-            {
-                'id': 1,
-                'name': 'Александр Петров',
-                'phone': '+7 (777) 123-45-67',
-                'email': 'alex@example.com',
-                'status': 'new',
-                'source': 'Crystal Bay Booking System',
-                'tour_interest': 'Мальдивы',
-                'budget_range': '200000-300000',
-                'created_at': '2025-01-15',
-                'notes': 'Интересуется туром на 7 дней'
-            },
-            {
-                'id': 2,
-                'name': 'Мария Сидорова',
-                'phone': '+7 (727) 987-65-43',
-                'email': 'maria@example.com',
-                'status': 'contacted',
-                'source': 'Telegram Bot',
-                'tour_interest': 'Турция',
-                'budget_range': '150000-200000',
-                'created_at': '2025-01-14',
-                'notes': 'Планирует отпуск в марте'
-            },
-            {
-                'id': 3,
-                'name': 'Дмитрий Козлов',
-                'phone': '+7 (707) 555-12-34',
-                'email': 'dmitry@example.com',
-                'status': 'qualified',
-                'source': 'Wazzup24',
-                'tour_interest': 'ОАЭ',
-                'budget_range': '250000-400000',
-                'created_at': '2025-01-13',
-                'notes': 'VIP клиент, требует индивидуальный подход'
-            }
-        ]
-        
-        return render_template('leads.html', leads=sample_leads)
+        except Exception as ex:
+            logger.error(f"Database error: {ex}")
+            # Return empty state for production
+            return render_template('leads.html', leads=[])
         
     except Exception as e:
         logger.error(f"Leads page error: {e}")
@@ -157,66 +116,7 @@ def settings():
     """Settings page"""
     return render_template('unified_settings.html')
 
-# API Endpoints for core functionality
-@app.route('/api/leads', methods=['GET'])
-def api_get_leads():
-    """Get all leads"""
-    try:
-        from models import LeadService
-        lead_service = LeadService()
-        
-        leads = lead_service.get_leads(limit=request.args.get('limit', 50, type=int))
-        
-        return jsonify({
-            'success': True,
-            'leads': leads,
-            'count': len(leads)
-        })
-    except Exception as e:
-        logger.error(f"API get leads error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/leads', methods=['POST'])
-def api_create_lead():
-    """Create new lead"""
-    try:
-        data = request.get_json() or {}
-        
-        if not data.get('name') or not data.get('phone'):
-            return jsonify({
-                'success': False,
-                'error': 'Name and phone are required'
-            }), 400
-        
-        from models import LeadService
-        lead_service = LeadService()
-        
-        lead_data = {
-            'name': data['name'],
-            'phone': data['phone'],
-            'email': data.get('email'),
-            'source': data.get('source', 'api'),
-            'notes': data.get('notes'),
-            'tour_interest': data.get('tour_interest'),
-            'budget_range': data.get('budget_range')
-        }
-        lead_id = lead_service.create_lead(lead_data)
-        
-        return jsonify({
-            'success': True,
-            'lead_id': lead_id,
-            'message': 'Lead created successfully'
-        })
-        
-    except Exception as e:
-        logger.error(f"API create lead error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+# API endpoints are registered by app_api.py module
 
 # Wazzup24 API endpoints
 @app.route('/api/wazzup/test', methods=['POST'])

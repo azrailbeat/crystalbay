@@ -1,0 +1,17 @@
+.env
+.env.local
+*.log
+logs/
+data/
+backup/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+.tmp/
