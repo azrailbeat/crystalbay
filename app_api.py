@@ -71,5 +71,24 @@ def register_api_routes(app):
                 'success': False,
                 'error': str(e)
             }), 500
+
+    @app.route('/api/chat/history/<lead_id>', methods=['GET'])
+    def api_get_chat_history(lead_id):
+        """Get chat history for a specific lead"""
+        try:
+            # Return empty array for now since chat history is not implemented
+            return jsonify({
+                'success': True,
+                'messages': [],
+                'count': 0,
+                'lead_id': lead_id
+            })
+        except Exception as e:
+            logger.error(f"API get chat history error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'messages': []
+            }), 500
     
     logger.info("API routes registered successfully")

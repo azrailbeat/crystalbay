@@ -471,56 +471,36 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-envelope source-icon"></i> Email
-                    </div>
-                    <div class="lead-name">Сергей Козлов</div>
-                    <div class="lead-details">Запрос о туре в Японию, интересует культурная программа и гастрономический туризм</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Япония</span>
-                        <span class="lead-tag">Культурный туризм</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">1 день назад</div>
-                        <div class="lead-actions">
-                            <button><i class="bi bi-chat"></i></button>
-                            <button><i class="bi bi-arrow-right-circle"></i></button>
+                {% if leads_data and leads_data.in_progress_leads %}
+                    {% for lead in leads_data.in_progress_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 1000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">В работе</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-telegram source-icon"></i> Telegram
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет лидов в работе</p>
                     </div>
-                    <div class="lead-name">Марина Соловьева</div>
-                    <div class="lead-details">Запрос на отдых на Мальдивах, люкс сегмент, медовый месяц, апрель 2026</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Мальдивы</span>
-                        <span class="lead-tag">Люкс</span>
-                        <span class="lead-tag">VIP</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">2 дня назад</div>
-                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
-                    </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-globe source-icon"></i> Веб-сайт
-                    </div>
-                    <div class="lead-name">Николай Макаров</div>
-                    <div class="lead-details">Запрос на круиз по Средиземному морю, осень 2025</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Круиз</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">3 дня назад</div>
-                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
         
@@ -537,37 +517,36 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-telephone source-icon"></i> Телефон
+                {% if leads_data and leads_data.pending_leads %}
+                    {% for lead in leads_data.pending_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 2000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Переговоры</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="lead-name">Александр Белов</div>
-                    <div class="lead-details">Запрос на корпоративный тимбилдинг для компании (30 человек), Турция или Греция</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Корпоратив</span>
-                        <span class="lead-tag">VIP</span>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-chat-dots" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет лидов на переговорах</p>
                     </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">4 дня назад</div>
-                        <div class="lead-avatar" title="Мария Иванова">МИ</div>
-                    </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-envelope source-icon"></i> Email
-                    </div>
-                    <div class="lead-name">Ольга Михайлова</div>
-                    <div class="lead-details">Запрос на романтический тур в Париж, годовщина свадьбы, июнь 2025</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Романтика</span>
-                        <span class="lead-tag">Франция</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">5 дней назад</div>
-                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
         
@@ -584,37 +563,36 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-telegram source-icon"></i> Telegram
+                {% if leads_data and leads_data.confirmed_leads %}
+                    {% for lead in leads_data.confirmed_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 3000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Забронировано</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-check-circle"></i></button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="lead-name">Дмитрий Волков</div>
-                    <div class="lead-details">Бронирование тура в Египет, Хургада, 1-10 июня 2025</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Египет</span>
-                        <span class="lead-tag">Пляжный отдых</span>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет забронированных туров</p>
                     </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">$0</div>
-                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
-                    </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-globe source-icon"></i> Веб-сайт
-                    </div>
-                    <div class="lead-name">Татьяна Кузнецова</div>
-                    <div class="lead-details">Бронирование тура в Италию, экскурсионная программа по городам, 5-15 сентября 2025</div>
-                    <div class="lead-tags">
-                        <span class="lead-tag">Италия</span>
-                        <span class="lead-tag">Экскурсии</span>
-                    </div>
-                    <div class="lead-footer">
-                        <div class="lead-date">$0</div>
-                        <div class="lead-avatar" title="Мария Иванова">МИ</div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
         
@@ -631,29 +609,36 @@
             </div>
             
             <div class="lead-list">
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-telephone source-icon"></i> Телефон
+                {% if leads_data and leads_data.closed_leads %}
+                    {% for lead in leads_data.closed_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 4000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Отменено</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-x-circle"></i></button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="lead-name">Максим Новиков</div>
-                    <div class="lead-details">Запрос на тур в Китай, отменен клиентом из-за изменения планов</div>
-                    <div class="lead-footer">
-                        <div class="lead-date">10 дней назад</div>
-                        <div class="lead-avatar" title="Алексей Ковалев">АК</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-x-circle" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет отмененных заявок</p>
                     </div>
-                </div>
-                
-                <div class="lead-card">
-                    <div class="lead-source">
-                        <i class="bi bi-envelope source-icon"></i> Email
-                    </div>
-                    <div class="lead-name">Виктория Андреева</div>
-                    <div class="lead-details">Запрос на тур в Эмираты, отменен из-за недоступного для клиента бюджета</div>
-                    <div class="lead-footer">
-                        <div class="lead-date">12 дней назад</div>
-                        <div class="lead-avatar" title="Елена Кравцова">ЕК</div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -2340,11 +2325,59 @@
         }
         
         // Очищаем контейнер перед инициализацией
-        container.innerHTML = '';
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div><div class="mt-2">Загрузка истории чата...</div></div>';
         
-        // Проверяем доступность конструктора
-        if (typeof window.initWazzupChat === 'function') {
-            try {
+        // Загружаем историю чата через правильный API
+        loadChatHistory(leadId);
+        
+        console.log('Wazzup chat widget initialized successfully');
+    }
+    
+    // Функция для загрузки истории чата
+    async function loadChatHistory(leadId) {
+        try {
+            const response = await fetch(`/api/chat/history/${leadId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            const container = document.getElementById('wazzup-chat-container');
+            if (!container) return;
+            
+            if (data.messages && data.messages.length > 0) {
+                // Отображаем сообщения
+                container.innerHTML = data.messages.map(msg => `
+                    <div class="chat-message ${msg.direction}">
+                        <div class="message-content">${msg.content}</div>
+                        <div class="message-time">${new Date(msg.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } else {
+                // Отображаем пустое состояние
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-chat-dots" style="font-size: 2rem;"></i>
+                        <div class="mt-2">История чата пока пуста</div>
+                        <div class="small">Сообщения будут отображаться здесь</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            const container = document.getElementById('wazzup-chat-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-danger">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                        <div class="mt-2">Ошибка загрузки чата</div>
+                        <div class="small">Проверьте подключение к серверу</div>
+                    </div>
+                `;
+            }
+        }
+    }
                 // Создаем уникальный ID для контейнера чата
                 const chatContainerId = `wazzup-chat-${leadId}`;
                 container.innerHTML = `<div id="${chatContainerId}"></div>`;
