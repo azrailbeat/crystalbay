@@ -46,7 +46,7 @@ try:
     from samo_api_routes import register_samo_routes
     register_samo_routes(app)
     logger.info("SAMO API routes registered successfully")
-except ImportError:
+except (ImportError, AttributeError):
     logger.warning("SAMO API routes not available")
 except Exception as e:
     logger.error(f"Failed to register SAMO API routes: {e}")
