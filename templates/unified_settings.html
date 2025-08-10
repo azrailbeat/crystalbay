@@ -350,7 +350,59 @@
                 <!-- Интеграции -->
                 <div class="tab-pane fade show active" id="integrations">
                     <div class="integration-grid" id="integrationsGrid">
-                        <!-- Карточки интеграций будут загружены динамически -->
+                        
+                        <!-- SAMO API -->
+                        <div class="integration-card enabled" id="samo-card">
+                            <div class="integration-header">
+                                <div class="integration-title">
+                                    <div class="integration-logo samo">SA</div>
+                                    <div>
+                                        <h5 class="mb-1">SAMO API</h5>
+                                        <small class="text-muted">Система бронирования туров</small>
+                                    </div>
+                                </div>
+                                <div class="integration-status status-enabled">
+                                    <span class="status-dot bg-success"></span>
+                                    <span id="samo-status">Настроен</span>
+                                </div>
+                            </div>
+                            
+                            <div class="integration-fields">
+                                <div class="mb-3">
+                                    <label class="form-label">API URL:</label>
+                                    <input type="url" class="form-control" id="samo-api-url" 
+                                           placeholder="https://booking.crystalbay.com/export/default.php">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">OAuth Token:</label>
+                                    <input type="password" class="form-control" id="samo-oauth-token" 
+                                           placeholder="Введите OAuth токен">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Timeout (сек):</label>
+                                        <input type="number" class="form-control" id="samo-timeout" 
+                                               value="30" min="5" max="120">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">User Agent:</label>
+                                        <input type="text" class="form-control" id="samo-user-agent" 
+                                               placeholder="Crystal Bay Travel Integration/1.0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="integration-actions">
+                                <button class="btn btn-test" onclick="testSamoConnection()">
+                                    <i class="bi bi-wifi"></i> Тест
+                                </button>
+                                <button class="btn btn-save" onclick="saveSamoSettings()">
+                                    <i class="bi bi-save"></i> Сохранить
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Карточки остальных интеграций будут загружены динамически -->
                     </div>
                 </div>
                 

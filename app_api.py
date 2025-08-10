@@ -2,6 +2,9 @@ import logging
 from flask import request, jsonify
 from datetime import datetime
 import os
+import subprocess
+import shlex
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -91,4 +94,179 @@ def register_api_routes(app):
                 'messages': []
             }), 500
     
+    # === SETTINGS API ===
+    
+    @app.route('/api/settings/samo', methods=['GET'])
+    def api_get_samo_settings():
+        """Get SAMO API settings"""
+        try:
+            from models import SettingsService
+            settings = SettingsService.get_samo_settings()
+            return jsonify({
+                'success': True,
+                'settings': settings
+            })
+        except Exception as e:
+            logger.error(f"API get SAMO settings error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/settings/samo', methods=['POST'])
+    def api_update_samo_settings():
+        """Update SAMO API settings"""
+        try:
+            data = request.get_json() or {}
+            
+            from models import SettingsService
+            
+            # Update each setting
+            updated_settings = {}
+            for key, value in data.items():
+                if key in ['api_url', 'oauth_token', 'timeout', 'user_agent']:
+                    success = SettingsService.update_samo_setting(key, str(value))
+                    updated_settings[key] = value
+                    if not success:
+                        logger.warning(f"Failed to save setting {key} to database, using memory storage")
+            
+            return jsonify({
+                'success': True,
+                'message': 'SAMO settings updated successfully',
+                'updated_settings': updated_settings
+            })
+            
+        except Exception as e:
+            logger.error(f"API update SAMO settings error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    # === CURL API ===
+    
+    @app.route('/api/curl/execute', methods=['POST'])
+    def api_execute_curl():
+        """Execute curl command safely"""
+        try:
+            data = request.get_json() or {}
+            url = data.get('url', '')
+            method = data.get('method', 'GET').upper()
+            headers = data.get('headers', {})
+            payload = data.get('payload', {})
+            
+            if not url:
+                return jsonify({
+                    'success': False,
+                    'error': 'URL is required'
+                }), 400
+            
+            # Build curl command
+            curl_parts = ['curl', '-s', '-w', '\\nHTTP Status: %{http_code}\\nTime: %{time_total}s\\n']
+            
+            # Add method
+            if method != 'GET':
+                curl_parts.extend(['-X', method])
+            
+            # Add headers
+            for key, value in headers.items():
+                curl_parts.extend(['-H', f'{key}: {value}'])
+            
+            # Add payload for POST/PUT
+            if method in ['POST', 'PUT'] and payload:
+                if isinstance(payload, dict):
+                    # Form data
+                    for key, value in payload.items():
+                        curl_parts.extend(['-d', f'{key}={value}'])
+                else:
+                    # Raw data
+                    curl_parts.extend(['-d', str(payload)])
+            
+            # Add URL
+            curl_parts.append(url)
+            
+            # Execute curl command
+            result = subprocess.run(curl_parts, capture_output=True, text=True, timeout=30)
+            
+            return jsonify({
+                'success': True,
+                'command': ' '.join(shlex.quote(part) for part in curl_parts),
+                'stdout': result.stdout,
+                'stderr': result.stderr,
+                'return_code': result.returncode,
+                'execution_time': '< 30s'
+            })
+            
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                'success': False,
+                'error': 'Curl command timed out (30s limit)'
+            }), 408
+        except Exception as e:
+            logger.error(f"API execute curl error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/curl/generate', methods=['POST'])
+    def api_generate_curl():
+        """Generate curl command from parameters"""
+        try:
+            data = request.get_json() or {}
+            url = data.get('url', '')
+            method = data.get('method', 'GET').upper()
+            headers = data.get('headers', {})
+            payload = data.get('payload', {})
+            
+            if not url:
+                return jsonify({
+                    'success': False,
+                    'error': 'URL is required'
+                }), 400
+            
+            # Build curl command string
+            curl_parts = ['curl', '-v']
+            
+            # Add method
+            if method != 'GET':
+                curl_parts.extend(['-X', method])
+            
+            # Add headers
+            for key, value in headers.items():
+                curl_parts.extend(['-H', f'"{key}: {value}"'])
+            
+            # Add payload for POST/PUT
+            if method in ['POST', 'PUT'] and payload:
+                if isinstance(payload, dict):
+                    # Form data
+                    for key, value in payload.items():
+                        curl_parts.extend(['-d', f'"{key}={value}"'])
+                else:
+                    # Raw data
+                    curl_parts.extend(['-d', f'"{payload}"'])
+            
+            # Add URL
+            curl_parts.append(f'"{url}"')
+            
+            command = ' '.join(curl_parts)
+            
+            return jsonify({
+                'success': True,
+                'command': command,
+                'parameters': {
+                    'url': url,
+                    'method': method,
+                    'headers': headers,
+                    'payload': payload
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"API generate curl error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     logger.info("API routes registered successfully")

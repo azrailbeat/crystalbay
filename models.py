@@ -30,6 +30,14 @@ _memory_ai_config = {
 _memory_ai_agents = {}
 _memory_lead_interactions = []
 
+# Settings storage for SAMO API configuration
+_memory_samo_settings = {
+    'api_url': 'https://booking.crystalbay.com/export/default.php',
+    'oauth_token': '27bd59a7ac67422189789f0188167379',
+    'timeout': 30,
+    'user_agent': 'Crystal Bay Travel Integration/1.0'
+}
+
 # Переменная для совместимости с тестами
 _memory_agents_config = {
     'model': 'gpt-4o',
@@ -58,6 +66,65 @@ except Exception as e:
 def is_supabase_available():
     """Check if Supabase is available for database operations"""
     return supabase is not None
+
+class SettingsService:
+    """Service class for handling application settings"""
+    
+    @staticmethod
+    def get_samo_settings():
+        """Get SAMO API settings"""
+        if is_supabase_available():
+            try:
+                result = supabase.table('settings').select('*').eq('category', 'samo_api').execute()
+                if result.data:
+                    settings = {}
+                    for item in result.data:
+                        settings[item['key']] = item['value']
+                    return settings
+                else:
+                    return _memory_samo_settings
+            except Exception as e:
+                logger.error(f"Error getting SAMO settings from database: {e}")
+                return _memory_samo_settings
+        else:
+            return _memory_samo_settings
+    
+    @staticmethod
+    def update_samo_setting(key: str, value: str):
+        """Update a specific SAMO API setting"""
+        if is_supabase_available():
+            try:
+                # Check if setting exists
+                result = supabase.table('settings').select('id').eq('category', 'samo_api').eq('key', key).execute()
+                if result.data:
+                    # Update existing
+                    supabase.table('settings').update({'value': value}).eq('category', 'samo_api').eq('key', key).execute()
+                else:
+                    # Insert new
+                    supabase.table('settings').insert({
+                        'category': 'samo_api',
+                        'key': key,
+                        'value': value,
+                        'created_at': datetime.now().isoformat()
+                    }).execute()
+                logger.info(f"SAMO setting updated: {key} = {value}")
+                return True
+            except Exception as e:
+                logger.error(f"Error updating SAMO setting: {e}")
+                _memory_samo_settings[key] = value
+                return False
+        else:
+            _memory_samo_settings[key] = value
+            return True
+    
+    @staticmethod
+    def get_setting(category: str, key: str, default_value: str = None):
+        """Get a specific setting value"""
+        if category == 'samo_api':
+            settings = SettingsService.get_samo_settings()
+            return settings.get(key, default_value)
+        # Add other categories as needed
+        return default_value
 
 class BookingService:
     """Service class for handling bookings in Supabase database"""

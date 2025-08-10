@@ -13,12 +13,26 @@ logger = logging.getLogger(__name__)
 class CrystalBaySamoAPI:
     """Полная интеграция SAMO API для Crystal Bay Travel"""
     
-    def __init__(self, base_url: str = "https://booking.crystalbay.com/export/default.php", 
-                 oauth_token: str = "27bd59a7ac67422189789f0188167379"):
-        self.base_url = base_url
-        self.oauth_token = oauth_token
+    def __init__(self, base_url: Optional[str] = None, oauth_token: Optional[str] = None):
+        # Load settings from database/memory
+        try:
+            from models import SettingsService
+            self.settings_service = SettingsService()
+            settings = self.settings_service.get_samo_settings()
+            
+            self.base_url = base_url or settings.get('api_url', 'https://booking.crystalbay.com/export/default.php')
+            self.oauth_token = oauth_token or settings.get('oauth_token', '27bd59a7ac67422189789f0188167379')
+            self.timeout = int(settings.get('timeout', 30))
+            self.user_agent = settings.get('user_agent', 'Crystal Bay Travel Integration/1.0')
+        except ImportError:
+            # Fallback if models not available
+            self.base_url = base_url or "https://booking.crystalbay.com/export/default.php"
+            self.oauth_token = oauth_token or "27bd59a7ac67422189789f0188167379"
+            self.timeout = 30
+            self.user_agent = 'Crystal Bay Travel Integration/1.0'
+            
         self.session = requests.Session()
-        logger.info(f"Crystal Bay SAMO API инициализирован: {base_url}")
+        logger.info(f"Crystal Bay SAMO API инициализирован: {self.base_url}")
     
     def _make_request(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Выполняет запрос к SAMO API через TinyProxy или напрямую"""
@@ -86,12 +100,12 @@ class CrystalBaySamoAPI:
             
             # Headers for production deployment
             headers = {
-                'User-Agent': 'Crystal Bay Travel Integration/1.0',
+                'User-Agent': self.user_agent,
                 'Accept': 'application/json, text/xml, */*',
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
             
-            response = self.session.post(self.base_url, data=request_params, headers=headers, timeout=30)
+            response = self.session.post(self.base_url, data=request_params, headers=headers, timeout=self.timeout)
             response.raise_for_status()
             
             # Пробуем парсить как JSON

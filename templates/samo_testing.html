@@ -152,7 +152,13 @@
                                     <h6>Генератор Curl команд:</h6>
                                     <form id="curl-form" class="mb-4">
                                         <div class="row">
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
+                                                <label class="form-label">API URL:</label>
+                                                <input type="url" class="form-control" id="curl-url" 
+                                                       placeholder="https://booking.crystalbay.com/export/default.php" 
+                                                       value="" onchange="updateCurlCommand()">
+                                            </div>
+                                            <div class="col-md-4">
                                                 <label class="form-label">API Метод:</label>
                                                 <select class="form-select" id="curl-method" onchange="updateCurlCommand()">
                                                     <option value="SearchTour_CURRENCIES">SearchTour_CURRENCIES</option>
@@ -165,7 +171,7 @@
                                                     <option value="SearchTour">SearchTour (поиск)</option>
                                                 </select>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <label class="form-label">Дополнительные параметры:</label>
                                                 <input type="text" class="form-control" id="curl-params" 
                                                        placeholder="Например: STATEINC=1&HOTEL_ID=123" 
@@ -298,7 +304,7 @@
 // Global variables
 let currentServerIP = '';
 let currentOAuthToken = '27bd59a7ac67422189789f0188167379';
-let apiBaseURL = 'https://booking-kz.crystalbay.com/export/default.php';
+let apiBaseURL = 'https://booking.crystalbay.com/export/default.php';
 
 // Utility functions
 function logToResults(containerId, message, type = 'info') {
