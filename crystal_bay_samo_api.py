@@ -131,8 +131,11 @@ class CrystalBaySamoAPI:
         return self._make_request('SearchTour_STATES')
     
     def get_currencies(self) -> Dict[str, Any]:
-        """Получить валюты"""
-        return self._make_request('SearchTour_CURRENCIES')
+        """Получить валюты согласно документации SAMO API"""
+        # Use correct API client
+        from samo_api_correct import SamoAPIClient
+        client = SamoAPIClient()
+        return client.get_currencies()
     
     def get_hotels(self, state_key: Optional[str] = None) -> Dict[str, Any]:
         """Получить отели"""
