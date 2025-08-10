@@ -111,6 +111,11 @@ def wazzup_integration():
     """Wazzup24 Integration page"""
     return render_template('wazzup_integration.html')
 
+@app.route('/tours')
+def tours():
+    """Tours search page"""
+    return render_template('tours.html')
+
 @app.route('/settings')
 def settings():
     """Settings page"""
