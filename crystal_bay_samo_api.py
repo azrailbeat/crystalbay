@@ -392,3 +392,18 @@ crystal_bay_api = CrystalBaySamoAPI()
 def get_crystal_bay_api() -> CrystalBaySamoAPI:
     """Получить экземпляр Crystal Bay SAMO API"""
     return crystal_bay_api
+
+
+def test_samo_api_connection():
+    """Тестирование подключения к SAMO API"""
+    try:
+        api = get_crystal_bay_api()
+        result = api.test_connection()
+        return result
+    except Exception as e:
+        logger.error(f"Ошибка тестирования SAMO API: {e}")
+        return {
+            'success': False, 
+            'message': f'Ошибка подключения: {str(e)}',
+            'details': 'Проверьте настройки SAMO API и доступность сервера'
+        }

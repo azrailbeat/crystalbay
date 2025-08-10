@@ -974,9 +974,64 @@
             }, 1000);
         }
         
+        // Функция для отображения уведомлений
+        window.showToast = function(message, type = 'info') {
+            try {
+                console.log(`Toast: ${message} (${type})`);
+                
+                // Создаем простое уведомление в консоли если нет toast компонента
+                if (!window.bootstrap) {
+                    console.info(`[${type.toUpperCase()}] ${message}`);
+                    return;
+                }
+                
+                // Создаем элемент для toast
+                const toastContainer = document.querySelector('.toast-container') || 
+                                     (() => {
+                                         const container = document.createElement('div');
+                                         container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                                         container.style.zIndex = '9999';
+                                         document.body.appendChild(container);
+                                         return container;
+                                     })();
+                
+                const toastId = 'toast-' + Date.now();
+                const bgClass = {
+                    'success': 'bg-success',
+                    'danger': 'bg-danger', 
+                    'warning': 'bg-warning',
+                    'info': 'bg-info'
+                }[type] || 'bg-info';
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement);
+                toast.show();
+                
+                // Автоматически удаляем toast после исчезновения
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+                
+            } catch (error) {
+                console.error('Error showing toast:', error);
+                // Fallback to simple console output
+                console.info(`[${type.toUpperCase()}] ${message}`);
+            }
+        };
+
         // Показываем уведомление о загрузке страницы
         setTimeout(() => {
-            showToast('Загружено 22 обращения', 'info');
+            showToast('Система управления лидами загружена', 'info');
         }, 500);
     });
     

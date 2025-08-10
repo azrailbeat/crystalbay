@@ -43,8 +43,8 @@ except Exception as e:
 
 # Register SAMO API routes
 try:
-    from samo_api_routes import register_samo_routes
-    register_samo_routes(app)
+    from samo_api_routes import register_samo_api_routes
+    register_samo_api_routes(app)
     logger.info("SAMO API routes registered successfully")
 except (ImportError, AttributeError):
     logger.warning("SAMO API routes not available")

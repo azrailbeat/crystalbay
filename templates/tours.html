@@ -993,5 +993,151 @@
         
         return tours;
     }
+    
+    // SAMO API Integration Functions
+    async function loadToursFromSamo() {
+        try {
+            showToast('Загружаем туры из SAMO API...', 'info');
+            
+            // Try to get tours from SAMO API
+            const response = await fetch('/api/samo/tours');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.tours && data.tours.length > 0) {
+                displaySamoTours(data.tours);
+                showToast(`Загружено ${data.tours.length} туров из SAMO`, 'success');
+            } else {
+                // Show demo tours with SAMO connection info
+                showSamoConnectionInfo();
+                generateMockTours('demo=true');
+            }
+            
+        } catch (error) {
+            console.error('Error loading tours from SAMO:', error);
+            
+            // Show connection error
+            showSamoConnectionInfo(error.message);
+            
+            // Load demo tours as fallback
+            const demoData = generateMockTours('demo=true');
+            displayTours(demoData);
+        }
+    }
+    
+    function showSamoConnectionInfo(errorMessage = null) {
+        const alertClass = errorMessage ? 'alert-warning' : 'alert-info';
+        const icon = errorMessage ? 'exclamation-triangle' : 'info-circle';
+        const title = errorMessage ? 'Ошибка подключения к SAMO API' : 'SAMO API не настроен';
+        const message = errorMessage || 'Подключите Crystal Bay Travel к серверу SAMO для загрузки реальных туров';
+        
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${icon} me-2"></i>
+                <strong>${title}:</strong> ${message}
+                <br><small>Показаны демо-туры для демонстрации функциональности системы.</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        
+        const container = document.getElementById('tours-grid');
+        if (container && container.parentNode) {
+            container.parentNode.insertBefore(
+                (() => { const div = document.createElement('div'); div.innerHTML = alertHtml; return div.firstElementChild; })(),
+                container
+            );
+        }
+    }
+    
+    function displaySamoTours(tours) {
+        const toursGrid = document.getElementById('tours-grid');
+        if (!toursGrid) return;
+        
+        const toursHtml = tours.map(tour => createSamoTourCard(tour)).join('');
+        toursGrid.innerHTML = toursHtml;
+        
+        // Update counter
+        const counter = document.getElementById('tours-count');
+        if (counter) counter.textContent = `${tours.length} туров из SAMO`;
+    }
+    
+    function createSamoTourCard(tour) {
+        return `
+            <div class="col-md-6 col-xl-4">
+                <div class="card tour-card mb-4">
+                    <div class="position-relative">
+                        <img src="${tour.image_url || generateTourImage(tour.destination)}" 
+                             class="card-img-top" alt="${tour.destination}">
+                        <span class="badge bg-primary position-absolute top-0 end-0 m-2">
+                            SAMO API
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">${tour.name || tour.destination}</h5>
+                        <p class="card-text">${tour.description || 'Описание недоступно'}</p>
+                        <div class="row text-center mb-3">
+                            <div class="col">
+                                <small class="text-muted d-block">Цена</small>
+                                <strong>${tour.price} ${tour.currency || 'USD'}</strong>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted d-block">Ночей</small>
+                                <strong>${tour.nights || 7}</strong>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted d-block">Звезды</small>
+                                <strong>${tour.hotel_stars || 'N/A'}</strong>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="bookSamoTour('${tour.id}')">
+                                <i class="bi bi-calendar-check"></i> Забронировать
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewSamoTourDetails('${tour.id}')">
+                                Подробности
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function generateTourImage(destination) {
+        const colors = {
+            'Турция': '007bff',
+            'Египет': 'dc3545', 
+            'ОАЭ': 'ffc107',
+            'Таиланд': '28a745',
+            'Греция': '6f42c1',
+            'Кипр': '20c997'
+        };
+        const color = colors[destination] || '6c757d';
+        return `https://via.placeholder.com/400x200/${color}/ffffff?text=${encodeURIComponent(destination)}`;
+    }
+    
+    async function bookSamoTour(tourId) {
+        showToast('Бронирование туров через SAMO API в разработке...', 'info');
+        console.log('Booking SAMO tour:', tourId);
+    }
+    
+    async function viewSamoTourDetails(tourId) {
+        showToast('Загрузка деталей тура из SAMO API...', 'info');
+        console.log('Viewing SAMO tour details:', tourId);
+    }
+    
+    // Load tours with SAMO integration on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // First try to load from SAMO, fall back to demo if needed
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.toString()) {
+            fetchTours(urlParams.toString());
+        } else {
+            loadToursFromSamo();
+        }
+    });
 </script>
 {% endblock %}
