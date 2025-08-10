@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CrystalBaySamoAPI:
     """Полная интеграция SAMO API для Crystal Bay Travel"""
     
-    def __init__(self, base_url: str = "https://booking-kz.crystalbay.com/export/default.php", 
+    def __init__(self, base_url: str = "https://booking.crystalbay.com/export/default.php", 
                  oauth_token: str = "27bd59a7ac67422189789f0188167379"):
         self.base_url = base_url
         self.oauth_token = oauth_token
