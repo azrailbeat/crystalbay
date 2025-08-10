@@ -608,6 +608,7 @@
     
     // Инициализация страницы
     document.addEventListener('DOMContentLoaded', function() {
+        loadSamoSettings();
         loadAllSettings();
         setupEventListeners();
     });
@@ -630,28 +631,147 @@
         });
     }
     
-    // Загрузка всех настроек
-    async function loadAllSettings() {
+    // Load SAMO settings from API
+    async function loadSamoSettings() {
         try {
-            showLoadingSpinner();
+            const response = await fetch('/api/settings/samo');
             
-            const response = await fetch('/api/settings/all');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
             
-            if (data.status === 'success') {
-                currentSettings = data.settings;
-                integrations = data.settings.integrations || {};
+            if (data.success) {
+                const settings = data.settings;
+                document.getElementById('samo-api-url').value = settings.api_url || '';
+                document.getElementById('samo-oauth-token').value = settings.oauth_token || '';
+                document.getElementById('samo-timeout').value = settings.timeout || '30';
+                document.getElementById('samo-user-agent').value = settings.user_agent || '';
                 
-                renderIntegrationsGrid();
-                updateSettingsStatus();
+                // Update status to enabled if we have settings
+                if (settings.api_url && settings.oauth_token) {
+                    updateSamoStatus('enabled');
+                } else {
+                    updateSamoStatus('disabled');
+                }
             } else {
-                showNotification('Ошибка загрузки настроек', 'error');
+                console.error('SAMO settings API error:', data.error);
+                updateSamoStatus('error');
             }
+        } catch (error) {
+            console.error('Error loading SAMO settings:', error);
+            updateSamoStatus('error');
+            showNotification('Ошибка загрузки настроек SAMO: ' + error.message, 'error');
+        }
+    }
+
+    // Save SAMO settings
+    async function saveSamoSettings() {
+        const settings = {
+            api_url: document.getElementById('samo-api-url').value,
+            oauth_token: document.getElementById('samo-oauth-token').value,
+            timeout: document.getElementById('samo-timeout').value,
+            user_agent: document.getElementById('samo-user-agent').value
+        };
+        
+        if (!settings.api_url) {
+            showNotification('API URL обязателен', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/settings/samo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('Настройки SAMO сохранены успешно', 'success');
+                updateSamoStatus('enabled');
+            } else {
+                showNotification('Ошибка сохранения настроек: ' + data.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving SAMO settings:', error);
+            showNotification('Ошибка сохранения настроек', 'error');
+        }
+    }
+
+    // Test SAMO connection
+    async function testSamoConnection() {
+        updateSamoStatus('testing');
+        
+        try {
+            const response = await fetch('/api/samo/currencies');
+            const data = await response.json();
+            
+            if (data.error) {
+                if (data.error.includes('403')) {
+                    showNotification('SAMO API: 403 Forbidden - проверьте IP whitelist', 'warning');
+                    updateSamoStatus('warning');
+                } else {
+                    showNotification('Ошибка подключения SAMO: ' + data.error, 'error');
+                    updateSamoStatus('error');
+                }
+            } else {
+                showNotification('Подключение SAMO успешно!', 'success');
+                updateSamoStatus('enabled');
+            }
+        } catch (error) {
+            console.error('Error testing SAMO connection:', error);
+            showNotification('Ошибка тестирования SAMO', 'error');
+            updateSamoStatus('error');
+        }
+    }
+
+    // Update SAMO card status
+    function updateSamoStatus(status) {
+        const card = document.getElementById('samo-card');
+        const statusSpan = document.getElementById('samo-status');
+        
+        if (!card || !statusSpan) return;
+        
+        // Remove all status classes
+        card.classList.remove('enabled', 'error', 'warning', 'disabled');
+        
+        // Add new status
+        card.classList.add(status);
+        
+        switch (status) {
+            case 'enabled':
+                statusSpan.textContent = 'Подключен';
+                break;
+            case 'error':
+                statusSpan.textContent = 'Ошибка';
+                break;
+            case 'warning':
+                statusSpan.textContent = 'Предупреждение';
+                break;
+            case 'testing':
+                statusSpan.textContent = 'Тестируется...';
+                break;
+            case 'disabled':
+                statusSpan.textContent = 'Отключен';
+                break;
+            default:
+                statusSpan.textContent = 'Неизвестно';
+        }
+    }
+
+    // Загрузка всех настроек (для других интеграций)
+    async function loadAllSettings() {
+        try {
+            // Placeholder for other settings
+            renderIntegrationsGrid();
         } catch (error) {
             console.error('Error loading settings:', error);
             showNotification('Ошибка подключения к серверу', 'error');
-        } finally {
-            hideLoadingSpinner();
         }
     }
     
@@ -883,18 +1003,43 @@
         showNotification('Настройки экспортированы', 'success');
     }
     
-    // Утилиты для UI
+    // Show notification
     function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type}`;
-        notification.textContent = message;
-        notification.style.position = 'fixed';
-        notification.style.top = '20px';
-        notification.style.right = '20px';
-        notification.style.zIndex = '9999';
-        notification.style.minWidth = '300px';
+        const alertClass = type === 'error' ? 'alert-danger' : 
+                          type === 'success' ? 'alert-success' : 
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
         
-        document.body.appendChild(notification);
+        const notification = document.createElement('div');
+        notification.className = `alert ${alertClass} alert-dismissible fade show`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of page
+        const container = document.querySelector('.container-fluid');
+        if (container) {
+            container.insertBefore(notification, container.firstChild);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Save all settings
+    async function saveAllSettings() {
+        await saveSamoSettings();
+        showNotification('Все настройки сохранены', 'success');
+    }
+
+    // Export settings
+    function exportSettings() {
+        showNotification('Функция экспорта будет добавлена позже', 'info');
+    }
         
         setTimeout(() => {
             notification.remove();
