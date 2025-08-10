@@ -1,100 +1,17 @@
-# Environment variables
 .env
 .env.local
-.env.production
-
-# Logs and data
 *.log
 logs/
 data/
 backup/
-
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Testing
 .pytest_cache/
 .coverage
-.tox/
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# IDEs
 .DS_Store
 .vscode/
 .idea/
 *.swp
 *.swo
 .tmp/
-
-# Replit specific
-.replit
-replit.nix
-.upm/
-__pycache__/
-.env
-.venv/
-*.pyc
-.replit_agent/
-
-# Docker
-.dockerignore
-
-# Development files
-attached_assets/
-test_files/
-temp/
-*.tmp
-
-# SSL certificates (keep in separate secure location)
-ssl/
-*.pem
-*.key
-*.crt
-
-# Database backups
-*.sql.backup
-*.dump
-
-# Uploads
-static/uploads/
-uploads/
-
-# Node.js (if used for frontend build tools)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# OS generated
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db

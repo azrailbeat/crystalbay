@@ -4,15 +4,10 @@
 
 Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system. Its primary purpose is to streamline travel operations through automated lead processing, AI-powered customer interactions, and integrated booking management. Key capabilities include a Telegram bot interface, a web-based admin dashboard, and multiple external API integrations. The project aims to provide a complete travel agency solution, enhancing efficiency and customer engagement in the travel industry.
 
-**Status**: ✅ Production Ready - Fully containerized with Docker, optimized for git clone deployment
-
 ## User Preferences
 
-- **Communication Style**: Simple, everyday language (non-technical)
-- **Production Deployment**: Docker-containerized system ready for deployment on external server
-- **Language**: Russian for deployment preparation and documentation
-- **Deployment Method**: Git clone + Docker Compose with comprehensive setup automation
-- **Error Handling**: Comprehensive cleanup and graceful fallback systems implemented
+Preferred communication style: Simple, everyday language.
+Production deployment: Docker-containerized system ready for deployment on external server with comprehensive cleanup and error handling.
 
 ## System Architecture
 
