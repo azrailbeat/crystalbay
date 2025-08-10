@@ -2,7 +2,15 @@
 
 ## Overview
 
-Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system. Its primary purpose is to streamline travel operations through automated lead processing, AI-powered customer interactions, and integrated booking management. Key capabilities include a Telegram bot interface, a web-based admin dashboard, and multiple external API integrations. The project aims to provide a complete travel agency solution, enhancing efficiency and customer engagement in the travel industry.
+Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system. Its primary purpose is to streamline travel operations through automated lead processing, AI-powered customer interactions, and integrated booking management. The system features a clean web-based admin dashboard with Apple-inspired design and complete SAMO API integration for tour management.
+
+## Recent Changes (August 2025)
+
+- **Project Cleanup**: Removed all unused files, backup files, and reference images
+- **Navigation Fixed**: All sidebar menu items now lead to functional pages
+- **SAMO API Integration**: Complete API integration with proper error handling for IP whitelist restrictions
+- **UI Improvements**: Fixed JavaScript errors and implemented proper toast notifications
+- **Template Organization**: Consolidated to essential pages only, removed duplicates
 
 ## User Preferences
 
@@ -14,12 +22,12 @@ Production deployment: Docker-containerized system ready for deployment on exter
 The application follows a modular, service-oriented architecture, designed for cloud deployment with scalability and fault tolerance.
 
 ### Core Components
-- **Telegram Bot Service**: Customer-facing conversational interface.
-- **Web Admin Dashboard**: Internal management interface, built with Flask, featuring an Apple-inspired design with a light theme, including a Kanban board for lead management and an analytics dashboard.
-- **API Gateway**: RESTful endpoints for external integrations and core application functionalities.
-- **AI Processing Engine**: Leverages OpenAI for natural language processing, context-aware conversations, and automated response generation.
-- **Data Management Layer**: Primarily uses Supabase with in-memory fallbacks for data persistence.
-- **Intelligent Chat Automation System**: An AI-powered customer service solution for seamless, automated customer support, integrating real-time message monitoring from Wazzup24.ru, intent analysis, and automated response generation.
+- **Web Admin Dashboard**: Clean Flask-based interface with Apple-inspired design and light theme
+- **SAMO API Integration**: Complete tour booking system integration with proper error handling
+- **Lead Management**: Kanban-style lead tracking and management system
+- **Navigation System**: Fully functional sidebar navigation to all major sections
+- **Settings Management**: Unified settings panel for all integrations and configurations
+- **Tour Management**: Search and booking interface for SAMO tour inventory
 
 ### Technical Implementations & Design Choices
 - **Frontend**: Telegram Bot using `python-telegram-bot` and a web admin dashboard with responsive Bootstrap-based UI.
@@ -31,16 +39,46 @@ The application follows a modular, service-oriented architecture, designed for c
 - **Centralized Settings**: A unified panel for managing integrations and system settings, consolidating previous separate sections.
 - **Bitrix24 CRM Integration**: Custom travel booking pipeline matching a 9-stage Trello workflow for lead and deal management.
 
+## File Structure (Clean)
+
+```
+Crystal Bay Travel/
+├── main.py                 # Main Flask application
+├── app_api.py             # API routes and endpoints  
+├── models.py              # Database models and services
+├── crystal_bay_samo_api.py # SAMO API integration
+├── samo_api_routes.py     # SAMO API route definitions
+├── proxy_client.py        # Proxy client for API requests
+├── templates/             # HTML templates
+│   ├── layout.html        # Base layout with sidebar
+│   ├── dashboard.html     # Main dashboard
+│   ├── leads.html         # Lead management
+│   ├── tours.html         # Tour search and booking
+│   ├── bookings.html      # Booking management
+│   ├── agents.html        # Agent management
+│   ├── analytics.html     # Analytics dashboard
+│   ├── history.html       # Activity history
+│   ├── ai_agents.html     # AI agent management
+│   ├── messages.html      # Message center
+│   ├── samo_testing.html  # SAMO API testing
+│   ├── samo_api_dashboard.html # SAMO API dashboard
+│   ├── unified_settings.html   # Settings panel
+│   ├── wazzup_integration.html # Wazzup integration
+│   └── error.html         # Error page
+├── static/               # Static assets
+│   ├── css/             # Custom stylesheets
+│   ├── js/              # JavaScript files
+│   └── images/          # Image assets
+├── docker-compose.yml   # Docker composition
+├── Dockerfile          # Docker configuration
+├── pyproject.toml      # Python dependencies
+└── README.md           # Project documentation
+```
+
 ## External Dependencies
 
-- **Supabase**: Primary database (PostgreSQL-based).
-- **OpenAI API**: GPT models for natural language processing and AI-powered interactions.
-- **SAMO Travel API**: For tour booking, inventory management, and real-time tour data.
-- **SendGrid**: Email delivery service for automated lead extraction and communication.
-- **Wazzup24.ru**: Chat platform integration for real-time updates and message monitoring.
-- **Bitrix24**: CRM integration for lead and deal management.
-- **Flask**: Web framework.
-- **python-telegram-bot**: Telegram Bot API wrapper.
-- **Bootstrap 5**: Frontend CSS framework.
-- **JavaScript**: For client-side interactivity.
+- **SAMO Travel API**: Tour booking, inventory management, and real-time tour data
+- **Flask**: Web framework and templating
+- **Bootstrap 5**: Frontend CSS framework with custom Apple-inspired styling
+- **PostgreSQL**: Database (via Replit or Supabase)
 ```
