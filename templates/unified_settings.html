@@ -1040,10 +1040,16 @@
     function exportSettings() {
         showNotification('Функция экспорта будет добавлена позже', 'info');
     }
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+    
+    // Missing functions for integration grid
+    function renderIntegrationsGrid() {
+        // Grid is already rendered in HTML, just ensure SAMO card is visible
+        console.log('Integration grid rendered');
+    }
+    
+    function setupEventListeners() {
+        // Setup any additional event listeners
+        console.log('Event listeners setup');
     }
     
     function showLoadingSpinner() {
