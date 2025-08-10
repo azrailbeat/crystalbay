@@ -20,12 +20,12 @@ class CrystalBaySamoAPI:
         self.session = requests.Session()
         logger.info(f"Crystal Bay SAMO API инициализирован: {base_url}")
     
-    def _make_request(self, action: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    def _make_request(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Выполняет запрос к SAMO API через TinyProxy или напрямую"""
         try:
             # Try using VPS script first if configured
             try:
-                from vps_proxy import VPSProxy
+                from proxy_client import VPSProxy  # type: ignore
                 vps_proxy = VPSProxy()
                 
                 # Check if VPS script is configured
@@ -53,7 +53,7 @@ class CrystalBaySamoAPI:
                 
                 if proxy_client.is_configured():
                     logger.info(f"Using TinyProxy for SAMO API request: {action}")
-                    result = proxy_client.make_samo_request(action, 'GET', params)
+                    result = proxy_client.make_samo_request(action, 'GET', params or {})
                     
                     # If proxy request successful, return result
                     if 'error' not in result:
@@ -78,7 +78,7 @@ class CrystalBaySamoAPI:
             }
             
             # Добавляем дополнительные параметры
-            if params:
+            if params is not None:
                 request_params.update(params)
             
             logger.info(f"SAMO API запрос (direct): {action}")
@@ -120,10 +120,10 @@ class CrystalBaySamoAPI:
         """Получить валюты"""
         return self._make_request('SearchTour_CURRENCIES')
     
-    def get_hotels(self, state_key: str = None) -> Dict[str, Any]:
+    def get_hotels(self, state_key: Optional[str] = None) -> Dict[str, Any]:
         """Получить отели"""
         params = {}
-        if state_key:
+        if state_key is not None:
             params['STATEINC'] = state_key
         return self._make_request('SearchTour_HOTELS', params)
     
@@ -145,7 +145,7 @@ class CrystalBaySamoAPI:
     
     # === ПОИСК ТУРОВ ===
     
-    def search_tour_prices(self, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    def search_tour_prices(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Поиск цен на туры"""
         default_params = {
             'TOWNFROMINC': '',
@@ -160,12 +160,12 @@ class CrystalBaySamoAPI:
             'FILTER': 1
         }
         
-        if params:
+        if params is not None:
             default_params.update(params)
             
         return self._make_request('SearchTour_PRICES', default_params)
     
-    def search_tours_detailed(self, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Детальный поиск туров"""
         default_params = {
             'TOWNFROMINC': '',
@@ -179,18 +179,18 @@ class CrystalBaySamoAPI:
             'CURRENCY': 'USD'
         }
         
-        if params:
+        if params is not None:
             default_params.update(params)
             
         return self._make_request('SearchTour_ALL', default_params)
     
     # === БРОНИРОВАНИЕ ===
     
-    def get_bookings(self, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
-        """Получить список бронирований"""
-        if not date_from:
+    def get_bookings_api(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
+        """Получить список бронирований через API"""
+        if date_from is None:
             date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        if not date_to:
+        if date_to is None:
             date_to = datetime.now().strftime('%Y-%m-%d')
             
         params = {
@@ -336,8 +336,8 @@ class CrystalBaySamoAPI:
                 'message': f"Ошибка тестирования: {str(e)}"
             }
 
-    def get_bookings(self, date_from: str = None, date_to: str = None, 
-                     status: str = None, limit: int = 100) -> Dict[str, Any]:
+    def get_bookings(self, date_from: Optional[str] = None, date_to: Optional[str] = None, 
+                     status: Optional[str] = None, limit: int = 100) -> Dict[str, Any]:
         """Получить список бронирований с fallback демо-данными"""
         try:
             # Пробуем получить справочники для проверки доступности API
