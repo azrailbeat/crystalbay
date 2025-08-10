@@ -73,6 +73,8 @@ def register_samo_api_routes(app):
         try:
             api = get_crystal_bay_api()
             state_key = request.args.get('state_key')
+            if not state_key:
+                return jsonify({'error': 'state_key parameter is required'}), 400
             result = api.get_hotels(state_key)
             return jsonify(result)
         except Exception as e:
@@ -119,8 +121,10 @@ def register_samo_api_routes(app):
         """Получить список бронирований"""
         try:
             api = get_crystal_bay_api()
-            date_from = request.args.get('date_from')
-            date_to = request.args.get('date_to')
+            date_from = request.args.get('date_from', '')
+            date_to = request.args.get('date_to', '')
+            if not date_from or not date_to:
+                return jsonify({'error': 'date_from and date_to parameters are required'}), 400
             result = api.get_bookings(date_from, date_to)
             return jsonify(result)
         except Exception as e:
@@ -459,15 +463,31 @@ def register_samo_api_routes(app):
                 with context.wrap_socket(sock, server_hostname='booking-kz.crystalbay.com') as ssock:
                     cert = ssock.getpeercert()
                     
-            expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+            if not cert or 'notAfter' not in cert:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid certificate data'
+                })
+                
+            expires = datetime.strptime(str(cert['notAfter']), '%b %d %H:%M:%S %Y %Z')
             valid = expires > datetime.now()
+            
+            # Safe processing of certificate data
+            issuer_data = {}
+            subject_data = {}
+            
+            if 'issuer' in cert and cert['issuer']:
+                issuer_data = {str(x[0]): str(x[1]) for x in cert['issuer'] if len(x) >= 2}
+                
+            if 'subject' in cert and cert['subject']:
+                subject_data = {str(x[0]): str(x[1]) for x in cert['subject'] if len(x) >= 2}
             
             return jsonify({
                 'success': True,
                 'valid': valid,
-                'expires': cert['notAfter'],
-                'issuer': dict(x[0] for x in cert['issuer']),
-                'subject': dict(x[0] for x in cert['subject'])
+                'expires': str(cert['notAfter']),
+                'issuer': issuer_data,
+                'subject': subject_data
             })
             
         except Exception as e:
@@ -568,7 +588,8 @@ def register_samo_api_routes(app):
         try:
             api = get_crystal_bay_api()
             params = request.json or {}
-            result = api.search_tours(params)
+            # Use search_tours_detailed instead of search_tours
+            result = api.search_tours_detailed(params)
             return jsonify(result)
         except Exception as e:
             return jsonify({'error': str(e)}), 500

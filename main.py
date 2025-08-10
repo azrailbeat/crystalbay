@@ -173,12 +173,25 @@ def settings():
 def test_wazzup_api():
     """Test Wazzup24 API connection"""
     try:
-        from wazzup_message_processor import WazzupMessageProcessor
+        # Wazzup integration placeholder - implement when module is available
+        wazzup_key = os.environ.get('WAZZUP_API_KEY')
+        if not wazzup_key:
+            return jsonify({
+                'status': 'error',
+                'message': 'WAZZUP_API_KEY not configured'
+            }), 400
+            
+        # Test basic connectivity
+        import requests
+        response = requests.get('https://api.wazzup24.com/v3/instance', 
+                              headers={'Authorization': f'Bearer {wazzup_key}'},
+                              timeout=10)
         
-        processor = WazzupMessageProcessor()
-        result = processor.test_connection()
-        
-        return jsonify(result)
+        return jsonify({
+            'status': 'success' if response.status_code == 200 else 'error',
+            'message': 'Connection test completed',
+            'status_code': response.status_code
+        })
         
     except Exception as e:
         logger.error(f"Wazzup test error: {e}")
@@ -191,16 +204,14 @@ def test_wazzup_api():
 def get_wazzup_messages():
     """Get recent messages from Wazzup24"""
     try:
-        from wazzup_message_processor import WazzupMessageProcessor
-        
+        # Placeholder implementation - returns empty messages
         limit = request.args.get('limit', 20, type=int)
-        processor = WazzupMessageProcessor()
-        messages = processor.get_recent_messages(limit=limit)
         
         return jsonify({
             'status': 'success',
-            'messages_count': len(messages),
-            'messages': messages
+            'messages_count': 0,
+            'messages': [],
+            'note': 'Wazzup integration not fully implemented yet'
         })
         
     except Exception as e:
@@ -214,16 +225,22 @@ def get_wazzup_messages():
 def wazzup_webhook():
     """Webhook endpoint for receiving Wazzup24 messages"""
     try:
-        from wazzup_message_processor import WazzupMessageProcessor
-        
         webhook_data = request.get_json() or {}
-        processor = WazzupMessageProcessor()
         
-        # Process webhook message
+        # Log webhook data for debugging
+        logger.info(f"Wazzup webhook received: {len(str(webhook_data))} bytes")
+        
+        # Basic webhook validation
+        message_id = webhook_data.get('messageId', '')
+        text = webhook_data.get('text', '')
+        chat_id = webhook_data.get('chatId', '')
+        
+        # Process webhook message (placeholder implementation)
         result = {
             'status': 'success',
-            'message': 'Webhook processed',
-            'data_received': bool(webhook_data)
+            'message': 'Webhook received and logged',
+            'data_received': bool(webhook_data),
+            'message_id': message_id
         }
         
         return jsonify(result)
