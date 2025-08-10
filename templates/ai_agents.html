@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+
+{% block title %}AI-агенты - Crystal Bay Tours{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">AI-агенты</h1>
+            <p class="text-secondary">Управление искусственным интеллектом и автоматизацией</p>
+        </div>
+        <button class="btn btn-primary">
+            <i class="bi bi-cpu"></i> Создать агента
+        </button>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stats-icon bg-success">
+                            <i class="bi bi-chat-dots"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h5 class="mb-0">Чат-бот</h5>
+                            <small class="text-success">Активен</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small">Автоматические ответы клиентам в Telegram и WhatsApp</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stats-icon bg-warning">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h5 class="mb-0">Обработчик лидов</h5>
+                            <small class="text-warning">В разработке</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small">Автоматическая обработка и квалификация обращений</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stats-icon bg-info">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h5 class="mb-0">Аналитик</h5>
+                            <small class="text-info">Планируется</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small">Автоматическое создание отчетов и прогнозов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+
+{% block title %}SAMO Testing - Crystal Bay Tours{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">SAMO API Testing</h1>
+            <p class="text-secondary">Тестирование подключения к системе бронирования SAMO</p>
+        </div>
+        <button class="btn btn-primary" onclick="testSamoConnection()">
+            <i class="bi bi-arrow-clockwise"></i> Тест подключения
+        </button>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Статус подключения</h5>
+                </div>
+                <div class="card-body">
+                    <div id="connection-status" class="alert alert-warning">
+                        <i class="bi bi-clock"></i> Проверка подключения...
+                    </div>
+                    
+                    <h6>Параметры подключения:</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>API URL:</strong> https://booking-kz.crystalbay.com/export/default.php</li>
+                        <li><strong>OAuth Token:</strong> ****************************79</li>
+                        <li><strong>Версия API:</strong> 1.0</li>
+                        <li><strong>Формат:</strong> JSON</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые тесты</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="testCurrencies()">
+                            Валюты
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="testCountries()">
+                            Страны
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="testCities()">
+                            Города
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="testTours()">
+                            Туры
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function testSamoConnection() {
+    const statusDiv = document.getElementById('connection-status');
+    statusDiv.className = 'alert alert-info';
+    statusDiv.innerHTML = '<i class="bi bi-arrow-repeat"></i> Тестирование подключения...';
+    
+    try {
+        const response = await fetch('/api/samo/test');
+        const data = await response.json();
+        
+        if (data.success) {
+            statusDiv.className = 'alert alert-success';
+            statusDiv.innerHTML = '<i class="bi bi-check-circle"></i> SAMO API подключен успешно';
+        } else {
+            statusDiv.className = 'alert alert-danger';
+            statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> Ошибка: ${data.message}`;
+        }
+    } catch (error) {
+        statusDiv.className = 'alert alert-danger';
+        statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> Ошибка соединения: ${error.message}`;
+    }
+}
+
+async function testCurrencies() {
+    try {
+        const response = await fetch('/api/samo/currencies');
+        const data = await response.json();
+        console.log('Currencies test:', data);
+        alert('Результат в консоли разработчика');
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+async function testCountries() {
+    try {
+        const response = await fetch('/api/samo/states');
+        const data = await response.json();
+        console.log('Countries test:', data);
+        alert('Результат в консоли разработчика');
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+async function testCities() {
+    try {
+        const response = await fetch('/api/samo/townfroms');
+        const data = await response.json();
+        console.log('Cities test:', data);
+        alert('Результат в консоли разработчика');
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+async function testTours() {
+    try {
+        const response = await fetch('/api/samo/tours');
+        const data = await response.json();
+        console.log('Tours test:', data);
+        alert('Результат в консоли разработчика');
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+// Test connection on page load
+document.addEventListener('DOMContentLoaded', testSamoConnection);
+</script>
+{% endblock %}

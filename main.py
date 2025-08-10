@@ -116,10 +116,55 @@ def tours():
     """Tours search page"""
     return render_template('tours.html')
 
+@app.route('/bookings')
+def bookings():
+    """Bookings management page"""
+    return render_template('bookings.html')
+
+@app.route('/agents')
+def agents():
+    """Travel agents management page"""
+    return render_template('agents.html')
+
+@app.route('/analytics')
+def analytics():
+    """Analytics dashboard page"""
+    return render_template('analytics.html')
+
+@app.route('/history')
+def history():
+    """Activity history page"""
+    return render_template('history.html')
+
+@app.route('/agents-ai')
+def agents_ai():
+    """AI Agents management page"""
+    return render_template('ai_agents.html')
+
+@app.route('/unified-settings')
+def unified_settings():
+    """Unified settings page"""
+    return render_template('unified_settings.html')
+
+@app.route('/samo-testing')
+def samo_testing():
+    """SAMO API testing page"""
+    return render_template('samo_testing.html')
+
+@app.route('/samo-api')
+def samo_api():
+    """SAMO API dashboard"""
+    return render_template('samo_api_dashboard.html')
+
+@app.route('/messages')
+def messages():
+    """Messages page"""
+    return render_template('messages.html')
+
 @app.route('/settings')
 def settings():
-    """Settings page"""
-    return render_template('unified_settings.html')
+    """Settings page (redirect to unified)"""
+    return redirect('/unified-settings')
 
 # API endpoints are registered by app_api.py module
 
