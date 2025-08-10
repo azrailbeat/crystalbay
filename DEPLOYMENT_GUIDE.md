@@ -1,318 +1,346 @@
-# Crystal Bay Travel - Руководство по развертыванию на сервере
+# Crystal Bay Travel - Complete Deployment Guide
 
-## Системные требования
+## 🚀 Quick Start Options
 
-- Ubuntu 20.04+ / CentOS 7+ / Debian 10+
-- Python 3.11+
-- PostgreSQL 12+ (или доступ к Supabase)
-- Nginx (рекомендуется)
-- 2GB RAM минимум
-- 10GB свободного места
-
-## Пошаговое развертывание
-
-### 1. Подготовка сервера
-
+### Option 1: One-Command Installation (Recommended)
 ```bash
-# Обновление системы
-sudo apt update && sudo apt upgrade -y
-
-# Установка Python и зависимостей
-sudo apt install -y python3.11 python3.11-venv python3-pip git nginx postgresql postgresql-contrib
-
-# Создание пользователя для приложения
-sudo useradd -m -s /bin/bash crystalbay
-sudo usermod -aG sudo crystalbay
+git clone https://github.com/azrailbeat/crystalbay.git && cd crystalbay && chmod +x start.sh && ./start.sh
 ```
 
-### 2. Клонирование проекта
-
+### Option 2: Step-by-Step Installation
 ```bash
-# Переключение на пользователя crystalbay
-sudo su - crystalbay
+# 1. Clone repository
+git clone https://github.com/azrailbeat/crystalbay.git
+cd crystalbay
 
-# Клонирование из GitHub
-git clone https://github.com/ваш-username/crystal-bay-travel.git
-cd crystal-bay-travel
-
-# Создание виртуального окружения
-python3.11 -m venv venv
-source venv/bin/activate
-
-# Установка зависимостей
-pip install --upgrade pip
-pip install gunicorn psycopg2-binary
-pip install -r requirements.txt
-```
-
-### 3. Настройка базы данных
-
-#### Вариант A: Локальная PostgreSQL
-
-```bash
-# Создание базы данных
-sudo -u postgres createdb crystalbay_db
-sudo -u postgres createuser crystalbay_user
-
-# Настройка пароля
-sudo -u postgres psql
-ALTER USER crystalbay_user PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE crystalbay_db TO crystalbay_user;
-\q
-```
-
-#### Вариант B: Использование Supabase (рекомендуется)
-
-1. Создайте проект на [supabase.com](https://supabase.com)
-2. Скопируйте URL подключения из настроек проекта
-
-### 4. Настройка переменных окружения
-
-```bash
-# Создание файла конфигурации
+# 2. Setup environment
 cp .env.example .env
-nano .env
+# Edit .env with your settings (see Environment Setup below)
+
+# 3. Install and run
+chmod +x start.sh
+./start.sh
 ```
 
-Отредактируйте `.env`:
+## ⚙️ Environment Setup (.env Configuration)
+
+Copy `.env.example` to `.env` and configure with your actual values:
 
 ```env
-# Database
-DATABASE_URL=postgresql://crystalbay_user:secure_password@localhost/crystalbay_db
-# Или для Supabase:
-# DATABASE_URL=postgresql://postgres:your_password@db.project_id.supabase.co:5432/postgres
+# Database Configuration (Required)
+DATABASE_URL=postgresql://neondb_owner:npg_Y4g4VaRYSjnv@ep-weathered-glade-a25ajc8n.eu-central-1.aws.neon.tech/neondb?sslmode=require
+PGHOST=ep-weathered-glade-a25ajc8n.eu-central-1.aws.neon.tech
+PGPORT=5432
+PGUSER=neondb_owner
+PGPASSWORD=npg_Y4g4VaRYSjnv
+PGDATABASE=neondb
 
-# SAMO API
-SAMO_OAUTH_TOKEN=ваш_samo_токен
+# SAMO Travel API (Required for booking features)
+SAMO_OAUTH_TOKEN=27bd59a7ac67422189789f0188167379
 
-# OpenAI (если используется)
-OPENAI_API_KEY=ваш_openai_ключ
+# OpenAI Integration (Required for AI features)
+OPENAI_API_KEY=sk-proj-your-openai-key-here
 
-# Другие ключи
-TELEGRAM_BOT_TOKEN=ваш_telegram_токен
-WAZZUP_API_KEY=ваш_wazzup_ключ
-SUPABASE_URL=ваш_supabase_url
-SUPABASE_KEY=ваш_supabase_ключ
+# Telegram Bot (Optional)
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 
-# Flask
-FLASK_ENV=production
-FLASK_SECRET_KEY=ваш_секретный_ключ_для_сессий
+# Wazzup24 Integration (Optional)
+WAZZUP_API_KEY=your-wazzup-api-key
+
+# Supabase (Alternative database option)
+SUPABASE_URL=https://cfaxdmgpoxclmhzpbvqo.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYXhkbWdwb3hjbG1oenBidnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE3MzY3NzQsImV4cCI6MjAzNzMxMjc3NH0.0
+
+# Flask Configuration
+FLASK_SECRET_KEY=crystal-bay-travel-production-secret-2025
+FLASK_ENV=development
+DEBUG=True
 ```
 
-### 5. Запуск приложения
+## 🎯 API Keys Setup Guide
 
-#### Тестовый запуск
+### 1. Database Setup (Neon DB)
+1. Visit [neon.tech](https://neon.tech) and create account
+2. Create new project
+3. Copy connection string to `DATABASE_URL`
 
+### 2. SAMO Travel API
+1. Contact SAMO support for API access
+2. Request IP whitelisting for your server
+3. Obtain OAuth token and set `SAMO_OAUTH_TOKEN`
+
+### 3. OpenAI API Key
+1. Visit [OpenAI Platform](https://platform.openai.com)
+2. Go to API Keys section
+3. Create new secret key
+4. Set `OPENAI_API_KEY`
+
+### 4. Telegram Bot (Optional)
+1. Message [@BotFather](https://t.me/botfather)
+2. Use `/newbot` to create bot
+3. Copy token to `TELEGRAM_BOT_TOKEN`
+
+## 🐳 Docker Deployment
+
+### Development Mode
 ```bash
-# Активация окружения
-source venv/bin/activate
+# Start all services
+docker-compose up -d
 
-# Тестовый запуск
+# Check logs
+docker-compose logs -f web
+
+# Stop services
+docker-compose down
+```
+
+### Production Mode
+```bash
+# Production deployment
+docker-compose -f docker-compose.production.yml up -d
+
+# Monitor production logs
+docker-compose -f docker-compose.production.yml logs -f
+
+# Scale for high traffic
+docker-compose -f docker-compose.production.yml up -d --scale web=3
+```
+
+## 🌐 Server Deployment (Production)
+
+### Automated Production Deployment
+```bash
+# For Ubuntu/CentOS servers
+chmod +x production_deploy.sh
+sudo ./production_deploy.sh
+```
+
+### Manual Production Setup
+```bash
+# 1. Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 2. Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# 3. Clone and deploy
+git clone https://github.com/azrailbeat/crystalbay.git
+cd crystalbay
+cp .env.example .env
+# Edit .env with production values
+docker-compose -f docker-compose.production.yml up -d
+```
+
+## 🔧 Testing and Verification
+
+### Health Checks
+```bash
+# Application health
+curl http://localhost:5000/health
+
+# SAMO API connectivity
+curl http://localhost:5000/api/samo/currencies
+
+# Database connection
+curl http://localhost:5000/api/health/database
+```
+
+### Web Interface Access
+- **Dashboard**: http://localhost:5000
+- **Lead Management**: http://localhost:5000/leads  
+- **Tour Search**: http://localhost:5000/tours
+- **SAMO Testing**: http://localhost:5000/samo-testing
+- **Settings**: http://localhost:5000/unified-settings
+
+## 🛠️ Development Setup
+
+### Local Development
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run development server
+export FLASK_ENV=development
+export DEBUG=True
 python main.py
 ```
 
-#### Запуск через Gunicorn
-
+### Code Quality Checks
 ```bash
-# Запуск с Gunicorn
-gunicorn --bind 0.0.0.0:5000 --workers 3 --reload main:app
+# Python compilation test
+python -m py_compile main.py
+python -m py_compile samo_api_routes.py
+python -m py_compile crystal_bay_samo_api.py
+
+# Import tests
+python -c "import main; print('Main module OK')"
+python -c "import models; print('Models module OK')"
 ```
 
-### 6. Настройка Nginx (рекомендуется)
+## 🔍 Troubleshooting
 
+### Common Issues and Solutions
+
+#### 1. SAMO API 403 Error
+**Issue**: API returns "403 Forbidden"
+**Solution**: 
+- Contact SAMO support for IP whitelisting
+- Verify `SAMO_OAUTH_TOKEN` is correct
+- Check server IP with: `curl ifconfig.me`
+
+#### 2. Database Connection Failed
+**Issue**: Cannot connect to PostgreSQL
+**Solution**:
+- Verify `DATABASE_URL` format
+- Check database server status
+- Test connection: `psql $DATABASE_URL`
+
+#### 3. Port 5000 Already in Use
+**Issue**: "Address already in use"
+**Solution**:
 ```bash
-# Создание конфигурации Nginx
-sudo nano /etc/nginx/sites-available/crystalbay
+# Find and kill process
+sudo lsof -i :5000
+sudo kill -9 <PID>
+
+# Or use different port
+export PORT=5001
+python main.py
 ```
 
-Содержимое файла:
-
-```nginx
-server {
-    listen 80;
-    server_name ваш_домен.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static {
-        alias /home/crystalbay/crystal-bay-travel/static;
-        expires 30d;
-    }
-}
-```
-
+#### 4. Virtual Environment Issues
+**Issue**: "No module named 'flask'"
+**Solution**:
 ```bash
-# Активация конфигурации
-sudo ln -s /etc/nginx/sites-available/crystalbay /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+# Recreate virtual environment
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### 7. Создание системного сервиса
-
+#### 5. Docker Build Failures
+**Issue**: Docker build fails
+**Solution**:
 ```bash
-# Создание systemd сервиса
-sudo nano /etc/systemd/system/crystalbay.service
+# Clean Docker cache
+docker system prune -a
+
+# Rebuild without cache
+docker-compose build --no-cache
+
+# Check requirements.txt exists
+ls -la requirements.txt
 ```
 
-Содержимое файла:
-
-```ini
-[Unit]
-Description=Crystal Bay Travel Application
-After=network.target
-
-[Service]
-Type=exec
-User=crystalbay
-Group=crystalbay
-WorkingDirectory=/home/crystalbay/crystal-bay-travel
-Environment=PATH=/home/crystalbay/crystal-bay-travel/venv/bin
-ExecStart=/home/crystalbay/crystal-bay-travel/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 3 main:app
-ExecReload=/bin/kill -s HUP $MAINPID
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
+### Debug Commands
 ```bash
-# Запуск и включение сервиса
-sudo systemctl daemon-reload
-sudo systemctl enable crystalbay
-sudo systemctl start crystalbay
-sudo systemctl status crystalbay
+# Check Python version
+python3 --version
+
+# Verify dependencies
+pip list | grep -E "(flask|requests|openai)"
+
+# Test environment variables
+python -c "import os; print('DB:', bool(os.getenv('DATABASE_URL')))"
+
+# Check disk space
+df -h
+
+# Memory usage
+free -h
 ```
 
-### 8. Настройка SSL (опционально)
+## 📋 System Requirements
 
+### Minimum Requirements
+- **OS**: Ubuntu 20.04+, CentOS 7+, macOS 10.15+
+- **Python**: 3.11+
+- **Memory**: 512 MB RAM
+- **Storage**: 1 GB available space
+- **Network**: Internet connection
+
+### Recommended (Production)
+- **OS**: Ubuntu 22.04 LTS
+- **Python**: 3.11+
+- **Memory**: 2+ GB RAM
+- **Storage**: 10+ GB SSD
+- **Network**: 1 Gbps connection
+- **SSL**: Valid certificate for HTTPS
+
+## 🚀 Performance Optimization
+
+### Production Optimizations
 ```bash
-# Установка Certbot
-sudo apt install certbot python3-certbot-nginx
+# Enable production mode
+export FLASK_ENV=production
+export DEBUG=False
 
-# Получение SSL сертификата
-sudo certbot --nginx -d ваш_домен.com
+# Use production WSGI server
+gunicorn --bind 0.0.0.0:5000 --workers 4 main:app
+
+# Database connection pooling
+export DATABASE_POOL_SIZE=20
+export DATABASE_MAX_OVERFLOW=30
 ```
 
-## Управление приложением
-
-### Основные команды
-
+### Monitoring Setup
 ```bash
-# Запуск приложения
-sudo systemctl start crystalbay
+# Install monitoring tools
+pip install psutil
 
-# Остановка приложения
-sudo systemctl stop crystalbay
+# Monitor resources
+python -c "import psutil; print(f'CPU: {psutil.cpu_percent()}%, RAM: {psutil.virtual_memory().percent}%')"
 
-# Перезапуск приложения
-sudo systemctl restart crystalbay
-
-# Просмотр логов
-sudo journalctl -u crystalbay -f
-
-# Проверка статуса
-sudo systemctl status crystalbay
+# Log monitoring
+tail -f /var/log/crystalbay/app.log
 ```
 
-### Обновление приложения
+## 🔄 Updates and Maintenance
 
+### Updating the Application
 ```bash
-# Переход в директорию проекта
-cd /home/crystalbay/crystal-bay-travel
-
-# Получение обновлений
+# Pull latest changes
 git pull origin main
 
-# Перезапуск сервиса
-sudo systemctl restart crystalbay
+# Update dependencies
+pip install -r requirements.txt --upgrade
+
+# Restart services
+docker-compose restart
 ```
 
-## Мониторинг и логи
-
-### Логи приложения
-
+### Backup Procedures
 ```bash
-# Логи systemd
-sudo journalctl -u crystalbay -f
+# Database backup
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
 
-# Логи Nginx
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
+# Full project backup
+tar -czf crystalbay_backup_$(date +%Y%m%d).tar.gz .
 ```
-
-### Проверка работоспособности
-
-```bash
-# Проверка статуса приложения
-curl http://localhost:5000/health
-
-# Проверка SAMO API
-curl http://localhost:5000/api/samo/test
-```
-
-## Решение проблем
-
-### Проблема с базой данных
-
-```bash
-# Проверка подключения к БД
-sudo -u crystalbay psql -d crystalbay_db
-
-# Проверка логов PostgreSQL
-sudo tail -f /var/log/postgresql/postgresql-*-main.log
-```
-
-### Проблема с правами доступа
-
-```bash
-# Исправление прав на файлы
-sudo chown -R crystalbay:crystalbay /home/crystalbay/crystal-bay-travel
-sudo chmod -R 755 /home/crystalbay/crystal-bay-travel
-```
-
-### Проблема с SAMO API
-
-1. Убедитесь, что IP сервера добавлен в whitelist SAMO
-2. Проверьте правильность OAuth токена
-3. Протестируйте подключение на странице `/samo-testing`
-
-## Backup и безопасность
-
-### Backup базы данных
-
-```bash
-# Создание backup
-sudo -u postgres pg_dump crystalbay_db > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Восстановление из backup
-sudo -u postgres psql crystalbay_db < backup_file.sql
-```
-
-### Настройка firewall
-
-```bash
-# Основные правила UFW
-sudo ufw allow ssh
-sudo ufw allow 'Nginx Full'
-sudo ufw --force enable
-```
-
-## Поддержка
-
-Для решения проблем:
-
-1. Проверьте логи приложения и системы
-2. Убедитесь в корректности переменных окружения
-3. Проверьте доступность внешних API
-4. Свяжитесь с технической поддержкой SAMO для whitelist IP
 
 ---
 
-**Важно**: После развертывания обязательно смените все пароли и ключи на production-готовые значения!
+## ✅ Success Indicators
+
+Your installation is successful when:
+
+1. **Health endpoint returns 200**: `curl http://localhost:5000/health`
+2. **Dashboard loads**: Open http://localhost:5000 in browser
+3. **No Python errors**: All modules import successfully
+4. **SAMO API responds**: Even 403 is OK (means connection works)
+5. **Database connected**: No connection errors in logs
+
+## 🆘 Support
+
+- **GitHub Issues**: Report bugs and feature requests
+- **Documentation**: Check `install.md` for detailed steps
+- **Server Issues**: See `SERVER_SETUP_COMMANDS.md` for production fixes
+
+**Ready for deployment!** 🎉
