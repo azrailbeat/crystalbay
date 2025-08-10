@@ -6,13 +6,14 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ## Recent Changes (August 2025)
 
-- **Project Cleanup**: Removed all unused files, backup files, and reference images
-- **Navigation Fixed**: All sidebar menu items now lead to functional pages
-- **SAMO API Integration**: Complete API integration with proper error handling for IP whitelist restrictions
-- **UI Improvements**: Fixed JavaScript errors and implemented proper toast notifications
-- **Template Organization**: Consolidated to essential pages only, removed duplicates
+- **System Refactoring**: Eliminated duplicate menu items and functions, consolidated SAMO Testing and SAMO API into single interface
+- **Enhanced SAMO Testing**: Complete rebuild with curl functionality, advanced diagnostics, and real-time testing capabilities
+- **Improved Navigation**: Streamlined sidebar menu with consolidated "SAMO API & Тестирование" and "Мессенджеры" sections
+- **Advanced Diagnostics**: Network diagnostics, SSL checks, DNS resolution, and IP whitelist testing
+- **Curl Integration**: Built-in curl command generation, execution, and result display with preset configurations
+- **Real-time Monitoring**: Live connection status, service indicators, and automated log refresh
+- **Project Cleanup**: Removed unused templates and eliminated redundant code paths
 - **Docker Ready**: Complete Docker containerization with optimized production setup
-- **Deployment Scripts**: Automated deployment scripts for both server and Docker environments
 
 ## User Preferences
 

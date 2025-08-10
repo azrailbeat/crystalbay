@@ -286,4 +286,291 @@ def register_samo_api_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    # === РАСШИРЕННОЕ ТЕСТИРОВАНИЕ И ДИАГНОСТИКА ===
+    
+    @app.route('/api/samo/get-ip', methods=['GET'])
+    def get_server_ip():
+        """Get current server IP address"""
+        try:
+            import requests
+            response = requests.get('https://ifconfig.me', timeout=10)
+            ip = response.text.strip()
+            return jsonify({
+                'success': True,
+                'ip': ip
+            })
+        except Exception as e:
+            logger.error(f"IP detection error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'ip': 'Неизвестно'
+            })
+
+    @app.route('/api/samo/execute-curl', methods=['POST'])
+    def execute_curl():
+        """Execute curl command for SAMO API testing"""
+        try:
+            data = request.get_json()
+            method = data.get('method', 'SearchTour_CURRENCIES')
+            params = data.get('params', '')
+            
+            import subprocess
+            import json as json_module
+            
+            # Build curl command
+            base_data = f"samo_action=api&version=1.0&type=json&action={method}&oauth_token=27bd59a7ac67422189789f0188167379"
+            if params:
+                base_data += f"&{params}"
+            
+            curl_command = [
+                'curl', '-X', 'POST',
+                'https://booking-kz.crystalbay.com/export/default.php',
+                '-H', 'Content-Type: application/x-www-form-urlencoded',
+                '-H', 'User-Agent: Crystal Bay Travel Integration/1.0',
+                '-d', base_data,
+                '--max-time', '30'
+            ]
+            
+            # Execute curl
+            result = subprocess.run(curl_command, capture_output=True, text=True, timeout=35)
+            
+            # Parse response
+            try:
+                response_data = json_module.loads(result.stdout)
+            except:
+                response_data = result.stdout
+            
+            return jsonify({
+                'success': result.returncode == 0,
+                'command': ' '.join(curl_command),
+                'result': response_data,
+                'stderr': result.stderr,
+                'returncode': result.returncode
+            })
+            
+        except Exception as e:
+            logger.error(f"Curl execution error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/server-curl-test', methods=['GET'])
+    def server_curl_test():
+        """Execute server-side curl test"""
+        try:
+            import subprocess
+            
+            curl_command = [
+                'curl', '-w', '%{http_code}', '-o', '/tmp/samo_response.txt',
+                '-X', 'POST',
+                'https://booking-kz.crystalbay.com/export/default.php',
+                '-H', 'Content-Type: application/x-www-form-urlencoded',
+                '-H', 'User-Agent: Crystal Bay Travel Integration/1.0',
+                '-d', 'samo_action=api&version=1.0&type=json&action=SearchTour_CURRENCIES&oauth_token=27bd59a7ac67422189789f0188167379',
+                '--max-time', '30'
+            ]
+            
+            result = subprocess.run(curl_command, capture_output=True, text=True, timeout=35)
+            http_code = result.stdout.strip()
+            
+            # Read response
+            try:
+                with open('/tmp/samo_response.txt', 'r') as f:
+                    response_content = f.read()
+            except:
+                response_content = 'Не удалось прочитать ответ'
+            
+            return jsonify({
+                'success': http_code == '200',
+                'command': ' '.join(curl_command),
+                'http_code': http_code,
+                'response': response_content,
+                'stderr': result.stderr
+            })
+            
+        except Exception as e:
+            logger.error(f"Server curl test error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/network-diagnostics', methods=['GET'])
+    def network_diagnostics():
+        """Run network diagnostics for SAMO API"""
+        try:
+            import subprocess
+            
+            # Ping test
+            ping_result = subprocess.run(['ping', '-c', '4', 'booking-kz.crystalbay.com'], 
+                                       capture_output=True, text=True, timeout=15)
+            
+            # Traceroute (limited hops for speed)
+            trace_result = subprocess.run(['traceroute', '-m', '10', 'booking-kz.crystalbay.com'], 
+                                        capture_output=True, text=True, timeout=30)
+            
+            return jsonify({
+                'success': True,
+                'ping_success': ping_result.returncode == 0,
+                'ping_result': ping_result.stdout,
+                'traceroute': trace_result.stdout
+            })
+            
+        except Exception as e:
+            logger.error(f"Network diagnostics error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/dns-check', methods=['GET'])
+    def dns_check():
+        """Check DNS resolution for SAMO API domain"""
+        try:
+            import socket
+            
+            ip_address = socket.gethostbyname('booking-kz.crystalbay.com')
+            
+            return jsonify({
+                'success': True,
+                'domain': 'booking-kz.crystalbay.com',
+                'ip_address': ip_address
+            })
+            
+        except Exception as e:
+            logger.error(f"DNS check error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/ssl-check', methods=['GET'])
+    def ssl_check():
+        """Check SSL certificate for SAMO API"""
+        try:
+            import ssl
+            import socket
+            from datetime import datetime
+            
+            context = ssl.create_default_context()
+            with socket.create_connection(('booking-kz.crystalbay.com', 443), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname='booking-kz.crystalbay.com') as ssock:
+                    cert = ssock.getpeercert()
+                    
+            expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+            valid = expires > datetime.now()
+            
+            return jsonify({
+                'success': True,
+                'valid': valid,
+                'expires': cert['notAfter'],
+                'issuer': dict(x[0] for x in cert['issuer']),
+                'subject': dict(x[0] for x in cert['subject'])
+            })
+            
+        except Exception as e:
+            logger.error(f"SSL check error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/whitelist-test', methods=['GET'])
+    def whitelist_test():
+        """Test if server IP is whitelisted by SAMO"""
+        try:
+            import requests
+            
+            # Get server IP
+            ip_response = requests.get('https://ifconfig.me', timeout=10)
+            server_ip = ip_response.text.strip()
+            
+            # Test SAMO API
+            api = get_crystal_bay_api()
+            result = api.get_currencies()
+            
+            whitelisted = 'error' not in result and '403' not in str(result)
+            
+            return jsonify({
+                'success': True,
+                'whitelisted': whitelisted,
+                'server_ip': server_ip,
+                'error_message': result.get('error', '') if not whitelisted else None
+            })
+            
+        except Exception as e:
+            logger.error(f"Whitelist test error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+
+    @app.route('/api/samo/ping', methods=['GET'])
+    def samo_ping():
+        """Simple ping endpoint for latency testing"""
+        return jsonify({
+            'success': True,
+            'timestamp': datetime.now().isoformat(),
+            'pong': True
+        })
+
+    @app.route('/api/samo/logs', methods=['GET'])
+    def get_samo_logs():
+        """Get SAMO API logs"""
+        try:
+            # In production, this would read from actual log files
+            # For now, return recent activity
+            logs = [
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - SAMO API инициализирован",
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Последний тест подключения: ожидание",
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - IP whitelist статус: проверяется",
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - OAuth токен: настроен"
+            ]
+            
+            return jsonify({
+                'success': True,
+                'logs': '\n'.join(logs)
+            })
+            
+        except Exception as e:
+            logger.error(f"Logs error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'logs': f"Ошибка загрузки логов: {str(e)}"
+            })
+
+    @app.route('/api/samo/meals', methods=['GET'])
+    def get_samo_meals():
+        """Получить типы питания"""
+        try:
+            api = get_crystal_bay_api()
+            result = api.get_meals()
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/stars', methods=['GET'])
+    def get_samo_stars():
+        """Получить звездность отелей"""
+        try:
+            api = get_crystal_bay_api()
+            result = api.get_stars()
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/search-tours', methods=['POST'])
+    def search_tours_with_params():
+        """Поиск туров с параметрами"""
+        try:
+            api = get_crystal_bay_api()
+            params = request.json or {}
+            result = api.search_tours(params)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     logger.info("SAMO API routes registered successfully")

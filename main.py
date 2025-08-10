@@ -148,13 +148,13 @@ def unified_settings():
 
 @app.route('/samo-testing')
 def samo_testing():
-    """SAMO API testing page"""
+    """SAMO API testing and management page"""
     return render_template('samo_testing.html')
 
 @app.route('/samo-api')
 def samo_api():
-    """SAMO API dashboard"""
-    return render_template('samo_api_dashboard.html')
+    """Redirect to unified SAMO testing page"""
+    return redirect('/samo-testing')
 
 @app.route('/messages')
 def messages():
