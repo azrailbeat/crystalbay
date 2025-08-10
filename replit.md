@@ -13,7 +13,8 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **Curl Integration**: Built-in curl command generation, execution, and result display with preset configurations
 - **Real-time Monitoring**: Live connection status, service indicators, and automated log refresh
 - **Project Cleanup**: Removed unused templates and eliminated redundant code paths
-- **Docker Ready**: Complete Docker containerization with optimized production setup
+- **GitHub Ready**: Complete cleanup for GitHub release with streamlined Docker installation
+- **Easy Installation**: Automated start.sh script and comprehensive install.md guide
 
 ## User Preferences
 
@@ -42,10 +43,10 @@ The application follows a modular, service-oriented architecture, designed for c
 - **Centralized Settings**: A unified panel for managing integrations and system settings, consolidating previous separate sections.
 - **Bitrix24 CRM Integration**: Custom travel booking pipeline matching a 9-stage Trello workflow for lead and deal management.
 
-## File Structure (Clean)
+## File Structure (GitHub Ready)
 
 ```
-Crystal Bay Travel/
+crystal-bay-travel/
 ├── main.py                 # Main Flask application
 ├── app_api.py             # API routes and endpoints  
 ├── models.py              # Database models and services
@@ -63,17 +64,19 @@ Crystal Bay Travel/
 │   ├── history.html       # Activity history
 │   ├── ai_agents.html     # AI agent management
 │   ├── messages.html      # Message center
-│   ├── samo_testing.html  # SAMO API testing
-│   ├── samo_api_dashboard.html # SAMO API dashboard
+│   ├── samo_testing.html  # SAMO API testing (unified interface)
 │   ├── unified_settings.html   # Settings panel
 │   ├── wazzup_integration.html # Wazzup integration
 │   └── error.html         # Error page
-├── static/               # Static assets
-│   ├── css/             # Custom stylesheets
-│   ├── js/              # JavaScript files
-│   └── images/          # Image assets
-├── docker-compose.yml   # Docker composition
-├── Dockerfile          # Docker configuration
+├── static/               # Static assets (CSS, JS, images)
+├── docker-compose.yml    # Development Docker setup
+├── docker-compose.production.yml # Production setup
+├── Dockerfile           # Docker configuration
+├── start.sh            # Quick start script
+├── install.md          # Installation guide
+├── .env.example        # Environment template
+├── .gitignore          # Git ignore rules
+├── LICENSE             # MIT License
 ├── pyproject.toml      # Python dependencies
 └── README.md           # Project documentation
 ```

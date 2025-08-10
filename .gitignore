@@ -1,3 +1,5 @@
+# Crystal Bay Travel - Git Ignore
+
 # Python
 __pycache__/
 *.py[cod]
@@ -16,17 +18,14 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# Environment variables
+# Virtual Environments
 .env
-.env.local
-.env.production
-
-# Virtual environments
 .venv
 env/
 venv/
@@ -34,12 +33,24 @@ ENV/
 env.bak/
 venv.bak/
 
+# Environment Variables
+.env.local
+.env.production
+.env.development
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
@@ -50,31 +61,31 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-logs/
-
 # Temporary files
 *.tmp
+*.temp
 *.bak
 *.backup
-*_backup
-*_old
+*~
 
-# Cache
-.cache/
-.pytest_cache/
-
-# Node modules (if any)
-node_modules/
-
-# Static uploads
-static/uploads/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Docker
+.dockerignore
 
 # Replit specific
-.replit_env
+.replit
+replit.nix
+uv.lock
+
+# Deployment
+deploy.sh
+server-commands.sh
+*.service
+
+# Assets and uploads
+attached_assets/
+uploads/
+temp/
+
+# Documentation drafts
+*_DRAFT.md
+CLEANUP_*.md

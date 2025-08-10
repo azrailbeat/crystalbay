@@ -6,65 +6,31 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-postgresql://crystal_bay:crystal_bay_password@db:5432/crystal_bay_db}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - WAZZUP_API_KEY=${WAZZUP_API_KEY}
-      - SAMO_OAUTH_TOKEN=${SAMO_OAUTH_TOKEN}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - SESSION_SECRET=${SESSION_SECRET:-your-secret-key-change-in-production}
+      - DATABASE_URL=postgresql://crystalbay:password@db:5432/crystalbay_travel
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=crystalbay
+      - PGPASSWORD=password
+      - PGDATABASE=crystalbay_travel
+      - FLASK_SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=true
     depends_on:
       - db
-      - redis
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - .:/app
     restart: unless-stopped
-    networks:
-      - crystal_bay_network
 
   db:
-    image: postgres:15-alpine
+    image: postgres:13-alpine
     environment:
-      - POSTGRES_DB=crystal_bay_db
-      - POSTGRES_USER=crystal_bay
-      - POSTGRES_PASSWORD=crystal_bay_password
+      - POSTGRES_DB=crystalbay_travel
+      - POSTGRES_USER=crystalbay
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     restart: unless-stopped
-    networks:
-      - crystal_bay_network
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - crystal_bay_network
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - web
-    restart: unless-stopped
-    networks:
-      - crystal_bay_network
 
 volumes:
   postgres_data:
-  redis_data:
-
-networks:
-  crystal_bay_network:
-    driver: bridge
