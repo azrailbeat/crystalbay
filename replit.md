@@ -11,6 +11,8 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **SAMO API Integration**: Complete API integration with proper error handling for IP whitelist restrictions
 - **UI Improvements**: Fixed JavaScript errors and implemented proper toast notifications
 - **Template Organization**: Consolidated to essential pages only, removed duplicates
+- **Docker Ready**: Complete Docker containerization with optimized production setup
+- **Deployment Scripts**: Automated deployment scripts for both server and Docker environments
 
 ## User Preferences
 

@@ -1,45 +1,74 @@
-# Development files
-attached_assets/
-backup/
-tests/
-__pycache__/
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
+env
+venv
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 *.log
-
-# Development configuration
-.replit
-replit.nix
-replit.md
-.env.example
-
-# Documentation
-*.md
-!README.md
-!DEPLOYMENT.md
-
-# Version control
-.git
-.gitignore
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+.pytest_cache
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Temporary
-tmp/
-temp/
-.tmp
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
 
-# Local development
-venv/
-.venv/
+# Project specific
+attached_assets/
+data/
+logs/
+backup/
+tests/
+*.backup
+*.bak
+*_old
+*.tmp
+
+# Replit specific
+.replit*
+replit.nix
+.upm/
+.pythonlibs/
+
+# Documentation (keep only essential)
+comprehensive_system_analysis_report.md
+priority_fixes_plan.md
+tinyproxy_setup.md
+vps_script_solution.md
+vps_setup_guide.md
+
+# Environment files (will be mounted separately)
+.env.local
+.env.development
+
+# Node modules (if any)
 node_modules/
+
+# Build artifacts
+dist/
+build/
