@@ -112,6 +112,83 @@ def register_api_routes(app):
                 'success': False,
                 'error': str(e)
             }), 500
+
+    # === SAMO API ENDPOINTS ===
+    
+    @app.route('/api/samo/currencies', methods=['GET'])
+    def get_samo_currencies():
+        """Получить список валют SAMO API"""
+        try:
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.get_currencies()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO currencies: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/states', methods=['GET'])
+    def get_samo_states():
+        """Получить список стран SAMO API"""
+        try:
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.get_states()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO states: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/townfroms', methods=['GET'])
+    def get_samo_townfroms():
+        """Получить список городов отправления SAMO API"""
+        try:
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.get_town_froms()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO townfroms: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/stars', methods=['GET'])
+    def get_samo_stars():
+        """Получить список звездности отелей SAMO API"""
+        try:
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.get_stars()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO stars: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/meals', methods=['GET'])
+    def get_samo_meals():
+        """Получить список типов питания SAMO API"""
+        try:
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.get_meals()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO meals: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/search-tours-new', methods=['POST'])
+    def search_samo_tours_new():
+        """Поиск туров через правильный SAMO API клиент"""
+        try:
+            search_params = request.get_json()
+            
+            from samo_api_correct import SamoAPIClient
+            samo_api = SamoAPIClient()
+            result = samo_api.search_tour_prices(search_params)
+            
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error searching SAMO tours: {str(e)}")
+            return jsonify({'error': str(e)}), 500
     
     @app.route('/api/settings/samo', methods=['POST'])
     def api_update_samo_settings():

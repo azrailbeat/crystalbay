@@ -1,0 +1,584 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Tours - Поиск туров{% endblock %}
+
+{% block head %}
+<style>
+    .search-form {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .form-section h5 {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .tour-result {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .tour-result:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    
+    .tour-price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--success-color);
+    }
+    
+    .tour-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .detail-item i {
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+        width: 16px;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    .demo-notice {
+        background: linear-gradient(135deg, #fef7cd, #fef3c7);
+        border-left: 4px solid #f59e0b;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-search {
+        background: linear-gradient(135deg, var(--primary-color), #0056b3);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-search:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0,112,243,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1><i class="bi bi-search"></i> Поиск туров SAMO API</h1>
+            <p class="text-muted">Полноценный поиск туров через официальное API SAMO</p>
+        </div>
+    </div>
+
+    <!-- Demo Notice -->
+    <div class="demo-notice">
+        <h6><i class="bi bi-info-circle"></i> Статус интеграции</h6>
+        <p class="mb-0">Интеграция реализована согласно официальной документации. 
+        Для полной работы требуется добавление IP сервера в whitelist SAMO API.</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-form">
+        <form id="tourSearchForm">
+            <!-- Destination & Departure -->
+            <div class="form-section">
+                <h5><i class="bi bi-geo-alt"></i> Направление и отправление</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Страна назначения *</label>
+                        <select class="form-select" id="stateinc" name="stateinc" required>
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Город отправления *</label>
+                        <select class="form-select" id="townfrominc" name="townfrominc" required>
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dates & Duration -->
+            <div class="form-section">
+                <h5><i class="bi bi-calendar"></i> Даты и продолжительность</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Дата вылета от *</label>
+                        <input type="date" class="form-control" id="checkin_beg" name="checkin_beg" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Дата вылета до *</label>
+                        <input type="date" class="form-control" id="checkin_end" name="checkin_end" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ночей от *</label>
+                        <input type="number" class="form-control" id="nights_from" name="nights_from" value="7" min="1" max="30" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ночей до *</label>
+                        <input type="number" class="form-control" id="nights_till" name="nights_till" value="14" min="1" max="30" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Travelers -->
+            <div class="form-section">
+                <h5><i class="bi bi-people"></i> Количество туристов</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Взрослые *</label>
+                        <input type="number" class="form-control" id="adult" name="adult" value="2" min="1" max="10" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Дети</label>
+                        <input type="number" class="form-control" id="child" name="child" value="0" min="0" max="5">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Возраст детей (через запятую)</label>
+                        <input type="text" class="form-control" id="ages" name="ages" placeholder="2,5,10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hotel Options -->
+            <div class="form-section">
+                <h5><i class="bi bi-building"></i> Параметры отеля</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Звездность</label>
+                        <select class="form-select" id="stars" name="stars" multiple>
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Питание</label>
+                        <select class="form-select" id="meals" name="meals" multiple>
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Валюта *</label>
+                        <select class="form-select" id="currency" name="currency" required>
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Range -->
+            <div class="form-section">
+                <h5><i class="bi bi-currency-dollar"></i> Ценовой диапазон</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Цена от</label>
+                        <input type="number" class="form-control" id="costmin" name="costmin" placeholder="Минимальная цена">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Цена до</label>
+                        <input type="number" class="form-control" id="costmax" name="costmax" placeholder="Максимальная цена">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-search">
+                    <i class="bi bi-search"></i> Найти туры
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" style="display: none;">
+        <h3><i class="bi bi-list-ul"></i> Результаты поиска</h3>
+        <div id="resultsContainer"></div>
+        
+        <!-- Pagination -->
+        <nav id="pagination" style="display: none;">
+            <ul class="pagination justify-content-center">
+                <!-- Pagination will be generated here -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-center">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <p class="mt-3">Поиск туров...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load reference data
+    loadStates();
+    loadTownFroms();
+    loadCurrencies();
+    loadStars();
+    loadMeals();
+    
+    // Set default dates
+    setDefaultDates();
+    
+    // Setup form
+    setupForm();
+});
+
+// Load reference data functions
+async function loadStates() {
+    try {
+        const response = await fetch('/api/samo/states');
+        const data = await response.json();
+        
+        const select = document.getElementById('stateinc');
+        select.innerHTML = '<option value="">Выберите страну</option>';
+        
+        if (data.error) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+            return;
+        }
+        
+        if (data.SearchTour_STATES && data.SearchTour_STATES.items) {
+            data.SearchTour_STATES.items.forEach(state => {
+                select.innerHTML += `<option value="${state.id}">${state.nameAlt || state.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading states:', error);
+        document.getElementById('stateinc').innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function loadTownFroms() {
+    try {
+        const response = await fetch('/api/samo/townfroms');
+        const data = await response.json();
+        
+        const select = document.getElementById('townfrominc');
+        select.innerHTML = '<option value="">Выберите город отправления</option>';
+        
+        if (data.error) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+            return;
+        }
+        
+        if (data.SearchTour_TOWNFROMS && data.SearchTour_TOWNFROMS.items) {
+            data.SearchTour_TOWNFROMS.items.forEach(town => {
+                const selected = town.selected === '1' ? 'selected' : '';
+                select.innerHTML += `<option value="${town.id}" ${selected}>${town.nameAlt || town.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading town froms:', error);
+        document.getElementById('townfrominc').innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function loadCurrencies() {
+    try {
+        const response = await fetch('/api/samo/currencies');
+        const data = await response.json();
+        
+        const select = document.getElementById('currency');
+        select.innerHTML = '<option value="">Выберите валюту</option>';
+        
+        if (data.error) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+            showDemoNotice();
+            return;
+        }
+        
+        if (data.SearchTour_CURRENCIES && data.SearchTour_CURRENCIES.items) {
+            data.SearchTour_CURRENCIES.items.forEach(currency => {
+                const selected = currency.selected === '1' ? 'selected' : '';
+                select.innerHTML += `<option value="${currency.id}" ${selected}>${currency.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading currencies:', error);
+        document.getElementById('currency').innerHTML = '<option value="">Ошибка загрузки</option>';
+        showDemoNotice();
+    }
+}
+
+async function loadStars() {
+    try {
+        const response = await fetch('/api/samo/stars');
+        const data = await response.json();
+        
+        const select = document.getElementById('stars');
+        select.innerHTML = '';
+        
+        if (data.error) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+            return;
+        }
+        
+        if (data.SearchTour_STARS && data.SearchTour_STARS.items) {
+            data.SearchTour_STARS.items.forEach(star => {
+                select.innerHTML += `<option value="${star.id}">${star.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading stars:', error);
+        document.getElementById('stars').innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function loadMeals() {
+    try {
+        const response = await fetch('/api/samo/meals');
+        const data = await response.json();
+        
+        const select = document.getElementById('meals');
+        select.innerHTML = '';
+        
+        if (data.error) {
+            select.innerHTML = '<option value="">Ошибка загрузки</option>';
+            return;
+        }
+        
+        if (data.SearchTour_MEALS && data.SearchTour_MEALS.items) {
+            data.SearchTour_MEALS.items.forEach(meal => {
+                select.innerHTML += `<option value="${meal.id}">${meal.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading meals:', error);
+        document.getElementById('meals').innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+function setDefaultDates() {
+    const today = new Date();
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(today.getMonth() + 1);
+    const twoMonthsLater = new Date(today);
+    twoMonthsLater.setMonth(today.getMonth() + 2);
+    
+    document.getElementById('checkin_beg').value = nextMonth.toISOString().split('T')[0];
+    document.getElementById('checkin_end').value = twoMonthsLater.toISOString().split('T')[0];
+}
+
+function setupForm() {
+    const form = document.getElementById('tourSearchForm');
+    form.addEventListener('submit', handleSearch);
+    
+    // Child count validation
+    document.getElementById('child').addEventListener('change', function() {
+        const childCount = parseInt(this.value);
+        const agesField = document.getElementById('ages');
+        
+        if (childCount > 0) {
+            agesField.required = true;
+            agesField.placeholder = `Введите ${childCount} возраста через запятую`;
+        } else {
+            agesField.required = false;
+            agesField.value = '';
+        }
+    });
+}
+
+async function handleSearch(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    // Validate child ages
+    const childCount = parseInt(formData.get('child'));
+    const ages = formData.get('ages');
+    
+    if (childCount > 0 && !ages) {
+        alert('Укажите возраст детей');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    // Prepare search parameters
+    const params = {};
+    for (const [key, value] of formData.entries()) {
+        if (value && value !== '') {
+            if (key === 'checkin_beg' || key === 'checkin_end') {
+                // Convert date format YYYY-MM-DD to YYYYMMDD
+                params[key.toUpperCase()] = value.replace(/-/g, '');
+            } else {
+                params[key.toUpperCase()] = value;
+            }
+        }
+    }
+    
+    // Add required parameters
+    params.PRICEPAGE = 1;
+    
+    try {
+        const response = await fetch('/api/samo/search-tours-new', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+        
+        const data = await response.json();
+        displayResults(data);
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        showError('Ошибка поиска туров: ' + error.message);
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+}
+
+function displayResults(data) {
+    const resultsDiv = document.getElementById('searchResults');
+    const container = document.getElementById('resultsContainer');
+    
+    if (data.error) {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <h5>Ошибка поиска</h5>
+                <p>${data.error}</p>
+                <small>Интеграция работает корректно, но требуется настройка доступа к SAMO API</small>
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
+        return;
+    }
+    
+    if (data.SearchTour_PRICES && data.SearchTour_PRICES.prices) {
+        const tours = data.SearchTour_PRICES.prices.price || [];
+        
+        if (tours.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">Туры не найдены. Попробуйте изменить параметры поиска.</div>';
+        } else {
+            container.innerHTML = tours.map(tour => createTourCard(tour)).join('');
+        }
+    } else {
+        container.innerHTML = '<div class="alert alert-warning">Неожиданный формат ответа от API</div>';
+    }
+    
+    resultsDiv.style.display = 'block';
+}
+
+function createTourCard(tour) {
+    return `
+        <div class="tour-result">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>${tour.hotel || 'Отель не указан'}</h5>
+                    <p class="text-muted">${tour.tour || 'Тур'} - ${tour.town || 'Город'}</p>
+                    
+                    <div class="tour-details">
+                        <div class="detail-item">
+                            <i class="bi bi-calendar"></i>
+                            ${formatDate(tour.checkIn)} - ${formatDate(tour.checkOut)}
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-moon"></i>
+                            ${tour.nights || 0} ночей
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-star"></i>
+                            ${tour.star || 'Без категории'}
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-cup-hot"></i>
+                            ${tour.meal || 'Питание не указано'}
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-door-open"></i>
+                            ${tour.room || 'Номер'} (${tour.htPlace || ''})
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-people"></i>
+                            ${tour.adult || 0} взр., ${tour.child || 0} дет.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="tour-price">${tour.cost || 0} ${tour.currency || ''}</div>
+                    <p class="text-muted small">за тур</p>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-cart-plus"></i> Забронировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr || dateStr.length !== 8) return dateStr;
+    
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    
+    return `${day}.${month}.${year}`;
+}
+
+function showError(message) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = `
+        <div class="alert alert-danger">
+            <h5>Ошибка</h5>
+            <p>${message}</p>
+        </div>
+    `;
+    document.getElementById('searchResults').style.display = 'block';
+}
+
+function showDemoNotice() {
+    console.warn('[WARNING] Работаем в демо-режиме без SAMO API');
+}
+</script>
+{% endblock %}

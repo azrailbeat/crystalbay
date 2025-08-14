@@ -157,8 +157,24 @@ class SamoAPIClient:
         return self.make_request('SearchTour_STATES')
     
     def get_tours(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Поиск туров"""
+        """Получить список туров"""
         return self.make_request('SearchTour_TOURS', params)
+    
+    def search_tour_prices(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Поиск цен на туры согласно документации SAMO API
+        
+        Обязательные параметры:
+        - STATEINC: ID страны
+        - TOWNFROMINC: ID города отправления  
+        - CHECKIN_BEG/CHECKIN_END: диапазон дат заезда (YYYYMMDD)
+        - NIGHTS_FROM/NIGHTS_TILL: диапазон количества ночей
+        - ADULT: количество взрослых
+        - CHILD: количество детей
+        - CURRENCY: ID валюты
+        - PRICEPAGE: номер страницы (по умолчанию 1)
+        """
+        return self.make_request('SearchTour_PRICES', params)
     
     def get_hotels(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Получить список отелей"""
