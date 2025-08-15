@@ -207,8 +207,7 @@
         // Test SAMO connection on load
         testSamoConnection();
         
-        // Load demo tours initially
-        loadDemoTours();
+        // Production: No demo tours loaded
     });
     
     // Show toast notifications
@@ -269,7 +268,7 @@
         } catch (error) {
             console.error('SAMO API Error:', error);
             statusElement.innerHTML = `<span class="text-danger">✗ SAMO API недоступен</span> - ${error.message}`;
-            showToast('Работаем в демо-режиме без SAMO API', 'warning');
+            showToast('SAMO API недоступен', 'warning');
         }
     }
     
@@ -310,14 +309,13 @@
         } catch (error) {
             console.error('Search error:', error);
             
-            // Fallback to demo tours with search filters
-            const demoTours = getDemoTours();
-            const filteredTours = filterDemoTours(demoTours, searchParams);
+            // Production: No fallback data
+            const filteredTours = [];
             
             if (filteredTours.length > 0) {
                 displayTours(filteredTours);
-                resultsCount.textContent = `${filteredTours.length} туров (демо)`;
-                showToast(`Показаны ${filteredTours.length} демо-туров`, 'info');
+                resultsCount.textContent = 'Нет доступных туров';
+                showToast('Данные недоступны', 'info');
             } else {
                 noResults.style.display = 'block';
                 resultsCount.textContent = '0 туров';
@@ -337,87 +335,20 @@
         };
     }
     
-    // Load demo tours initially
+    // Production: Demo tours removed
     function loadDemoTours() {
-        const demoTours = getDemoTours();
-        displayTours(demoTours);
-        document.getElementById('results-count').textContent = `${demoTours.length} туров (демо)`;
+        // Production: No demo data
+        return;
     }
     
-    // Get demo tours data
+    // Production: Demo tours data removed
     function getDemoTours() {
-        return [
-            {
-                id: 1,
-                name: 'Турция - Анталия',
-                destination: 'turkey',
-                departure_city: 'almaty',
-                hotel: 'Titanic Palace 5*',
-                price: 750,
-                currency: 'USD',
-                nights: 7,
-                departure_date: '2025-05-15',
-                meal_type: 'All Inclusive',
-                image: 'https://via.placeholder.com/400x200/007bff/ffffff?text=Турция',
-                badge: 'Хит продаж',
-                badge_class: 'bg-success'
-            },
-            {
-                id: 2,
-                name: 'Египет - Шарм-эль-Шейх',
-                destination: 'egypt',
-                departure_city: 'almaty',
-                hotel: 'Reef Oasis Blue Bay 5*',
-                price: 650,
-                currency: 'USD',
-                nights: 7,
-                departure_date: '2025-05-20',
-                meal_type: 'All Inclusive',
-                image: 'https://via.placeholder.com/400x200/dc3545/ffffff?text=Египет',
-                badge: 'Раннее бронирование',
-                badge_class: 'bg-primary'
-            },
-            {
-                id: 3,
-                name: 'ОАЭ - Дубай',
-                destination: 'uae',
-                departure_city: 'nur-sultan',
-                hotel: 'Atlantis The Palm 5*',
-                price: 1200,
-                currency: 'USD',
-                nights: 5,
-                departure_date: '2025-06-01',
-                meal_type: 'Завтраки',
-                image: 'https://via.placeholder.com/400x200/ffc107/000000?text=ОАЭ',
-                badge: 'Люкс',
-                badge_class: 'bg-warning'
-            },
-            {
-                id: 4,
-                name: 'Таиланд - Пхукет',
-                destination: 'thailand',
-                departure_city: 'almaty',
-                hotel: 'Novotel Phuket Resort 4*',
-                price: 950,
-                currency: 'USD',
-                nights: 10,
-                departure_date: '2025-05-25',
-                meal_type: 'Завтраки',
-                image: 'https://via.placeholder.com/400x200/28a745/ffffff?text=Таиланд',
-                badge: 'Популярный',
-                badge_class: 'bg-info'
-            }
-        ];
+        return [];
     }
     
-    // Filter demo tours based on search params
+    // Production: Demo filter removed
     function filterDemoTours(tours, params) {
-        return tours.filter(tour => {
-            if (params.destination && tour.destination !== params.destination) return false;
-            if (params.departure_city && tour.departure_city !== params.departure_city) return false;
-            if (params.nights && tour.nights !== parseInt(params.nights)) return false;
-            return true;
-        });
+        return [];
     }
     
     // Display tours in grid
