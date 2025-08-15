@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize Supabase client with error handling
-supabase = None
+supabase: Optional['Client'] = None
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
 
@@ -47,8 +47,9 @@ _memory_agents_config = {
     'auto_process': False
 }
 
-# Production: All data comes from SAMO API through app_api.py persistent storage
-# No mock data in production deployment
+# Production: All data comes from database and SAMO API
+# Demo data removed for production deployment
+_memory_leads = []  # Empty for production
 
 try:
     if not supabase_url or not supabase_key:
@@ -118,7 +119,7 @@ class SettingsService:
             return True
     
     @staticmethod
-    def get_setting(category: str, key: str, default_value: str = None):
+    def get_setting(category: str, key: str, default_value: Optional[str] = None):
         """Get a specific setting value"""
         if category == 'samo_api':
             settings = SettingsService.get_samo_settings()
