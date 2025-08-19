@@ -41,15 +41,7 @@ try:
 except Exception as e:
     logger.error(f"Failed to register API routes: {e}")
 
-# Register SAMO API routes
-try:
-    from samo_api_routes import register_samo_api_routes
-    register_samo_api_routes(app)
-    logger.info("SAMO API routes registered successfully")
-except (ImportError, AttributeError):
-    logger.warning("SAMO API routes not available")
-except Exception as e:
-    logger.error(f"Failed to register SAMO API routes: {e}")
+# SAMO API routes are now included in app_api.py
 
 # Main routes
 @app.route('/')

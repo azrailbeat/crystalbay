@@ -126,16 +126,17 @@ class CrystalBaySamoAPI:
         """Получить города отправления"""
         return self._make_request('SearchTour_TOWNFROMS')
     
+    def get_town_froms(self) -> Dict[str, Any]:
+        """Alias для совместимости - получить города отправления"""
+        return self.get_townfroms()
+    
     def get_states(self) -> Dict[str, Any]:
         """Получить страны"""
         return self._make_request('SearchTour_STATES')
     
     def get_currencies(self) -> Dict[str, Any]:
-        """Получить валюты согласно документации SAMO API"""
-        # Use correct API client
-        from samo_api_correct import SamoAPIClient
-        client = SamoAPIClient()
-        return client.get_currencies()
+        """Получить валюты"""
+        return self._make_request('SearchTour_CURRENCIES')
     
     def get_hotels(self, state_key: Optional[str] = None) -> Dict[str, Any]:
         """Получить отели"""
