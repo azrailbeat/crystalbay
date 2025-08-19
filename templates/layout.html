@@ -365,14 +365,14 @@
             
             <div class="sidebar-menu">
                 <div class="sidebar-heading">ОСНОВНОЕ</div>
-                <a href="/" class="sidebar-item {% if active_page == 'dashboard' or active_page == 'home' %}active{% endif %}">
+                <a href="/dashboard" class="sidebar-item {% if active_page == 'dashboard' or active_page == 'home' %}active{% endif %}">
                     <i class="bi bi-grid-1x2-fill"></i> Дашборд
                 </a>
                 <a href="/leads" class="sidebar-item {% if active_page == 'leads' %}active{% endif %}">
                     <i class="bi bi-people-fill"></i> Обращения клиентов
                 </a>
-                <a href="/tours" class="sidebar-item {% if active_page == 'tours' %}active{% endif %}">
-                    <i class="bi bi-airplane-fill"></i> Туры
+                <a href="/tours-search" class="sidebar-item {% if active_page == 'tours' or active_page == 'tours-search' %}active{% endif %}">
+                    <i class="bi bi-airplane-fill"></i> Поиск туров
                 </a>
                 <a href="/bookings" class="sidebar-item {% if active_page == 'bookings' %}active{% endif %}">
                     <i class="bi bi-calendar-check-fill"></i> Бронирования

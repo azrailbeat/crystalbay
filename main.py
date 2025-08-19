@@ -53,13 +53,13 @@ except Exception as e:
 
 # Main routes
 @app.route('/')
-def home():
-    """Главная страница"""
-    return render_template('dashboard.html')
-
 @app.route('/dashboard')
-def dashboard():
-    """Dashboard with leads overview"""
+def home():
+    """Главная страница / Дашборд"""
+    return render_template('dashboard.html', active_page='dashboard')
+
+def dashboard_data():
+    """Get dashboard data"""
     try:
         # Get leads from database
         leads = []
