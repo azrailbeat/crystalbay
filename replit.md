@@ -29,6 +29,7 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **Project Cleanup (Aug 19)**: Removed all duplicate files, unused imports, attached assets, and obsolete Python modules
 - **Production Server Issues (Aug 19)**: Identified SAMO API 403 errors on server 46.250.234.89, created comprehensive diagnostics system
 - **Diagnostics System (Aug 19)**: Built production diagnostics with environment checks, SAMO API testing, and curl command generation
+- **IP Blacklist Issue (Aug 19)**: Identified SAMO API blocking IP 35.196.142.41 - system ready, awaiting IP whitelist update
 
 ## User Preferences
 
