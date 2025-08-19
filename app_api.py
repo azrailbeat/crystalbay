@@ -357,40 +357,164 @@ def register_api_routes(app):
     def api_diagnostics_environment():
         """Диагностика переменных окружения"""
         try:
-            from diagnostics import ProductionDiagnostics
-            result = ProductionDiagnostics.check_environment()
-            return jsonify(result)
+            import os
+            environment = {
+                "SUPABASE_URL": "✓" if os.environ.get("SUPABASE_URL") else "✗ Отсутствует",
+                "SUPABASE_KEY": "✓" if os.environ.get("SUPABASE_KEY") else "✗ Отсутствует", 
+                "OPENAI_API_KEY": "✓" if os.environ.get("OPENAI_API_KEY") else "✗ Отсутствует",
+                "SAMO_OAUTH_TOKEN": "✓" if os.environ.get("SAMO_OAUTH_TOKEN") else "✗ Отсутствует",
+                "DATABASE_URL": "✓" if os.environ.get("DATABASE_URL") else "✗ Отсутствует"
+            }
+            return jsonify({
+                "timestamp": datetime.now().isoformat(),
+                "environment": environment
+            })
         except Exception as e:
+            logger.error(f"Environment diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
     
     @app.route('/api/diagnostics/samo', methods=['GET'])
     def api_diagnostics_samo():
         """Диагностика SAMO API подключения"""
         try:
-            from diagnostics import ProductionDiagnostics
-            result = ProductionDiagnostics.check_samo_connection()
-            return jsonify(result)
+            import requests
+            import socket
+            import ssl
+            
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            
+            diagnostics = {
+                "timestamp": datetime.now().isoformat(),
+                "api_url": samo_url,
+                "oauth_token_suffix": oauth_token[-4:] if oauth_token else "None",
+                "tests": {}
+            }
+            
+            # DNS Test
+            try:
+                socket.gethostbyname("booking.crystalbay.com")
+                diagnostics["tests"]["dns_resolution"] = {"status": "✓", "message": "DNS работает"}
+            except Exception as e:
+                diagnostics["tests"]["dns_resolution"] = {"status": "✗", "error": str(e)}
+            
+            # API Test
+            try:
+                params = {
+                    'samo_action': 'api',
+                    'version': '1.0',
+                    'type': 'json',
+                    'action': 'SearchTour_CURRENCIES',
+                    'oauth_token': oauth_token
+                }
+                
+                response = requests.post(samo_url, data=params, timeout=10)
+                
+                diagnostics["tests"]["api_endpoint"] = {
+                    "status": "Tested",
+                    "status_code": response.status_code,
+                    "response_length": len(response.text),
+                    "response_preview": response.text[:200]
+                }
+                
+                if response.status_code == 403:
+                    diagnostics["tests"]["api_endpoint"]["message"] = "403 Forbidden - IP заблокирован или проблема с токеном"
+                    
+            except Exception as e:
+                diagnostics["tests"]["api_endpoint"] = {"status": "✗", "error": str(e)}
+            
+            return jsonify(diagnostics)
+            
         except Exception as e:
+            logger.error(f"SAMO diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
     
     @app.route('/api/diagnostics/server', methods=['GET'])
     def api_diagnostics_server():
         """Информация о сервере"""
         try:
-            from diagnostics import ProductionDiagnostics
-            result = ProductionDiagnostics.get_server_info()
-            return jsonify(result)
+            import requests
+            
+            # Получить внешний IP
+            external_ip = "Unknown"
+            try:
+                response = requests.get("https://httpbin.org/ip", timeout=10)
+                external_ip = response.json().get("origin", "Unknown")
+            except:
+                try:
+                    response = requests.get("https://icanhazip.com", timeout=10)
+                    external_ip = response.text.strip()
+                except:
+                    pass
+            
+            return jsonify({
+                "timestamp": datetime.now().isoformat(),
+                "external_ip": external_ip,
+                "user_agent": "Crystal Bay Travel Production/1.0",
+                "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
+                "environment_vars_count": len([k for k in os.environ.keys() if not k.startswith('_')])
+            })
+            
         except Exception as e:
+            logger.error(f"Server diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
     
     @app.route('/api/diagnostics/curl', methods=['GET'])
     def api_diagnostics_curl():
         """Генерация curl команды"""
         try:
-            from diagnostics import ProductionDiagnostics
-            curl_command = ProductionDiagnostics.generate_curl_command()
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            
+            curl_command = f"""curl -X POST 'https://booking.crystalbay.com/export/default.php' \\
+  -H 'User-Agent: Crystal Bay Travel Production/1.0' \\
+  -H 'Accept: application/json' \\
+  -H 'Content-Type: application/x-www-form-urlencoded' \\
+  -d 'samo_action=api&version=1.0&type=json&action=SearchTour_CURRENCIES&oauth_token={oauth_token}' \\
+  -v --connect-timeout 15 --max-time 30"""
+            
             return jsonify({"curl_command": curl_command})
         except Exception as e:
+            logger.error(f"Curl generation error: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    # === ДИАГНОСТИКА СЕТИ ===
+    
+    @app.route('/api/diagnostics/network', methods=['GET'])
+    def api_diagnostics_network():
+        """Сетевая диагностика"""
+        try:
+            import requests
+            import socket
+            
+            results = {
+                "timestamp": datetime.now().isoformat(),
+                "network_tests": {}
+            }
+            
+            # Проверка подключения к интернету
+            try:
+                response = requests.get("https://google.com", timeout=5)
+                results["network_tests"]["internet"] = {
+                    "status": "✓" if response.status_code == 200 else "⚠",
+                    "message": f"Подключение к интернету (HTTP {response.status_code})"
+                }
+            except Exception as e:
+                results["network_tests"]["internet"] = {"status": "✗", "error": str(e)}
+            
+            # DNS разрешение
+            try:
+                ip = socket.gethostbyname("booking.crystalbay.com")
+                results["network_tests"]["dns"] = {
+                    "status": "✓",
+                    "message": f"DNS разрешение: {ip}"
+                }
+            except Exception as e:
+                results["network_tests"]["dns"] = {"status": "✗", "error": str(e)}
+            
+            return jsonify(results)
+            
+        except Exception as e:
+            logger.error(f"Network diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
 
     logger.info("API routes registered successfully")

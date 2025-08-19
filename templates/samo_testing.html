@@ -781,11 +781,28 @@ async function checkSSLCert() {
     }
 }
 
+// Use existing functions or create simple ones that work with current API
+async function runProductionNetworkDiagnostics() {
+    await runNetworkDiagnostics();
+}
+
+async function runProductionDNS() {
+    await checkDNSResolution();
+}
+
+async function runProductionSSL() {
+    await checkSSLCert();
+}
+
+async function runProductionWhitelist() {
+    await runWhitelistTest();
+}
+
 async function runWhitelistTest() {
     logToResults('advanced-results', 'Проверка IP whitelist...', 'warning');
     
     try {
-        const response = await fetch('/api/samo/whitelist-test');
+        const response = await fetch('/api/diagnostics/samo');
         const data = await response.json();
         
         if (data.whitelisted) {
