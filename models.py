@@ -17,7 +17,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize Supabase client with error handling
-supabase: Optional['Client'] = None
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
 
@@ -51,12 +50,13 @@ _memory_agents_config = {
 # Demo data removed for production deployment
 _memory_leads = []  # Empty for production
 
+supabase = None
 try:
     if not supabase_url or not supabase_key:
         logger.warning("SUPABASE_URL or SUPABASE_KEY not set. Using memory storage fallback.")
     else:
-        from supabase import create_client, Client
-        supabase: Client = create_client(supabase_url, supabase_key)
+        from supabase import create_client
+        supabase = create_client(supabase_url, supabase_key)
         logger.info("Supabase client initialized successfully")
 except ImportError:
     logger.error("Could not import supabase module. Please install it with 'pip install supabase'")

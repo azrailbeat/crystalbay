@@ -111,14 +111,31 @@ class CrystalBaySamoAPI:
             # Пробуем парсить как JSON
             try:
                 result = response.json()
+                logger.info(f"SAMO API успешный ответ {action}: {result}")
                 return result
             except json.JSONDecodeError:
                 # Если JSON не парсится, возвращаем текст ответа
-                return {"error": "Invalid JSON response", "response": response.text}
+                logger.warning(f"SAMO API не JSON ответ {action}: {response.text[:200]}")
+                return {"error": "Invalid JSON response", "response": response.text, "status_code": response.status_code}
             
         except requests.RequestException as e:
             logger.error(f"SAMO API ошибка запроса {action}: {e}")
-            return {"error": str(e)}
+            
+            # Детальная информация об ошибке для диагностики
+            error_details = {
+                "error": str(e),
+                "action": action,
+                "url": self.base_url,
+                "oauth_token_suffix": self.oauth_token[-4:] if self.oauth_token else "None"
+            }
+            
+            if hasattr(e, 'response') and e.response:
+                error_details.update({
+                    "status_code": e.response.status_code,
+                    "response_text": e.response.text[:500] if e.response.text else ""
+                })
+            
+            return error_details
     
     # === СПРАВОЧНИКИ ===
     

@@ -1,0 +1,63 @@
+{
+  "total": 9,
+  "passed": 8,
+  "failed": 1,
+  "warnings": 0,
+  "errors": 0,
+  "results": [
+    {
+      "test": "Dashboard Accessibility",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.068185",
+      "details": "Дашборд загружается корректно"
+    },
+    {
+      "test": "Navigation Menu",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.073426",
+      "details": "Все пункты меню присутствуют"
+    },
+    {
+      "test": "Responsive Layout",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.077579",
+      "details": "Мобильная версия поддерживается"
+    },
+    {
+      "test": "Leads Kanban Board",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.744290",
+      "details": "Канбан доска отображается"
+    },
+    {
+      "test": "Lead Creation API",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.748240",
+      "details": "Лид создается через API"
+    },
+    {
+      "test": "Tours Search Form",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.761634",
+      "details": "Форма поиска присутствует"
+    },
+    {
+      "test": "SAMO API Connection",
+      "status": "FAIL",
+      "timestamp": "2025-08-19T07:06:17.772192",
+      "details": "Ошибка тестирования API: 404"
+    },
+    {
+      "test": "SAMO Testing Interface",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.786422",
+      "details": "Интерфейс тестирования доступен"
+    },
+    {
+      "test": "Settings Interface",
+      "status": "PASS",
+      "timestamp": "2025-08-19T07:06:17.796486",
+      "details": "Панель настроек доступна"
+    }
+  ]
+}

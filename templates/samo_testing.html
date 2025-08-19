@@ -35,7 +35,55 @@
                 </div>
                 <div class="card-body">
                     <div id="connection-status" class="alert alert-warning">
-                        <i class="bi bi-clock"></i> Проверка подключения...
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-clock"></i> Проверка подключения...</span>
+                            <button class="btn btn-sm btn-outline-primary" onclick="runProductionDiagnostics()">
+                                <i class="bi bi-wrench"></i> Диагностика
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="diagnostics-results" class="mt-3" style="display: none;">
+                        <div class="accordion" id="diagnosticsAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#envDiagnostics">
+                                        <i class="bi bi-gear-fill me-2"></i> Переменные окружения
+                                    </button>
+                                </h2>
+                                <div id="envDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                                    <div class="accordion-body">
+                                        <div id="env-results">Загрузка...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#samoDiagnostics">
+                                        <i class="bi bi-cloud-arrow-down-fill me-2"></i> SAMO API соединение
+                                    </button>
+                                </h2>
+                                <div id="samoDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                                    <div class="accordion-body">
+                                        <div id="samo-results">Загрузка...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#serverDiagnostics">
+                                        <i class="bi bi-server me-2"></i> Информация о сервере
+                                    </button>
+                                </h2>
+                                <div id="serverDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                                    <div class="accordion-body">
+                                        <div id="server-results">Загрузка...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="row">
@@ -321,6 +369,114 @@ function logToResults(containerId, message, type = 'info') {
 
 function formatJSON(obj) {
     return JSON.stringify(obj, null, 2);
+}
+
+// Production diagnostics function
+async function runProductionDiagnostics() {
+    const diagnosticsDiv = document.getElementById('diagnostics-results');
+    diagnosticsDiv.style.display = 'block';
+    
+    // Show loading state
+    document.getElementById('env-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
+    document.getElementById('samo-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
+    document.getElementById('server-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
+    
+    // Run diagnostics
+    await Promise.all([
+        runEnvironmentDiagnostics(),
+        runSamoDiagnostics(), 
+        runServerDiagnostics()
+    ]);
+}
+
+async function runEnvironmentDiagnostics() {
+    try {
+        const response = await fetch('/api/diagnostics/environment');
+        const data = await response.json();
+        
+        let html = '<h6>Переменные окружения:</h6><ul class="list-unstyled">';
+        for (const [key, value] of Object.entries(data.environment)) {
+            const status = value.includes('✓') ? 'text-success' : 'text-danger';
+            html += `<li class="${status}"><strong>${key}:</strong> ${value}</li>`;
+        }
+        html += '</ul>';
+        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
+        
+        document.getElementById('env-results').innerHTML = html;
+    } catch (error) {
+        document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+    }
+}
+
+async function runSamoDiagnostics() {
+    try {
+        const response = await fetch('/api/diagnostics/samo');
+        const data = await response.json();
+        
+        let html = `<div class="mb-3">
+            <h6>Параметры подключения:</h6>
+            <ul class="list-unstyled">
+                <li><strong>API URL:</strong> <code>${data.api_url}</code></li>
+                <li><strong>OAuth Token (суффикс):</strong> <code>***${data.oauth_token_suffix}</code></li>
+            </ul>
+        </div>`;
+        
+        html += '<h6>Результаты тестов:</h6>';
+        for (const [testName, result] of Object.entries(data.tests)) {
+            const status = result.status === '✓' ? 'success' : result.status === '✗' ? 'danger' : 'warning';
+            html += `<div class="alert alert-${status} py-2 mb-2">
+                <strong>${testName}:</strong> ${result.status} 
+                ${result.message || result.error || ''}
+            </div>`;
+            
+            if (result.status_code) {
+                html += `<small class="text-muted">HTTP Status: ${result.status_code}</small><br>`;
+            }
+            if (result.response_preview) {
+                html += `<details class="mt-2">
+                    <summary>Предварительный просмотр ответа</summary>
+                    <pre class="small mt-2">${result.response_preview}</pre>
+                </details>`;
+            }
+        }
+        
+        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
+        document.getElementById('samo-results').innerHTML = html;
+    } catch (error) {
+        document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+    }
+}
+
+async function runServerDiagnostics() {
+    try {
+        const response = await fetch('/api/diagnostics/server');
+        const data = await response.json();
+        
+        let html = `<h6>Информация о сервере:</h6>
+        <ul class="list-unstyled">
+            <li><strong>Внешний IP:</strong> <code>${data.external_ip}</code></li>
+            <li><strong>User Agent:</strong> <code>${data.user_agent}</code></li>
+            <li><strong>Python версия:</strong> <code>${data.python_version}</code></li>
+            <li><strong>Переменных окружения:</strong> <code>${data.environment_vars_count}</code></li>
+        </ul>`;
+        
+        // Add curl command
+        try {
+            const curlResponse = await fetch('/api/diagnostics/curl');
+            const curlData = await curlResponse.json();
+            html += `<h6>Curl команда для тестирования:</h6>
+            <div class="bg-dark text-light p-3 rounded">
+                <small><pre>${curlData.curl_command}</pre></small>
+            </div>`;
+        } catch (e) {
+            console.warn('Curl command generation failed:', e);
+        }
+        
+        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
+        document.getElementById('server-results').innerHTML = html;
+    } catch (error) {
+        document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+    }
 }
 
 // Connection status functions

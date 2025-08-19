@@ -351,4 +351,46 @@ def register_api_routes(app):
                 'error': str(e)
             }), 500
 
+    # === ДИАГНОСТИКА ПРОДАКШН СЕРВЕРА ===
+    
+    @app.route('/api/diagnostics/environment', methods=['GET'])
+    def api_diagnostics_environment():
+        """Диагностика переменных окружения"""
+        try:
+            from diagnostics import ProductionDiagnostics
+            result = ProductionDiagnostics.check_environment()
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/api/diagnostics/samo', methods=['GET'])
+    def api_diagnostics_samo():
+        """Диагностика SAMO API подключения"""
+        try:
+            from diagnostics import ProductionDiagnostics
+            result = ProductionDiagnostics.check_samo_connection()
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/api/diagnostics/server', methods=['GET'])
+    def api_diagnostics_server():
+        """Информация о сервере"""
+        try:
+            from diagnostics import ProductionDiagnostics
+            result = ProductionDiagnostics.get_server_info()
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/api/diagnostics/curl', methods=['GET'])
+    def api_diagnostics_curl():
+        """Генерация curl команды"""
+        try:
+            from diagnostics import ProductionDiagnostics
+            curl_command = ProductionDiagnostics.generate_curl_command()
+            return jsonify({"curl_command": curl_command})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     logger.info("API routes registered successfully")
