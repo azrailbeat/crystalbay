@@ -516,5 +516,113 @@ def register_api_routes(app):
         except Exception as e:
             logger.error(f"Network diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
+    
+    # === SAMO CURL EXECUTION ===
+    
+    @app.route('/api/samo/execute-curl', methods=['POST'])
+    def api_samo_execute_curl():
+        """Execute curl command for SAMO API"""
+        try:
+            data = request.get_json() or {}
+            method = data.get('method', 'SearchTour_CURRENCIES')
+            params = data.get('params', '')
+            
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            
+            # Build request parameters
+            request_params = {
+                'samo_action': 'api',
+                'version': '1.0', 
+                'type': 'json',
+                'action': method,
+                'oauth_token': oauth_token
+            }
+            
+            # Add additional parameters if provided
+            if params:
+                for param in params.split('&'):
+                    if '=' in param:
+                        key, value = param.split('=', 1)
+                        request_params[key] = value
+            
+            # Generate curl command for display
+            curl_command = f"curl -X POST '{samo_url}' \\\n"
+            curl_command += "  -H 'Content-Type: application/x-www-form-urlencoded' \\\n"
+            curl_command += "  -H 'User-Agent: Crystal Bay Travel/1.0' \\\n"
+            curl_command += "  -d '" + "&".join([f"{k}={v}" for k, v in request_params.items()]) + "'"
+            
+            # Execute request
+            import requests
+            response = requests.post(samo_url, data=request_params, timeout=15)
+            
+            result = {
+                "command": curl_command,
+                "success": response.status_code == 200,
+                "status_code": response.status_code,
+                "response_length": len(response.text),
+                "result": response.text[:1000] if response.text else "No response"
+            }
+            
+            if response.status_code == 403:
+                result["error"] = "IP заблокирован в SAMO API"
+                result["message"] = "Необходимо разблокировать IP у поставщика"
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"SAMO curl execution error: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "command": "curl command generation failed"
+            }), 500
+    
+    @app.route('/api/samo/server-curl-test', methods=['GET'])
+    def api_samo_server_curl_test():
+        """Server-side curl test"""
+        try:
+            import subprocess
+            import os
+            
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            
+            curl_command = [
+                'curl', '-s', '-w', '%{http_code}',
+                '-X', 'POST',
+                'https://booking.crystalbay.com/export/default.php',
+                '-H', 'Content-Type: application/x-www-form-urlencoded',
+                '-H', 'User-Agent: Crystal Bay Travel Server/1.0',
+                '-d', f'samo_action=api&version=1.0&type=json&action=SearchTour_CURRENCIES&oauth_token={oauth_token}',
+                '--connect-timeout', '15',
+                '--max-time', '30'
+            ]
+            
+            result = subprocess.run(curl_command, capture_output=True, text=True, timeout=30)
+            
+            # Extract HTTP code from end of response
+            output = result.stdout
+            if len(output) >= 3 and output[-3:].isdigit():
+                http_code = output[-3:]
+                response_body = output[:-3]
+            else:
+                http_code = "000"
+                response_body = output
+            
+            return jsonify({
+                "success": result.returncode == 0,
+                "command": " ".join(curl_command),
+                "http_code": http_code,
+                "response": response_body[:500],
+                "stderr": result.stderr[:200] if result.stderr else ""
+            })
+            
+        except Exception as e:
+            logger.error(f"Server curl test error: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "command": "Server curl test failed"
+            }), 500
 
     logger.info("API routes registered successfully")
