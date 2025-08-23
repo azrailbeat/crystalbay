@@ -766,14 +766,24 @@ async function runNetworkDiagnostics() {
     logToResults('advanced-results', 'Запуск сетевой диагностики...', 'info');
     
     try {
-        const response = await fetch('/api/samo/network-diagnostics');
+        const response = await fetch('/api/diagnostics/network');
         const data = await response.json();
         
-        logToResults('advanced-results', 
-            `<strong>Ping test:</strong> ${data.ping_result}`, 
-            data.ping_success ? 'success' : 'error');
-        logToResults('advanced-results', 
-            `<strong>Traceroute:</strong><br><pre class="small">${data.traceroute}</pre>`, 'info');
+        if (data.network_tests) {
+            let html = '<strong>Сетевая диагностика:</strong><br>';
+            
+            if (data.network_tests.internet) {
+                html += `Интернет: ${data.network_tests.internet.status} ${data.network_tests.internet.message}<br>`;
+            }
+            
+            if (data.network_tests.dns) {
+                html += `DNS: ${data.network_tests.dns.status} ${data.network_tests.dns.message}<br>`;
+            }
+            
+            logToResults('advanced-results', html, 'info');
+        } else {
+            logToResults('advanced-results', 'Сетевая диагностика недоступна', 'warning');
+        }
     } catch (error) {
         logToResults('advanced-results', `Ошибка диагностики: ${error.message}`, 'error');
     }
@@ -783,12 +793,16 @@ async function checkDNSResolution() {
     logToResults('advanced-results', 'Проверка DNS разрешения...', 'info');
     
     try {
-        const response = await fetch('/api/samo/dns-check');
+        const response = await fetch('/api/diagnostics/network');
         const data = await response.json();
         
-        logToResults('advanced-results', 
-            `DNS разрешение для booking-kz.crystalbay.com: <code>${data.ip_address}</code>`, 
-            data.success ? 'success' : 'error');
+        if (data.network_tests && data.network_tests.dns) {
+            logToResults('advanced-results', 
+                `DNS разрешение: <code>${data.network_tests.dns.message}</code>`, 
+                data.network_tests.dns.status === '✓' ? 'success' : 'error');
+        } else {
+            logToResults('advanced-results', 'DNS тест недоступен', 'warning');
+        }
     } catch (error) {
         logToResults('advanced-results', `Ошибка DNS проверки: ${error.message}`, 'error');
     }
@@ -798,12 +812,16 @@ async function checkSSLCert() {
     logToResults('advanced-results', 'Проверка SSL сертификата...', 'info');
     
     try {
-        const response = await fetch('/api/samo/ssl-check');
+        const response = await fetch('/api/diagnostics/network');
         const data = await response.json();
         
-        logToResults('advanced-results', 
-            `SSL сертификат: валидный до ${data.expires}`, 
-            data.valid ? 'success' : 'warning');
+        if (data.network_tests && data.network_tests.internet) {
+            logToResults('advanced-results', 
+                `SSL соединение: ${data.network_tests.internet.message}`, 
+                data.network_tests.internet.status === '✓' ? 'success' : 'warning');
+        } else {
+            logToResults('advanced-results', 'SSL тест недоступен', 'warning');
+        }
     } catch (error) {
         logToResults('advanced-results', `Ошибка SSL проверки: ${error.message}`, 'error');
     }
@@ -830,20 +848,35 @@ async function runWhitelistTest() {
     logToResults('advanced-results', 'Проверка IP whitelist...', 'warning');
     
     try {
+        // Получаем IP сервера
+        const serverResponse = await fetch('/api/diagnostics/server');
+        const serverData = await serverResponse.json();
+        const serverIP = serverData.external_ip || 'unknown';
+        
+        // Проверяем САМО API
         const response = await fetch('/api/diagnostics/samo');
         const data = await response.json();
         
-        if (data.whitelisted) {
-            logToResults('advanced-results', 
-                `✅ IP ${data.server_ip} находится в whitelist SAMO`, 'success');
+        if (data.tests && data.tests.api_endpoint) {
+            const statusCode = data.tests.api_endpoint.status_code;
+            if (statusCode === 200) {
+                logToResults('advanced-results', 
+                    `✅ IP ${serverIP} находится в whitelist SAMO`, 'success');
+            } else if (statusCode === 403) {
+                logToResults('advanced-results', 
+                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO.`, 'error');
+            } else if (statusCode === 500) {
+                logToResults('advanced-results', 
+                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO.`, 'error');
+            } else {
+                logToResults('advanced-results', 
+                    `⚠️ Неопределенный статус IP ${serverIP}: HTTP ${statusCode}`, 'warning');
+            }
         } else {
-            logToResults('advanced-results', 
-                `❌ IP ${data.server_ip} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO.`, 'error');
-            logToResults('advanced-results', 
-                `Ошибка: ${data.error_message}`, 'error');
+            logToResults('advanced-results', 'Тест whitelist недоступен', 'warning');
         }
     } catch (error) {
-        logToResults('advanced-results', `Ошибка whitelist проверки: ${error.message}`, 'error');
+        logToResults('advanced-results', `Ошибка: ${error.message}`, 'error');
     }
 }
 
