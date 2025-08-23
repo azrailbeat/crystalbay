@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-08-23T04:36:31.254967",
+  "status": "healthy",
+  "checks": {
+    "health_endpoint": "✅ Работает",
+    "main_page": "✅ Работает",
+    "apienvironment": "✅ Работает",
+    "apiserver": "✅ Работает",
+    "apinetwork": "✅ Работает",
+    "apisamo": "✅ Работает",
+    "samo_api": "⚠️ IP заблокирован",
+    "curl_functions": "✅ Работают"
+  }
+}
