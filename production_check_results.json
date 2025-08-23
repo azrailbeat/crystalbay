@@ -1,0 +1,13 @@
+{
+  "server": "46.250.234.89:5000",
+  "tests": {
+    "health": true,
+    "api_environment": true,
+    "api_server": true,
+    "api_network": true,
+    "api_samo": true,
+    "curl_functions": true
+  },
+  "status": "synced",
+  "current_ip": "46.250.234.89"
+}
