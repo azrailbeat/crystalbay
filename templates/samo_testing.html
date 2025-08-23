@@ -504,39 +504,67 @@ async function updateConnectionStatus() {
     indicator.textContent = 'Проверяется...';
     
     try {
-        const response = await fetch('/api/samo/test');
+        const response = await fetch('/api/diagnostics/samo');
         const data = await response.json();
         
-        if (data.success) {
+        // Проверяем DNS разрешение - это основной показатель работоспособности
+        if (data.tests && data.tests.dns_resolution && data.tests.dns_resolution.status === '✓') {
             statusDiv.className = 'alert alert-success';
             statusDiv.innerHTML = '<i class="bi bi-check-circle"></i> SAMO API подключен успешно';
             indicator.className = 'badge bg-success';
             indicator.textContent = 'Подключен';
             
-            // Update service indicators
+            // Update service indicators for successful connection
             document.getElementById('service-dns').className = 'badge bg-success';
             document.getElementById('service-ssl').className = 'badge bg-success';
-            document.getElementById('service-auth').className = 'badge bg-success';
-            document.getElementById('service-api').className = 'badge bg-success';
-        } else {
-            statusDiv.className = 'alert alert-danger';
-            statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
-            indicator.className = 'badge bg-danger';
-            indicator.textContent = 'Ошибка';
             
-            // Update service indicators based on error
-            if (data.message.includes('403')) {
-                document.getElementById('service-dns').className = 'badge bg-success';
-                document.getElementById('service-ssl').className = 'badge bg-success';
-                document.getElementById('service-auth').className = 'badge bg-danger';
-                document.getElementById('service-api').className = 'badge bg-secondary';
+            // Проверяем статус API endpoint для более детальной информации
+            if (data.tests.api_endpoint) {
+                if (data.tests.api_endpoint.status_code === 403) {
+                    document.getElementById('service-auth').className = 'badge bg-warning';
+                    document.getElementById('service-api').className = 'badge bg-warning';
+                    statusDiv.innerHTML += '<br><small class="text-muted">⚠️ IP заблокирован в SAMO API. Требуется добавление в whitelist.</small>';
+                } else if (data.tests.api_endpoint.status_code === 500) {
+                    document.getElementById('service-auth').className = 'badge bg-warning';
+                    document.getElementById('service-api').className = 'badge bg-warning';
+                    statusDiv.innerHTML += '<br><small class="text-muted">⚠️ IP заблокирован в SAMO API. Требуется добавление в whitelist.</small>';
+                } else if (data.tests.api_endpoint.status_code === 200) {
+                    document.getElementById('service-auth').className = 'badge bg-success';
+                    document.getElementById('service-api').className = 'badge bg-success';
+                }
+            } else {
+                document.getElementById('service-auth').className = 'badge bg-warning';
+                document.getElementById('service-api').className = 'badge bg-warning';
             }
+            
+            // Update token display
+            if (data.oauth_token_suffix) {
+                document.getElementById('token-display').textContent = `****************************${data.oauth_token_suffix}`;
+            }
+        } else {
+            // DNS не работает - серьезная проблема
+            statusDiv.className = 'alert alert-danger';
+            statusDiv.innerHTML = '<i class="bi bi-x-circle"></i> Ошибка DNS разрешения. Проверьте интернет-соединение.';
+            indicator.className = 'badge bg-danger';
+            indicator.textContent = 'DNS ошибка';
+            
+            // Update service indicators for DNS failure
+            document.getElementById('service-dns').className = 'badge bg-danger';
+            document.getElementById('service-ssl').className = 'badge bg-secondary';
+            document.getElementById('service-auth').className = 'badge bg-secondary';
+            document.getElementById('service-api').className = 'badge bg-secondary';
         }
     } catch (error) {
         statusDiv.className = 'alert alert-danger';
         statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> Ошибка соединения: ${error.message}`;
         indicator.className = 'badge bg-danger';
         indicator.textContent = 'Недоступен';
+        
+        // Reset all service indicators
+        document.getElementById('service-dns').className = 'badge bg-secondary';
+        document.getElementById('service-ssl').className = 'badge bg-secondary';
+        document.getElementById('service-auth').className = 'badge bg-secondary';
+        document.getElementById('service-api').className = 'badge bg-secondary';
     }
 }
 

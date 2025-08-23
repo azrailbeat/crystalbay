@@ -2,6 +2,7 @@ import logging
 from flask import request, jsonify
 from datetime import datetime
 import os
+import sys
 import subprocess
 import shlex
 import json
@@ -451,7 +452,7 @@ def register_api_routes(app):
                 "timestamp": datetime.now().isoformat(),
                 "external_ip": external_ip,
                 "user_agent": "Crystal Bay Travel Production/1.0",
-                "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
+                "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "environment_vars_count": len([k for k in os.environ.keys() if not k.startswith('_')])
             })
             
