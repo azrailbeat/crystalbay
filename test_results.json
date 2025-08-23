@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-23T04:36:40.745479",
+  "timestamp": "2025-08-23T06:13:24.227332",
   "summary": {
     "passed": 8,
     "warnings": 2,
@@ -11,7 +11,7 @@
     "✅ Main Page: Главная страница загружается",
     "✅ SAMO Testing Page: Страница SAMO тестирования доступна",
     "✅ Environment Diagnostics: Переменных окружения: 5",
-    "✅ Server Diagnostics: IP: 34.74.15.115",
+    "✅ Server Diagnostics: IP: 34.148.231.102",
     "✅ Network Diagnostics: Сетевая диагностика работает",
     "⚠️  SAMO API: IP заблокирован у поставщика",
     "⚠️  Curl Execution: SAMO API блокирует IP",
