@@ -96,7 +96,7 @@ class TinyProxyClient:
             }
     
     def make_samo_request(self, action: str, method: str = 'GET', 
-                         params: Dict = None, xml_data: str = None) -> Dict[str, Any]:
+                         params: Optional[Dict] = None, xml_data: Optional[str] = None) -> Dict[str, Any]:
         """
         Make SAMO API request through TinyProxy
         
