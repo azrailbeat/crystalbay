@@ -1,364 +1,238 @@
-# Crystal Bay Travel - Multi-Channel Travel Booking System
+# Crystal Bay Travel - Comprehensive Travel Management System
 
-[![Production Status](https://img.shields.io/badge/status-production%20ready-green.svg)](https://github.com/azrailbeat/crystalbay)
-[![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://docker.com)
-[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+## 🌟 Overview
 
-## 📋 Overview
+Crystal Bay Travel is a sophisticated multi-channel travel booking and customer management system designed for modern travel agencies. The platform combines AI-powered customer service, comprehensive lead management, and seamless integration with travel booking APIs.
 
-Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system designed for modern travel agencies. The system streamlines operations through automated lead processing, AI-powered customer interactions, and integrated booking management with a clean Apple-inspired web dashboard.
+## ✨ Key Features
 
-### Key Features
+### 🎯 Core Functionality
+- **Apple-inspired Dashboard** - Clean, intuitive interface with real-time metrics
+- **Kanban Lead Management** - Visual lead tracking with drag-and-drop workflow
+- **SAMO API Integration** - Complete tour search and booking capabilities
+- **Multi-channel Support** - Website, Telegram, WhatsApp integration
+- **AI-Powered Agents** - Automated customer service with GPT-4 integration
 
-- **🎨 Apple-Inspired Web Dashboard** - Clean, intuitive interface with modern design
-- **🏨 SAMO API Integration** - Complete tour booking system with real-time inventory
-- **📊 Kanban Lead Management** - Visual lead tracking and management system
-- **🤖 AI-Powered Automation** - OpenAI GPT-4o integration for intelligent responses
-- **💬 Multi-Channel Messaging** - Telegram Bot and Wazzup24.ru integration
-- **🔧 Advanced Diagnostics** - Network testing, SSL checks, API monitoring
-- **📱 Responsive Design** - Bootstrap-based UI optimized for all devices
-- **🐳 Docker Deployment** - Production-ready containerization
+### 🔧 Technical Capabilities
+- **Advanced Diagnostics** - Network, API, and system health monitoring
+- **Real-time Testing** - Built-in curl execution and API testing tools
+- **Flexible Deployment** - Docker-ready with scalable architecture
+- **Comprehensive Logging** - Detailed error tracking and system monitoring
+
+### 🌐 Integrations
+- **SAMO Travel API** - Tour inventory and booking management
+- **Wazzup24.ru** - WhatsApp business messaging
+- **Supabase** - Cloud database with real-time capabilities
+- **OpenAI** - Advanced AI for customer service automation
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+- Docker and Docker Compose
+- Python 3.11+ (for development)
+- Environment variables configured
 
-- **Python 3.11+**
-- **Docker & Docker Compose** (for containerized deployment)
-- **PostgreSQL Database** (Neon DB or local instance)
-- **Git**
+### Installation with Docker
 
-### Option 1: Quick Installation (Recommended)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/crystal-bay-travel.git
+   cd crystal-bay-travel
+   ```
 
-```bash
-# Clone the repository
-git clone https://github.com/azrailbeat/crystalbay.git
-cd crystalbay
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and settings
+   ```
 
-# Make start script executable and run
-chmod +x start.sh
-./start.sh
-```
+3. **Start with Docker**
+   ```bash
+   # Development
+   docker-compose up -d
+   
+   # Production
+   docker-compose -f docker-compose.production.yml up -d
+   ```
 
-The start script will automatically:
-- Install Python dependencies
-- Setup environment variables
-- Start the Flask application
-- Open the web interface
+4. **Access the application**
+   - Web Interface: http://localhost:5000
+   - Health Check: http://localhost:5000/health
 
-### Option 2: Manual Installation
+### Manual Installation
 
-```bash
-# 1. Clone repository
-git clone https://github.com/azrailbeat/crystalbay.git
-cd crystalbay
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 2. Create Python virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+2. **Configure environment**
+   ```bash
+   export SUPABASE_URL="your_supabase_url"
+   export SUPABASE_KEY="your_supabase_key"
+   export SAMO_OAUTH_TOKEN="your_samo_token"
+   export OPENAI_API_KEY="your_openai_key"
+   ```
 
-# 3. Install dependencies
-pip install -r requirements.txt
+3. **Start the application**
+   ```bash
+   # Using start script
+   ./start.sh
+   
+   # Or manually
+   gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+   ```
 
-# 4. Setup environment variables
-cp .env.example .env
-# Edit .env with your configuration (see Configuration section)
+## 📋 Environment Variables
 
-# 5. Start application
-python main.py
-```
-
-### Option 3: Docker Deployment
-
-#### Development Mode
-```bash
-docker-compose up -d
-```
-
-#### Production Mode
-```bash
-docker-compose -f docker-compose.production.yml up -d
-```
-
-## ⚙️ Configuration
-
-### Environment Variables Setup
-
-Copy `.env.example` to `.env` and configure the following variables:
-
+### Required Variables
 ```env
-# Database Configuration
-DATABASE_URL=postgresql://user:password@host:port/database
-PGHOST=your-db-host
-PGPORT=5432
-PGUSER=your-db-user
-PGPASSWORD=your-db-password
-PGDATABASE=your-db-name
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+SAMO_OAUTH_TOKEN=your_samo_api_token
+```
 
-# SAMO Travel API (Required for booking functionality)
-SAMO_OAUTH_TOKEN=your-samo-oauth-token
-
-# OpenAI Integration (Required for AI features)
-OPENAI_API_KEY=sk-proj-your-openai-key
-
-# Telegram Bot (Optional)
-TELEGRAM_BOT_TOKEN=your-telegram-bot-token
-
-# Wazzup24 Messaging (Optional)
-WAZZUP_API_KEY=your-wazzup-api-key
-
-# Supabase (Optional - alternative database)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-supabase-anon-key
-
-# Flask Configuration
-FLASK_SECRET_KEY=your-secret-key-here
+### Optional Variables
+```env
+OPENAI_API_KEY=your_openai_api_key
+WAZZUP_API_KEY=your_wazzup_api_key
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+PORT=5000
 FLASK_ENV=production
-DEBUG=False
 ```
 
-### API Keys Setup Guide
+## 🏗️ Architecture
 
-#### 1. SAMO Travel API Token
-1. Contact SAMO support to request API access
-2. Provide your server IP address for whitelisting
-3. Receive OAuth token and add to `SAMO_OAUTH_TOKEN`
+### Core Components
+- **Flask Application** (`main.py`) - Web interface and routing
+- **API Layer** (`app_api.py`) - RESTful endpoints and diagnostics
+- **Data Models** (`models.py`) - Database abstractions and services
+- **SAMO Integration** (`crystal_bay_samo_api.py`) - Travel API client
+- **Proxy Client** (`proxy_client.py`) - Network routing utilities
 
-#### 2. OpenAI API Key
-1. Visit [OpenAI Platform](https://platform.openai.com/)
-2. Create account and navigate to API Keys
-3. Generate new secret key
-4. Add to `OPENAI_API_KEY`
-
-#### 3. Telegram Bot Token
-1. Message [@BotFather](https://t.me/botfather) on Telegram
-2. Use `/newbot` command to create bot
-3. Copy token to `TELEGRAM_BOT_TOKEN`
-
-#### 4. Database Setup (Neon DB - Recommended)
-1. Visit [Neon](https://neon.tech/) and create account
-2. Create new project and database
-3. Copy connection string to `DATABASE_URL`
-
-## 📁 Project Structure
-
+### Frontend Structure
 ```
-crystal-bay-travel/
-├── main.py                 # Main Flask application
-├── app_api.py             # API routes and endpoints
-├── models.py              # Database models and services
-├── crystal_bay_samo_api.py # SAMO API integration
-├── samo_api_routes.py     # SAMO API route definitions
-├── proxy_client.py        # Proxy client for API requests
-├── templates/             # HTML templates
-│   ├── layout.html        # Base layout with sidebar
-│   ├── dashboard.html     # Main dashboard
-│   ├── leads.html         # Lead management
-│   ├── tours.html         # Tour search and booking
-│   ├── bookings.html      # Booking management
-│   ├── agents.html        # Agent management
-│   ├── analytics.html     # Analytics dashboard
-│   ├── history.html       # Activity history
-│   ├── ai_agents.html     # AI agent management
-│   ├── messages.html      # Message center
-│   ├── samo_testing.html  # SAMO API testing interface
-│   └── unified_settings.html # Settings panel
-├── static/               # Static assets (CSS, JS, images)
-├── docker-compose.yml    # Development Docker setup
-├── docker-compose.production.yml # Production setup
-├── Dockerfile.production # Production Docker configuration
-├── requirements.txt      # Python dependencies
-├── start.sh             # Quick start script
-├── install.md           # Detailed installation guide
-├── .env.example         # Environment template
-├── .gitignore           # Git ignore rules
-├── LICENSE              # MIT License
-└── README.md            # This file
+templates/
+├── layout.html          # Base template with navigation
+├── dashboard.html       # Main dashboard with metrics
+├── leads.html          # Lead management interface
+├── tours.html          # Tour search and booking
+├── samo_testing.html   # API testing and diagnostics
+└── unified_settings.html # Configuration management
 ```
 
-## 🌐 Web Interface
-
-After installation, access the application at:
-
-- **Local Development**: http://localhost:5000
-- **Production**: http://your-server-ip:5000
-
-### Main Sections
-
-1. **📊 Dashboard** (`/`) - Overview of leads, bookings, and system status
-2. **👥 Lead Management** (`/leads`) - Kanban-style lead tracking
-3. **🏨 Tour Search** (`/tours`) - SAMO API tour booking interface
-4. **📅 Bookings** (`/bookings`) - Booking management and tracking
-5. **🤖 AI Agents** (`/ai-agents`) - AI automation configuration
-6. **💬 Messages** (`/messages`) - Multi-channel message center
-7. **🔧 SAMO Testing** (`/samo-testing`) - API diagnostics and testing
-8. **⚙️ Settings** (`/unified-settings`) - System configuration
+### Static Assets
+```
+static/
+├── css/                # Bootstrap-based styling
+├── js/                 # Frontend JavaScript
+└── images/             # Application assets
+```
 
 ## 🔧 API Endpoints
 
-### Health Check
-```bash
-GET /health
-# Returns: {"status": "healthy", "timestamp": "...", "version": "1.0.0"}
-```
+### Health & Diagnostics
+- `GET /health` - Application health check
+- `GET /api/diagnostics/server` - Server information
+- `GET /api/diagnostics/samo` - SAMO API status
+- `GET /api/diagnostics/environment` - Environment variables check
+
+### Lead Management
+- `GET /api/leads` - Retrieve leads
+- `POST /api/leads` - Create new lead
+- `PUT /api/leads/{id}` - Update lead
+- `DELETE /api/leads/{id}` - Delete lead
 
 ### SAMO API Integration
+- `POST /api/samo/search-tours` - Search tour inventory
+- `POST /api/samo/execute-curl` - Execute API commands
+- `GET /api/samo/currencies` - Get supported currencies
+- `GET /api/samo/countries` - Get destination countries
+
+## 🧪 Testing & Diagnostics
+
+### Built-in Testing
+The application includes comprehensive diagnostic tools:
+
+- **Network Diagnostics** - DNS resolution, connectivity tests
+- **API Testing** - Real-time SAMO API validation
+- **Curl Execution** - Built-in command generation and execution
+- **SSL Verification** - Certificate validation and security checks
+
+### Development Testing
 ```bash
-# Get available tours
-GET /api/samo/tours
+# Run basic health check
+curl http://localhost:5000/health
 
-# Search tour prices
-POST /api/samo/search/prices
-# Body: {"destination": "Turkey", "date_from": "2025-08-15", ...}
+# Test SAMO API connection
+curl http://localhost:5000/api/diagnostics/samo
 
-# Get currencies
-GET /api/samo/currencies
-
-# Test connectivity
-GET /api/samo/connectivity-test
-```
-
-### System Diagnostics
-```bash
-# DNS resolution test
-GET /api/samo/dns-check
-
-# SSL certificate check
-GET /api/samo/ssl-check
-
-# IP whitelist test
-GET /api/samo/whitelist-test
-
-# Network diagnostics
-GET /api/samo/network-diagnostics
+# Check server status
+curl http://localhost:5000/api/diagnostics/server
 ```
 
 ## 🐳 Docker Deployment
 
 ### Development Environment
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
 ```
 
 ### Production Environment
-```bash
-# Start production services
-docker-compose -f docker-compose.production.yml up -d
-
-# Scale web service
-docker-compose -f docker-compose.production.yml up -d --scale web=3
-
-# Update and restart
-docker-compose -f docker-compose.production.yml pull
-docker-compose -f docker-compose.production.yml up -d
+```yaml
+# docker-compose.production.yml
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
 ```
 
-### Production Server Setup
+## 📊 Monitoring & Logging
 
-For automated production deployment on servers:
+### Application Logs
+- Structured logging with timestamps
+- Error tracking and debugging information
+- API request/response logging
+- System health monitoring
 
-```bash
-# Make deployment script executable
-chmod +x production_deploy.sh
+### Metrics Dashboard
+- Real-time lead statistics
+- SAMO API connection status
+- System performance indicators
+- User activity tracking
 
-# Run production deployment (requires root)
-sudo ./production_deploy.sh
-```
+## 🔒 Security Features
 
-## 🛠️ Development
-
-### Local Development Setup
-```bash
-# Install development dependencies
-pip install -r requirements.txt
-
-# Run in development mode
-FLASK_ENV=development python main.py
-
-# Enable debug logging
-export DEBUG=True
-```
-
-### Code Quality
-- All Python files pass compilation tests
-- LSP diagnostics resolved
-- Type safety implemented
-- Production-ready error handling
-
-### Testing SAMO API
-1. Navigate to `/samo-testing` in web interface
-2. Use built-in connectivity tests
-3. Check IP whitelist status
-4. Verify SSL certificates
-5. Test API endpoints with curl integration
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-#### SAMO API 403 Forbidden Error
-**Problem**: API returns 403 Forbidden
-**Solution**: 
-1. Contact SAMO support
-2. Provide your server IP for whitelisting
-3. Verify OAuth token is correct
-
-#### Database Connection Issues
-**Problem**: Cannot connect to PostgreSQL
-**Solution**:
-1. Verify `DATABASE_URL` is correct
-2. Check database server is running
-3. Ensure firewall allows connections
-
-#### Docker Build Failures
-**Problem**: Docker build fails
-**Solution**:
-1. Ensure `requirements.txt` exists
-2. Check `Dockerfile.production` references
-3. Verify all environment variables are set
-
-### Health Check Commands
-```bash
-# Check application health
-curl http://localhost:5000/health
-
-# Test SAMO API connectivity
-curl http://localhost:5000/api/samo/currencies
-
-# Verify database connection
-python -c "import models; print('Database OK')"
-```
-
-## 📋 System Requirements
-
-### Minimum Requirements
-- **CPU**: 1 vCPU
-- **Memory**: 512 MB RAM
-- **Storage**: 1 GB SSD
-- **Network**: 100 Mbps
-
-### Recommended (Production)
-- **CPU**: 2+ vCPUs
-- **Memory**: 2+ GB RAM
-- **Storage**: 10+ GB SSD
-- **Network**: 1 Gbps
-- **SSL Certificate** for HTTPS
+- Environment-based configuration
+- API key management
+- Request validation and sanitization
+- Error handling without data exposure
+- Secure proxy routing capabilities
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -am 'Add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Create Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
@@ -366,21 +240,56 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: Check `install.md` for detailed installation steps
-- **Issues**: Report bugs via GitHub Issues
-- **Production Issues**: See `SERVER_SETUP_COMMANDS.md`
+### Common Issues
 
-## 🎯 Roadmap
+**SAMO API Connection Issues**
+- Verify your OAuth token is correct
+- Check IP whitelist status with SAMO support
+- Use built-in diagnostics: `/samo-testing`
 
-- [ ] Complete Wazzup24 integration
-- [ ] Enhanced AI conversation flows  
-- [ ] Advanced analytics dashboard
-- [ ] Mobile app companion
-- [ ] Multi-language support
-- [ ] Advanced booking automation
+**Database Connection Problems**
+- Verify Supabase credentials
+- Check network connectivity
+- Review environment variable configuration
+
+**Docker Deployment Issues**
+- Ensure all environment variables are set
+- Check port availability (5000)
+- Review Docker logs for detailed error messages
+
+### Getting Help
+
+- Check the built-in diagnostics at `/samo-testing`
+- Review application logs
+- Verify all environment variables are configured
+- Contact support with specific error messages
+
+## 🌟 Features in Detail
+
+### Lead Management System
+- Kanban-style visual workflow
+- Automated lead scoring
+- Multi-source lead import
+- Real-time status updates
+
+### SAMO API Integration
+- Complete tour inventory access
+- Real-time booking capabilities
+- Currency and country management
+- Advanced search and filtering
+
+### AI-Powered Customer Service
+- OpenAI GPT-4 integration
+- Automated response generation
+- Multi-language support
+- Conversation history tracking
+
+### Comprehensive Diagnostics
+- Network connectivity testing
+- API endpoint validation
+- SSL certificate verification
+- Real-time system monitoring
 
 ---
 
-**Ready for Production Deployment** 🚀
-
-This system is production-tested with zero code errors and comprehensive Docker deployment capabilities.
+*Crystal Bay Travel - Transforming travel management with modern technology*
