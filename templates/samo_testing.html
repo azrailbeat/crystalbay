@@ -482,9 +482,9 @@ async function runServerDiagnostics() {
 // Connection status functions
 async function checkCurrentIP() {
     try {
-        const response = await fetch('/api/samo/get-ip');
+        const response = await fetch('/api/diagnostics/server');
         const data = await response.json();
-        currentServerIP = data.ip || 'Неизвестно';
+        currentServerIP = data.external_ip || 'Неизвестно';
         document.getElementById('server-ip').textContent = currentServerIP;
         
         logToResults('test-results', `IP адрес сервера: <code>${currentServerIP}</code>`, 'info');
