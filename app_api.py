@@ -382,13 +382,13 @@ def register_api_routes(app):
             import socket
             import ssl
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
             samo_url = "https://booking.crystalbay.com/export/default.php"
             
             diagnostics = {
                 "timestamp": datetime.now().isoformat(),
                 "api_url": samo_url,
-                "oauth_token_suffix": oauth_token[-4:] if oauth_token else "None",
+                "oauth_token_suffix": oauth_token[-4:] if oauth_token else "Missing",
                 "tests": {}
             }
             
@@ -528,7 +528,7 @@ def register_api_routes(app):
             method = data.get('method', 'SearchTour_CURRENCIES')
             params = data.get('params', '')
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
             samo_url = "https://booking.crystalbay.com/export/default.php"
             
             # Build request parameters
@@ -586,7 +586,7 @@ def register_api_routes(app):
             import subprocess
             import os
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
             
             curl_command = [
                 'curl', '-s', '-w', '%{http_code}',
