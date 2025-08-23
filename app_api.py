@@ -400,14 +400,12 @@ def register_api_routes(app):
             except Exception as e:
                 diagnostics["tests"]["dns_resolution"] = {"status": "✗", "error": str(e)}
             
-            # API Test
+            # API Test - используем правильные параметры как в работающих логах
             try:
+                # Корректные параметры согласно рабочим curl командам
                 params = {
-                    'samo_action': 'api',
-                    'version': '1.0',
-                    'type': 'json',
-                    'action': 'SearchTour_CURRENCIES',
-                    'oauth_token': oauth_token
+                    'apiKey': oauth_token,  # Правильный параметр
+                    'action': 'SearchTour_CURRENCIES'
                 }
                 
                 response = requests.post(samo_url, data=params, timeout=10)
@@ -420,7 +418,14 @@ def register_api_routes(app):
                 }
                 
                 if response.status_code == 403:
-                    diagnostics["tests"]["api_endpoint"]["message"] = "403 Forbidden - IP заблокирован или проблема с токеном"
+                    if "blacklisted address" in response.text:
+                        # Извлекаем IP из ответа SAMO
+                        import re
+                        ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', response.text)
+                        blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                        diagnostics["tests"]["api_endpoint"]["message"] = f"IP {blocked_ip} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO."
+                    else:
+                        diagnostics["tests"]["api_endpoint"]["message"] = "403 Forbidden - Проблема авторизации"
                     
             except Exception as e:
                 diagnostics["tests"]["api_endpoint"] = {"status": "✗", "error": str(e)}
@@ -471,7 +476,7 @@ def register_api_routes(app):
   -H 'User-Agent: Crystal Bay Travel Production/1.0' \\
   -H 'Accept: application/json' \\
   -H 'Content-Type: application/x-www-form-urlencoded' \\
-  -d 'samo_action=api&version=1.0&type=json&action=SearchTour_CURRENCIES&oauth_token={oauth_token}' \\
+  -d 'apiKey={oauth_token}&action=SearchTour_CURRENCIES' \\
   -v --connect-timeout 15 --max-time 30"""
             
             return jsonify({"curl_command": curl_command})

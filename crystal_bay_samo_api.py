@@ -82,13 +82,10 @@ class CrystalBaySamoAPI:
                 logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
             
             # Fallback to direct request (will likely get 403)
-            # Базовые параметры для всех запросов
+            # Базовые параметры для всех запросов (правильный формат согласно логам)
             request_params = {
-                'samo_action': 'api',
-                'version': '1.0',
-                'type': 'json',
-                'action': action,
-                'oauth_token': self.oauth_token
+                'apiKey': self.oauth_token,  # Правильный параметр
+                'action': action
             }
             
             # Добавляем дополнительные параметры

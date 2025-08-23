@@ -11,6 +11,8 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **SAMO API WHITELIST SUCCESS (Aug 23, 07:18)**: IP successfully added to SAMO whitelist, API returning data
 - **Production Server Analysis (Aug 23, 17:14)**: Confirmed SAMO API works on production server vmi2118687
 - **Multiple IP Investigation (Aug 23)**: Different servers have different SAMO access status
+- **API Parameter Fix (Aug 23, 19:12)**: Fixed SAMO API parameters from wrong format to correct 'apiKey' format
+- **Error Handling Improvement (Aug 23)**: Enhanced diagnostics to show exact blocked IP addresses
 - **Post-Deployment Testing (Aug 23)**: Full system functionality confirmed after GitHub deployment
 - **System Analysis Complete (Aug 23)**: Thorough analysis of production server 46.250.234.89 and SAMO API integration
 - **IP Whitelist Investigation (Aug 23)**: Confirmed multiple IPs tested, all blocked in SAMO API, requires technical support
