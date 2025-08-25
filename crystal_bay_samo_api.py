@@ -270,18 +270,17 @@ class CrystalBaySamoAPI:
             }
 
     def get_all_data(self) -> Dict[str, Any]:
-        """Получить все данные через рабочий SearchTour_ALL - прямой GET как curl"""
+        """Получить все данные через рабочий SearchTour_ALL - POST как curl"""
         try:
-            # Точно как в рабочем curl - GET запрос
+            # Точно как в рабочем curl - POST запрос
             request_params = {
                 'samo_action': 'api',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
-                'action': 'SearchTour_ALL',
-                'version': '1.0'  # Может требоваться для API
+                'action': 'SearchTour_ALL'
             }
             
-            logger.info(f"GET запрос SearchTour_ALL: {request_params}")
+            logger.info(f"POST запрос SearchTour_ALL: {request_params}")
             
             # POST запрос как в рабочем curl на production
             response = self.session.post(self.base_url, params=request_params, timeout=self.timeout)

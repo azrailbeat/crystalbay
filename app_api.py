@@ -406,7 +406,7 @@ def register_api_routes(app):
                 # Рабочие параметры - документация не соответствует реальности
                 params = {
                     'samo_action': 'api',
-                    'version': '1.0',
+    
                     'oauth_token': oauth_token,
                     'type': 'json',
                     'action': 'SearchTour_CURRENCIES'
@@ -506,7 +506,7 @@ def register_api_routes(app):
                 import requests
                 test_params = {
                     'samo_action': 'api',
-                    'version': '1.0', 
+     
                     'oauth_token': '27bd59a7ac67422189789f0188167379',
                     'type': 'json',
                     'action': 'SearchTour_CURRENCIES'
@@ -955,7 +955,7 @@ def register_api_routes(app):
             # Правильный формат согласно документации SAMO API
             params = {
                 'samo_action': 'api',
-                'version': '1.0',
+
                 'oauth_token': oauth_token,
                 'type': 'json',
                 'action': action
@@ -963,9 +963,9 @@ def register_api_routes(app):
             logger.info(f"Параметры запроса: {params}")
             
             # Выполнение запроса - согласно документации используем GET с параметрами в URL
-            logger.info("Отправка HTTP GET запроса к SAMO API...")
+            logger.info("Отправка HTTP POST запроса к SAMO API...")
             try:
-                response = requests.get(samo_url, params=params, timeout=10)
+                response = requests.post(samo_url, params=params, timeout=10)
                 request_time = time.time() - start_time
                 logger.info(f"Запрос выполнен за {request_time:.3f} секунд")
                 logger.info(f"HTTP Status: {response.status_code}")
@@ -1123,7 +1123,7 @@ def register_api_routes(app):
             # Правильный формат согласно документации SAMO API
             params = {
                 'samo_action': 'api',
-                'version': '1.0',
+
                 'oauth_token': oauth_token,
                 'type': 'json',
                 'action': action
@@ -1203,7 +1203,7 @@ def register_api_routes(app):
             # Правильный формат согласно документации SAMO API
             params = {
                 'samo_action': 'api',
-                'version': '1.0',
+
                 'oauth_token': oauth_token,
                 'type': 'json',
                 'action': action
