@@ -424,7 +424,15 @@ async function runEnvironmentDiagnostics() {
         
         document.getElementById('env-results').innerHTML = html;
     } catch (error) {
-        document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        // Проверяем тип ошибки
+        if (error.message.includes('Unexpected token')) {
+            document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill"></i> <strong>Ошибка загрузки данных</strong><br>
+                <small>Сервер вернул HTML вместо JSON. Возможно проблема с IP whitelist.</small>
+            </div>`;
+        } else {
+            document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        }
     }
 }
 
@@ -463,7 +471,15 @@ async function runSamoDiagnostics() {
         html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
         document.getElementById('samo-results').innerHTML = html;
     } catch (error) {
-        document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        // Проверяем тип ошибки
+        if (error.message.includes('Unexpected token')) {
+            document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill"></i> <strong>IP заблокирован в SAMO API</strong><br>
+                <small>API вернул HTML вместо JSON. Требуется добавление IP в whitelist.</small>
+            </div>`;
+        } else {
+            document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        }
     }
 }
 
@@ -495,7 +511,15 @@ async function runServerDiagnostics() {
         html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
         document.getElementById('server-results').innerHTML = html;
     } catch (error) {
-        document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        // Проверяем тип ошибки
+        if (error.message.includes('Unexpected token')) {
+            document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">
+                <i class="bi bi-x-circle-fill"></i> <strong>Ошибка получения данных сервера</strong><br>
+                <small>API вернул HTML вместо JSON. Проверьте IP whitelist.</small>
+            </div>`;
+        } else {
+            document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
+        }
     }
 }
 
@@ -730,7 +754,12 @@ async function executeCurl() {
             `<strong>Результат:</strong><br><pre class="small">${formatJSON(data.result)}</pre>`, 
             data.success ? 'success' : 'error');
     } catch (error) {
-        logToResults('curl-results', `Ошибка выполнения: ${error.message}`, 'error');
+        // Проверяем тип ошибки
+        if (error.message.includes('Unexpected token')) {
+            logToResults('curl-results', `❌ API вернул HTML вместо JSON (IP ${currentIP} заблокирован в SAMO whitelist)`, 'error');
+        } else {
+            logToResults('curl-results', `Ошибка выполнения: ${error.message}`, 'error');
+        }
     }
 }
 
@@ -749,7 +778,12 @@ async function testDirectCurl() {
         logToResults('curl-results', 
             `<strong>Ответ:</strong><br><pre class="small">${data.response}</pre>`, 'info');
     } catch (error) {
-        logToResults('curl-results', `Ошибка серверного теста: ${error.message}`, 'error');
+        // Проверяем тип ошибки
+        if (error.message.includes('Unexpected token')) {
+            logToResults('curl-results', `❌ Серверный тест: API вернул HTML вместо JSON (IP заблокирован в SAMO whitelist)`, 'error');
+        } else {
+            logToResults('curl-results', `Ошибка серверного теста: ${error.message}`, 'error');
+        }
     }
 }
 
