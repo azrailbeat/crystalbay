@@ -282,14 +282,44 @@ class CrystalBaySamoAPI:
             
             logger.info(f"POST запрос SearchTour_ALL: {request_params}")
             
-            # POST запрос как в рабочем curl на production
-            response = self.session.post(self.base_url, params=request_params, timeout=self.timeout)
+            # Строим URL точно как в рабочем curl
+            from urllib.parse import urlencode
+            query_string = urlencode(request_params)
+            full_url = f"{self.base_url}?{query_string}"
+            
+            logger.info(f"Full URL: {full_url}")
+            
+            # POST запрос без параметров в body (все в URL)
+            response = self.session.post(full_url, timeout=self.timeout)
             
             # Детальное логирование ответа
             logger.info(f"Response Status: {response.status_code}")
             logger.info(f"Content-Type: {response.headers.get('content-type', 'unknown')}")
             logger.info(f"Response Size: {len(response.text)} bytes")
             logger.info(f"Response (first 200 chars): {response.text[:200]}")
+            
+            # Проверяем Content-Type сначала
+            content_type = response.headers.get('content-type', '')
+            logger.info(f"Content-Type: {content_type}")
+            
+            if 'application/json' not in content_type:
+                logger.error(f"❌ Wrong Content-Type: {content_type}")
+                logger.error(f"❌ Expected JSON but got HTML/text")
+                logger.error(f"Response preview: {response.text[:200]}")
+                return {
+                    "success": False,
+                    "error": f"Server returned {content_type} instead of JSON",
+                    "raw_response": response.text[:1000],
+                    "status_code": response.status_code,
+                    "action": "SearchTour_ALL",
+                    "debug_info": {
+                        "content_type": content_type,
+                        "url_used": full_url,
+                        "response_preview": response.text[:200],
+                        "expected": "application/json",
+                        "actual": content_type
+                    }
+                }
             
             if response.status_code == 200:
                 try:
@@ -305,28 +335,20 @@ class CrystalBaySamoAPI:
                     
                 except json.JSONDecodeError as je:
                     logger.error(f"❌ SearchTour_ALL JSON parse error: {je}")
-                    logger.error(f"Raw HTML response: {response.text[:500]}")
+                    logger.error(f"Raw response: {response.text[:500]}")
                     
-                    # Проверяем если это HTML с ошибкой 500
-                    if "500" in response.text or "Internal Server Error" in response.text:
-                        return {
-                            "success": False,
-                            "error": "HTTP 500 Internal Server Error",
-                            "debug_info": {
-                                "full_error_response": response.text[:1000],
-                                "possible_causes": [
-                                    "Неправильные параметры запроса",
-                                    "Ошибка на стороне SAMO сервера", 
-                                    "Изменение в API SAMO",
-                                    "Проблемы с OAuth токеном"
-                                ],
-                                "request_time": "unknown",
-                                "response_headers": dict(response.headers)
-                            },
-                            "raw_response": response.text,
-                            "status_code": 500,  # Реальный статус
-                            "action": "SearchTour_ALL"
-                        }
+                    return {
+                        "success": False,
+                        "error": f"JSON Parse Error: {str(je)}",
+                        "debug_info": {
+                            "full_error_response": response.text[:1000],
+                            "json_error": str(je),
+                            "response_headers": dict(response.headers)
+                        },
+                        "raw_response": response.text,
+                        "status_code": response.status_code,
+                        "action": "SearchTour_ALL"
+                    }
                     
                     return {
                         "success": False,
