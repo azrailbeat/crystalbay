@@ -7,6 +7,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
+from crystal_bay_samo_api_helpers import handle_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -58,36 +59,89 @@ class CrystalBaySamoAPI:
             }
             
             response = self.session.get(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
-            response.raise_for_status()
             
-            # Пробуем парсить как JSON
-            try:
-                result = response.json()
-                logger.info(f"SAMO API успешный ответ {action}: {result}")
-                return result
-            except json.JSONDecodeError:
-                # Если JSON не парсится, возвращаем текст ответа
-                logger.warning(f"SAMO API не JSON ответ {action}: {response.text[:200]}")
-                return {"error": "Invalid JSON response", "response": response.text, "status_code": response.status_code}
+            # Обработка всех статус кодов без raise_for_status для лучшего контроля
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    logger.info(f"SAMO API успешный ответ {action}: количество записей={len(result) if isinstance(result, list) else 'unknown'}")
+                    return {
+                        "success": True,
+                        "data": result,
+                        "status_code": 200,
+                        "action": action
+                    }
+                except json.JSONDecodeError as je:
+                    logger.error(f"SAMO API JSON parse error {action}: {je}")
+                    return {
+                        "success": False,
+                        "error": "Invalid JSON response from SAMO API",
+                        "raw_response": response.text[:500],
+                        "status_code": 200,
+                        "action": action
+                    }
+            elif response.status_code == 403:
+                error_text = response.text
+                logger.error(f"SAMO API 403 Forbidden {action}: {error_text}")
+                
+                # Извлечение IP из ответа для лучшей диагностики
+                blocked_ip = "Unknown"
+                if "blacklisted address" in error_text:
+                    import re
+                    ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_text)
+                    blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                
+                return {
+                    "success": False,
+                    "error": f"IP {blocked_ip} blocked by SAMO API",
+                    "raw_response": error_text,
+                    "status_code": 403,
+                    "action": action,
+                    "blocked_ip": blocked_ip
+                }
+            elif response.status_code == 500:
+                logger.error(f"SAMO API 500 Internal Server Error {action}")
+                return {
+                    "success": False,
+                    "error": "SAMO API Internal Server Error",
+                    "raw_response": response.text[:500],
+                    "status_code": 500,
+                    "action": action,
+                    "help": "Check required parameters for this action"
+                }
+            else:
+                logger.error(f"SAMO API unexpected status {action}: {response.status_code}")
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code} {response.reason}",
+                    "raw_response": response.text[:500],
+                    "status_code": response.status_code,
+                    "action": action
+                }
             
         except requests.RequestException as e:
             logger.error(f"SAMO API ошибка запроса {action}: {e}")
             
-            # Детальная информация об ошибке для диагностики
-            error_details = {
-                "error": str(e),
+            # Стандартизированная обработка всех типов ошибок
+            error_response = {
+                "success": False,
+                "error": f"Network error: {str(e)}",
                 "action": action,
                 "url": self.base_url,
-                "oauth_token_suffix": self.oauth_token[-4:] if self.oauth_token else "None"
+                "oauth_token_suffix": self.oauth_token[-4:] if self.oauth_token else "None",
+                "error_type": type(e).__name__
             }
             
             if hasattr(e, 'response') and e.response:
-                error_details.update({
+                error_response.update({
                     "status_code": e.response.status_code,
-                    "response_text": e.response.text[:500] if e.response.text else ""
+                    "raw_response": e.response.text[:500] if e.response.text else "",
+                    "response_headers": dict(e.response.headers)
                 })
+            else:
+                error_response["status_code"] = 0  # Indicates network error
             
-            return error_details
+            return error_response
     
     # === СПРАВОЧНИКИ ===
     
@@ -179,45 +233,36 @@ class CrystalBaySamoAPI:
                     return {
                         "success": True,
                         "action": "SearchTour_PRICES",
-                        "tours": tours_data,
-                        "total_count": len(tours_data),
+                        "data": {
+                            "tours": tours_data,
+                            "total_count": len(tours_data)
+                        },
                         "search_params": params or {},
                         "raw_response": result
                     }
                     
-                except json.JSONDecodeError:
-                    logger.warning(f"SAMO API response not JSON: {response.text[:200]}")
+                except json.JSONDecodeError as je:
+                    logger.error(f"SAMO SearchTour_PRICES JSON parse error: {je}")
                     return {
-                        "error": "Invalid JSON response",
                         "success": False,
-                        "response_text": response.text[:500]
+                        "error": "Invalid JSON response from SAMO API",
+                        "raw_response": response.text[:500],
+                        "status_code": 200,
+                        "action": "SearchTour_PRICES",
+                        "search_params": params or {}
                     }
-            
-            elif response.status_code == 403:
-                error_text = response.text
-                logger.error(f"SAMO API IP blocked: {error_text}")
-                return {
-                    "error": "IP address not whitelisted in SAMO API",
-                    "success": False,
-                    "status_code": 403,
-                    "response": error_text,
-                    "blocked_ip": "Current server IP is blocked"
-                }
             else:
-                logger.error(f"SAMO API error: HTTP {response.status_code}")
-                return {
-                    "error": f"HTTP {response.status_code}",
-                    "success": False,
-                    "status_code": response.status_code,
-                    "response": response.text[:200]
-                }
+                # Общая обработка всех не-200 статусов  
+                return handle_error_response(response, "SearchTour_PRICES", {"search_params": params or {}})
                 
         except requests.RequestException as e:
             logger.error(f"SAMO API tour search error: {e}")
             return {
-                "error": str(e),
                 "success": False,
-                "action": "SearchTour_PRICES"
+                "error": f"Network error: {str(e)}",
+                "action": "SearchTour_PRICES",
+                "search_params": params or {},
+                "error_type": type(e).__name__
             }
     
     def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
