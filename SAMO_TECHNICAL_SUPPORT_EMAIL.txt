@@ -1,0 +1,30 @@
+Тема: Добавление IP адресов в whitelist для SAMO API доступа
+
+Добрый день!
+
+Обращаемся с просьбой добавить IP адреса нашего сервера в whitelist для доступа к SAMO API.
+
+Детали запроса:
+- Компания: Crystal Bay Travel
+- OAuth Token: 27bd59a7ac67422189789f0188167379
+- IP адреса для добавления в whitelist:
+  * 46.250.234.89 (основной IP сервера)
+  * 34.138.89.102 (IP исходящих запросов)
+
+Текущая проблема:
+При попытке доступа к API получаем ошибку:
+"apiKey provided, but invalid, blacklisted address 34.138.89.102"
+
+Используемые параметры API:
+- URL: https://booking.crystalbay.com/export/default.php
+- Метод: GET
+- Параметры: samo_action=api, version=1.0, oauth_token=[токен], type=json
+
+Система полностью настроена и готова к работе, остается только добавить IP в whitelist.
+
+Просим обработать запрос в кратчайшие сроки.
+
+Спасибо за сотрудничество!
+
+С уважением,
+Crystal Bay Travel Team
