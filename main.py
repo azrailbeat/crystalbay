@@ -176,8 +176,8 @@ def samo_testing():
 
 @app.route('/samo-logs')
 def samo_logs():
-    """SAMO API logs - redirect to dashboard in production"""
-    return redirect('/')
+    """SAMO API detailed logging and monitoring page"""
+    return render_template('samo_logs.html')
 
 @app.route('/samo-api')
 def samo_api():

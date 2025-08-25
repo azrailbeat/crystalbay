@@ -7,45 +7,150 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0 text-gray-800">SAMO API Testing</h1>
-                <button class="btn btn-primary" onclick="runQuickTest()">
-                    <i class="bi bi-play-circle"></i> Quick Test
-                </button>
+                <h1 class="h3 mb-0 text-gray-800">SAMO API Testing Suite</h1>
+                <div>
+                    <a href="/samo-logs" class="btn btn-outline-info me-2">
+                        <i class="bi bi-file-text"></i> View Logs
+                    </a>
+                    <button class="btn btn-primary" onclick="runFullTestSuite()">
+                        <i class="bi bi-play-circle"></i> Full Test Suite
+                    </button>
+                </div>
             </div>
 
-            <!-- Test Results -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Test Results</h5>
+            <!-- Connection Status -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-left-info">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="bi bi-wifi fa-2x text-info"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Connection Status</div>
+                                    <div class="h6 mb-0" id="connectionStatus">Checking...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="testResults" class="bg-light p-3 rounded">
-                        <p class="text-muted mb-0">Click "Quick Test" to run SAMO API tests</p>
+                <div class="col-md-6">
+                    <div class="card border-left-warning">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="bi bi-server fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Server IP</div>
+                                    <div class="h6 mb-0" id="serverIP">Detecting...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Manual Test -->
-            <div class="card">
+            <!-- Test Suite Results -->
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Manual API Test</h5>
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check"></i> Test Suite Results
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <form id="testForm" onsubmit="runManualTest(event)">
-                        <div class="mb-3">
-                            <label for="testAction" class="form-label">API Action</label>
-                            <select class="form-select" id="testAction" name="action">
-                                <option value="SearchTour_CURRENCIES">Get Currencies</option>
-                                <option value="SearchTour_STATES">Get Countries</option>
-                                <option value="SearchTour_TOWNFROMS">Get Cities</option>
-                                <option value="SearchTour_STARS">Get Hotel Stars</option>
-                                <option value="SearchTour_MEALS">Get Meal Types</option>
-                            </select>
+                    <div id="testSuiteResults" class="bg-light p-3 rounded">
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-info-circle"></i> 
+                            Click "Full Test Suite" to run comprehensive SAMO API tests
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual API Tests -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear"></i> Individual API Tests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="list-group">
+                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_CURRENCIES')">
+                                    <i class="bi bi-currency-exchange"></i> Test Currencies API
+                                </button>
+                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_STATES')">
+                                    <i class="bi bi-globe"></i> Test Countries API
+                                </button>
+                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_TOWNFROMS')">
+                                    <i class="bi bi-building"></i> Test Cities API
+                                </button>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-gear"></i> Run Test
-                        </button>
+                        <div class="col-md-6">
+                            <div class="list-group">
+                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_STARS')">
+                                    <i class="bi bi-star"></i> Test Hotel Stars API
+                                </button>
+                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_MEALS')">
+                                    <i class="bi bi-cup"></i> Test Meal Types API
+                                </button>
+                                <button class="list-group-item list-group-item-action" onclick="testConnection()">
+                                    <i class="bi bi-wifi"></i> Test Connection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Testing -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-tools"></i> Advanced Testing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="advancedTestForm" onsubmit="runAdvancedTest(event)">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="testAction" class="form-label">API Action</label>
+                                    <select class="form-select" id="testAction" name="action">
+                                        <option value="SearchTour_CURRENCIES">Currencies</option>
+                                        <option value="SearchTour_STATES">Countries</option>
+                                        <option value="SearchTour_TOWNFROMS">Cities</option>
+                                        <option value="SearchTour_STARS">Hotel Stars</option>
+                                        <option value="SearchTour_MEALS">Meal Types</option>
+                                        <option value="SearchTour_TOURS">Search Tours</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="customParams" class="form-label">Custom Parameters (JSON)</label>
+                                    <textarea class="form-control" id="customParams" rows="3" placeholder='{"TOWNFROMINC": "2"}'></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-play"></i> Run Advanced Test
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </form>
+                    
+                    <div id="advancedResults" class="mt-3"></div>
                 </div>
             </div>
         </div>
@@ -53,47 +158,195 @@
 </div>
 
 <script>
-async function runQuickTest() {
-    const resultDiv = document.getElementById('testResults');
-    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Running tests...';
-    
+// Initialize connection check
+document.addEventListener('DOMContentLoaded', function() {
+    checkServerStatus();
+});
+
+async function checkServerStatus() {
     try {
-        const response = await fetch('/api/samo/test', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: 'SearchTour_CURRENCIES'
-            })
-        });
+        const response = await fetch('/api/diagnostics/server');
+        const data = await response.json();
         
-        const result = await response.json();
-        
-        let html = `<div class="test-result">`;
-        html += `<div class="alert ${result.success ? 'alert-success' : 'alert-danger'}">`;
-        html += `<strong>${result.success ? 'Success' : 'Failed'}:</strong> ${result.success ? 'API responded' : result.error}`;
-        html += `</div>`;
-        
-        if (result.debug_info) {
-            html += `<div class="mt-3"><small class="text-muted">Response: ${JSON.stringify(result.debug_info, null, 2)}</small></div>`;
-        }
-        
-        html += `</div>`;
-        resultDiv.innerHTML = html;
-        
+        document.getElementById('serverIP').textContent = data.external_ip || 'Unknown';
+        document.getElementById('connectionStatus').innerHTML = 
+            '<span class="text-success"><i class="bi bi-check-circle"></i> Connected</span>';
     } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        document.getElementById('connectionStatus').innerHTML = 
+            '<span class="text-danger"><i class="bi bi-x-circle"></i> Connection Error</span>';
     }
 }
 
-async function runManualTest(event) {
+async function runFullTestSuite() {
+    const resultDiv = document.getElementById('testSuiteResults');
+    resultDiv.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div>Running comprehensive test suite...</div>';
+    
+    const tests = [
+        'SearchTour_CURRENCIES',
+        'SearchTour_STATES', 
+        'SearchTour_TOWNFROMS',
+        'SearchTour_STARS',
+        'SearchTour_MEALS'
+    ];
+    
+    const results = [];
+    
+    for (const action of tests) {
+        try {
+            const response = await fetch('/api/samo/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            
+            const result = await response.json();
+            results.push({
+                action,
+                success: result.success,
+                error: result.error,
+                status_code: result.status_code
+            });
+        } catch (error) {
+            results.push({
+                action,
+                success: false,
+                error: error.message
+            });
+        }
+    }
+    
+    renderTestResults(results);
+}
+
+function renderTestResults(results) {
+    const resultDiv = document.getElementById('testSuiteResults');
+    const passed = results.filter(r => r.success).length;
+    const total = results.length;
+    
+    let html = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h6 class="text-${passed === total ? 'success' : passed > 0 ? 'warning' : 'danger'}">
+                    Test Results: ${passed}/${total} Passed
+                </h6>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">Completed at ${new Date().toLocaleTimeString()}</small>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>API Action</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    results.forEach(result => {
+        const statusBadge = result.success ? 
+            '<span class="badge bg-success">PASS</span>' :
+            '<span class="badge bg-danger">FAIL</span>';
+            
+        html += `
+            <tr>
+                <td><code>${result.action}</code></td>
+                <td>${statusBadge}</td>
+                <td class="text-muted small">${result.error || 'OK'}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    resultDiv.innerHTML = html;
+}
+
+async function testSingleAction(action) {
+    const response = await fetch('/api/samo/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+    });
+    
+    const result = await response.json();
+    
+    showToast(
+        result.success ? 'success' : 'error',
+        `${action}: ${result.success ? 'Success' : result.error}`
+    );
+}
+
+async function testConnection() {
+    try {
+        const response = await fetch('/api/diagnostics/network');
+        const data = await response.json();
+        
+        showToast('info', 'Connection test completed - check logs for details');
+    } catch (error) {
+        showToast('error', 'Connection test failed: ' + error.message);
+    }
+}
+
+async function runAdvancedTest(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
     const action = formData.get('action');
+    const customParams = document.getElementById('customParams').value;
     
-    await runQuickTest();
+    let params = {};
+    if (customParams.trim()) {
+        try {
+            params = JSON.parse(customParams);
+        } catch (error) {
+            showToast('error', 'Invalid JSON parameters');
+            return;
+        }
+    }
+    
+    const payload = { action, ...params };
+    
+    try {
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        document.getElementById('advancedResults').innerHTML = `
+            <div class="alert alert-${result.success ? 'success' : 'danger'}">
+                <h6>Advanced Test Result</h6>
+                <p><strong>Action:</strong> ${action}</p>
+                <p><strong>Status:</strong> ${result.success ? 'Success' : 'Failed'}</p>
+                ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+                <details class="mt-2">
+                    <summary>Full Response</summary>
+                    <pre class="mt-2"><code>${JSON.stringify(result, null, 2)}</code></pre>
+                </details>
+            </div>
+        `;
+    } catch (error) {
+        showToast('error', 'Advanced test failed: ' + error.message);
+    }
+}
+
+function showToast(type, message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 5000);
 }
 </script>
 {% endblock %}
