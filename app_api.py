@@ -468,6 +468,66 @@ def register_api_routes(app):
         except Exception as e:
             logger.error(f"Server diagnostics error: {e}")
             return jsonify({"error": str(e)}), 500
+            
+    @app.route('/api/diagnostics/production-debug', methods=['GET'])
+    def api_production_debug():
+        """Специальная диагностика для production сервера"""
+        try:
+            import sys
+            import platform
+            
+            debug_info = {
+                "timestamp": datetime.now().isoformat(),
+                "python_version": platform.python_version(),
+                "python_path": sys.path[:3],
+                "current_directory": os.getcwd(),
+                "environment_count": len(os.environ)
+            }
+            
+            # Попытка импорта SAMO API
+            try:
+                from crystal_bay_samo_api import CrystalBaySamoAPI
+                debug_info["crystal_bay_samo_api"] = "Import successful"
+                
+                try:
+                    api = CrystalBaySamoAPI()
+                    debug_info["crystal_bay_instance"] = "Created successfully" 
+                    debug_info["api_base_url"] = api.base_url
+                    debug_info["api_oauth_token_suffix"] = api.oauth_token[-4:] if api.oauth_token else "None"
+                except Exception as e:
+                    debug_info["crystal_bay_instance"] = f"Creation failed: {str(e)}"
+                    
+            except Exception as e:
+                debug_info["crystal_bay_samo_api"] = f"Import failed: {str(e)}"
+                
+            # Тест прямого запроса к SAMO API
+            try:
+                import requests
+                test_params = {
+                    'samo_action': 'api',
+                    'version': '1.0', 
+                    'oauth_token': '27bd59a7ac67422189789f0188167379',
+                    'type': 'json',
+                    'action': 'SearchTour_CURRENCIES'
+                }
+                
+                response = requests.get('https://booking.crystalbay.com/export/default.php', 
+                                      params=test_params, timeout=10)
+                debug_info["direct_samo_test"] = {
+                    "status_code": response.status_code,
+                    "response_length": len(response.text),
+                    "content_type": response.headers.get('content-type', 'Unknown'),
+                    "response_preview": response.text[:100]
+                }
+                
+            except Exception as e:
+                debug_info["direct_samo_test"] = f"Failed: {str(e)}"
+            
+            return jsonify(debug_info)
+            
+        except Exception as e:
+            logger.error(f"Production debug error: {e}")
+            return jsonify({"error": str(e)}), 500
     
     @app.route('/api/diagnostics/curl', methods=['GET'])
     def api_diagnostics_curl():

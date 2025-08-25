@@ -590,6 +590,9 @@
                         <button class="btn btn-sm btn-outline-secondary" onclick="showRequestDetails(${requestHistory.indexOf(entry)})">
                             <i class="bi bi-eye"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="testProductionDebug()">
+                            <i class="bi bi-cpu"></i>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -651,6 +654,42 @@
             URL.revokeObjectURL(url);
             
             logMessage('📥 Логи экспортированы в файл', 'success');
+        }
+
+        // Тест production debug  
+        async function testProductionDebug() {
+            logMessage('🖥️ === ТЕСТ PRODUCTION DEBUG ===', 'info');
+            
+            try {
+                const response = await fetch('/api/diagnostics/production-debug');
+                const data = await response.json();
+                
+                logMessage(`🐍 Python версия: ${data.python_version}`, 'info');
+                logMessage(`📁 Рабочая директория: ${data.current_directory}`, 'info');
+                logMessage(`🔧 API клиент: ${data.crystal_bay_samo_api}`, data.crystal_bay_samo_api === 'Import successful' ? 'success' : 'error');
+                logMessage(`⚡ API экземпляр: ${data.crystal_bay_instance}`, data.crystal_bay_instance === 'Created successfully' ? 'success' : 'error');
+                
+                if (data.api_base_url) {
+                    logMessage(`🌐 API URL: ${data.api_base_url}`, 'info');
+                }
+                if (data.api_oauth_token_suffix) {
+                    logMessage(`🔑 Token suffix: ***${data.api_oauth_token_suffix}`, 'info');
+                }
+                
+                if (data.direct_samo_test && typeof data.direct_samo_test === 'object') {
+                    logMessage(`🧪 Direct SAMO тест: HTTP ${data.direct_samo_test.status_code}`, 'info');
+                    logMessage(`📄 SAMO ответ: ${data.direct_samo_test.response_preview}`, 
+                              data.direct_samo_test.status_code === 403 ? 'warning' : 
+                              data.direct_samo_test.status_code === 200 ? 'success' : 'error');
+                } else if (data.direct_samo_test) {
+                    logMessage(`❌ Direct SAMO тест: ${data.direct_samo_test}`, 'error');
+                }
+                
+            } catch (error) {
+                logMessage(`💥 Production debug error: ${error.message}`, 'error');
+            }
+            
+            logMessage('🏁 === PRODUCTION DEBUG ЗАВЕРШЕН ===', 'info');
         }
 
         // Фильтры логов
