@@ -127,14 +127,15 @@
                                         <option value="SearchTour_TOWNFROMS">Cities</option>
                                         <option value="SearchTour_STARS">Hotel Stars</option>
                                         <option value="SearchTour_MEALS">Meal Types</option>
-                                        <option value="SearchTour_TOURS">Search Tours</option>
+                                        <option value="SearchTour_TOURS">Search Tours (requires params)</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="customParams" class="form-label">Custom Parameters (JSON)</label>
-                                    <textarea class="form-control" id="customParams" rows="3" placeholder='{"TOWNFROMINC": "2"}'></textarea>
+                                    <textarea class="form-control" id="customParams" rows="3" placeholder='{"TOWNFROMINC": "2", "STATEINC": "6", "DATE1": "30.09.2024", "NIGHTS": "7", "ADULTINC": "2"}'></textarea>
+                                    <small class="text-muted">SearchTour_TOURS requires: TOWNFROMINC, STATEINC, DATE1, NIGHTS, ADULTINC</small>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -298,7 +299,18 @@ async function runAdvancedTest(event) {
     const customParams = document.getElementById('customParams').value;
     
     let params = {};
-    if (customParams.trim()) {
+    
+    // Pre-fill required parameters for SearchTour_TOURS
+    if (action === 'SearchTour_TOURS' && !customParams.trim()) {
+        params = {
+            "TOWNFROMINC": "2",
+            "STATEINC": "6", 
+            "DATE1": "30.09.2024",
+            "NIGHTS": "7",
+            "ADULTINC": "2"
+        };
+        document.getElementById('customParams').value = JSON.stringify(params, null, 2);
+    } else if (customParams.trim()) {
         try {
             params = JSON.parse(customParams);
         } catch (error) {
