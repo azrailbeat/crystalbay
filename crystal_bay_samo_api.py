@@ -283,8 +283,8 @@ class CrystalBaySamoAPI:
             
             logger.info(f"GET запрос SearchTour_ALL: {request_params}")
             
-            # GET запрос как в рабочем curl
-            response = self.session.get(self.base_url, params=request_params, timeout=self.timeout)
+            # POST запрос как в рабочем curl на production
+            response = self.session.post(self.base_url, params=request_params, timeout=self.timeout)
             
             # Детальное логирование ответа
             logger.info(f"Response Status: {response.status_code}")
