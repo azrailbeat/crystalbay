@@ -84,8 +84,6 @@ class CrystalBaySamoAPI:
             # Fallback to direct request (will likely get 403 due to NAT Gateway IP)
             # Правильные параметры согласно официальной документации SAMO API
             request_params = {
-                'samo_action': 'api',
-                'version': '1.0',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
                 'action': action
@@ -107,13 +105,10 @@ class CrystalBaySamoAPI:
             except:
                 current_external_ip = 'detection_failed'
             
-            # Headers for production deployment - try to force source IP
+            # Headers exactly like curl - minimal set
             headers = {
-                'User-Agent': self.user_agent,
-                'Accept': 'application/json, text/xml, */*',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Forwarded-For': '46.250.234.89',
-                'X-Real-IP': '46.250.234.89'
+                'User-Agent': 'curl/7.68.0',
+                'Accept': '*/*'
             }
             
             response = self.session.get(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
