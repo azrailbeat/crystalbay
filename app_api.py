@@ -686,7 +686,9 @@ def register_api_routes(app):
                             ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', response.text)
                             blocked_ip = ip_match.group(1) if ip_match else "Unknown"
                             test_result["blocked_ip"] = blocked_ip
-                            test_result["message"] = f"IP {blocked_ip} не в whitelist SAMO"
+                            test_result["message"] = f"⚠️ IP {blocked_ip} заблокирован в SAMO API. Требуется добавление в whitelist."
+                            test_result["solution"] = "Обратитесь в техподдержку SAMO для добавления IP в whitelist"
+                            test_result["contact_info"] = "Используйте кнопку 'Экспорт результатов' для получения отчета для техподдержки"
                         
                     else:
                         test_result["status"] = "failed"
@@ -774,10 +776,22 @@ def register_api_routes(app):
                 "curl_examples": [],
                 "technical_notes": [
                     "SAMO documentation shows oauth_token parameter, but API requires apiKey",
-                    "All requests return 403 Forbidden with 'blacklisted address' message",
+                    "All requests return 403 Forbidden with 'blacklisted address' message", 
                     "IP whitelist configuration needed in SAMO admin panel",
                     "Tested SAMO API methods with proper parameters"
-                ]
+                ],
+                "support_instructions": {
+                    "problem": "Server IP is blocked by SAMO API whitelist",
+                    "action_required": "Add server IP to SAMO API whitelist",
+                    "contact": "SAMO Technical Support",
+                    "request_details": {
+                        "subject": "Add IP to API Whitelist",
+                        "ip_address": current_ip,
+                        "api_endpoint": samo_url,
+                        "oauth_token": f"{oauth_token[:8]}***{oauth_token[-8:]}",
+                        "reason": "Production server for Crystal Bay Travel booking system"
+                    }
+                }
             }
             
             # Добавляем пример curl команды

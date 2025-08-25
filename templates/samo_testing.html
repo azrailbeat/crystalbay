@@ -49,6 +49,20 @@
                         </div>
                     </div>
                     
+                    <!-- Whitelist Instructions -->
+                    <div id="whitelist-instructions" class="alert alert-info" style="display: none;">
+                        <h6><i class="bi bi-info-circle"></i> Инструкции для решения проблемы IP whitelist:</h6>
+                        <ol class="mb-2">
+                            <li><strong>Экспортируйте отчет:</strong> Нажмите кнопку "Экспорт результатов" выше</li>
+                            <li><strong>Обратитесь в техподдержку SAMO:</strong> Отправьте файл отчета в техподдержку</li>
+                            <li><strong>Укажите детали:</strong> IP адрес сервера и OAuth Token из отчета</li>
+                            <li><strong>Ожидайте подтверждения:</strong> SAMO добавит IP в whitelist</li>
+                        </ol>
+                        <div class="alert alert-warning alert-sm mb-0">
+                            <small><strong>Важно:</strong> Без добавления IP в whitelist SAMO API работать не будет</small>
+                        </div>
+                    </div>
+                    
                     <div id="diagnostics-results" class="mt-3" style="display: none;">
                         <div class="accordion" id="diagnosticsAccordion">
                             <div class="accordion-item">
@@ -868,12 +882,15 @@ async function runWhitelistTest() {
             if (statusCode === 200) {
                 logToResults('advanced-results', 
                     `✅ IP ${serverIP} находится в whitelist SAMO`, 'success');
+                hideWhitelistInstructions();
             } else if (statusCode === 403) {
                 logToResults('advanced-results', 
-                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO.`, 'error');
+                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Требуется добавление в whitelist.`, 'error');
+                showWhitelistInstructions();
             } else if (statusCode === 500) {
                 logToResults('advanced-results', 
-                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Обратитесь в техподдержку SAMO.`, 'error');
+                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Требуется добавление в whitelist.`, 'error');
+                showWhitelistInstructions();
             } else {
                 logToResults('advanced-results', 
                     `⚠️ Неопределенный статус IP ${serverIP}: HTTP ${statusCode}`, 'warning');
@@ -883,6 +900,22 @@ async function runWhitelistTest() {
         }
     } catch (error) {
         logToResults('advanced-results', `Ошибка: ${error.message}`, 'error');
+    }
+}
+
+// Показать инструкции по whitelist
+function showWhitelistInstructions() {
+    const instructions = document.getElementById('whitelist-instructions');
+    if (instructions) {
+        instructions.style.display = 'block';
+    }
+}
+
+// Скрыть инструкции по whitelist  
+function hideWhitelistInstructions() {
+    const instructions = document.getElementById('whitelist-instructions');
+    if (instructions) {
+        instructions.style.display = 'none';
     }
 }
 
