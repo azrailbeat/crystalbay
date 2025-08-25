@@ -48,7 +48,35 @@ except Exception as e:
 @app.route('/dashboard')
 def home():
     """Главная страница / Дашборд"""
+    # Проверить, нужна ли первоначальная настройка
+    setup_needed = should_show_setup()
+    if setup_needed:
+        return redirect('/setup')
     return render_template('dashboard.html', active_page='dashboard')
+
+@app.route('/setup')
+def setup():
+    """Страница первоначальной настройки"""
+    return render_template('setup.html')
+
+@app.route('/api/setup/complete', methods=['POST'])
+def complete_setup():
+    """Завершить установку и создать маркер"""
+    try:
+        import os
+        with open('.setup_complete', 'w') as f:
+            f.write(f'Setup completed at {datetime.now().isoformat()}')
+        return jsonify({'success': True, 'message': 'Setup completed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def should_show_setup():
+    """Проверить, нужна ли первоначальная настройка"""
+    import os
+    
+    # Если файл .setup_complete не существует, показать установщик
+    setup_file = '.setup_complete'
+    return not os.path.exists(setup_file)
 
 def dashboard_data():
     """Get dashboard data"""

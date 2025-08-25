@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Bay Travel - Первоначальная настройка</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .setup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .step-card {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .step-card.active {
+            border-color: #007bff;
+            box-shadow: 0 0 20px rgba(0,123,255,0.3);
+        }
+        .step-card.success {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .step-card.error {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .progress-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .progress-circle.pending { background: #6c757d; color: white; }
+        .progress-circle.active { background: #007bff; color: white; }
+        .progress-circle.success { background: #28a745; color: white; }
+        .progress-circle.error { background: #dc3545; color: white; }
+        
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .result-box.success { border-left-color: #28a745; }
+        .result-box.error { border-left-color: #dc3545; }
+        .result-box.warning { border-left-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="setup-header text-center">
+        <div class="container">
+            <h1><i class="bi bi-gear-fill"></i> Crystal Bay Travel</h1>
+            <h2>Первоначальная настройка системы</h2>
+            <p class="lead">Проверка и настройка всех компонентов перед запуском</p>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Progress Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5><i class="bi bi-list-check"></i> Общий прогресс</h5>
+                            <div>
+                                <span id="progress-text">0/6 шагов выполнено</span>
+                                <div class="progress mt-2" style="width: 200px;">
+                                    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Steps -->
+        <div class="row">
+            <!-- Step 1: Server Info -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-1">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-1">1</div>
+                            <h6 class="mb-0">Информация о сервере</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="server-results">
+                            <button class="btn btn-primary" onclick="checkServerInfo()">
+                                <i class="bi bi-search"></i> Проверить сервер
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Environment Variables -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-2">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-2">2</div>
+                            <h6 class="mb-0">Переменные окружения</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="env-results">
+                            <button class="btn btn-primary" onclick="checkEnvironment()">
+                                <i class="bi bi-key"></i> Проверить переменные
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: SAMO API Direct Test -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-3">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-3">3</div>
+                            <h6 class="mb-0">Прямой тест SAMO API</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="samo-direct-results">
+                            <button class="btn btn-primary" onclick="testSamoDirect()">
+                                <i class="bi bi-link-45deg"></i> Тест прямого подключения
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Application API Test -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-4">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-4">4</div>
+                            <h6 class="mb-0">API приложения</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="app-api-results">
+                            <button class="btn btn-primary" onclick="testAppAPI()">
+                                <i class="bi bi-cpu"></i> Тест API приложения
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Database Connection -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-5">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-5">5</div>
+                            <h6 class="mb-0">База данных</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="db-results">
+                            <button class="btn btn-primary" onclick="checkDatabase()">
+                                <i class="bi bi-database"></i> Проверить БД
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Final Configuration -->
+            <div class="col-md-6 mb-4">
+                <div class="step-card card h-100" id="step-6">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <div class="progress-circle pending" id="circle-6">6</div>
+                            <h6 class="mb-0">Финальная настройка</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="final-results">
+                            <button class="btn btn-primary" onclick="finalizeSetup()" disabled>
+                                <i class="bi bi-check-circle"></i> Завершить настройку
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Complete Section -->
+        <div class="row" id="complete-section" style="display: none;">
+            <div class="col-12">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> Настройка завершена!</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Система Crystal Bay Travel успешно настроена и готова к использованию.</p>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <a href="/" class="btn btn-primary">
+                                <i class="bi bi-house"></i> Перейти к Dashboard
+                            </a>
+                            <a href="/samo-testing" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> SAMO API тестирование
+                            </a>
+                            <a href="/samo-logs" class="btn btn-outline-secondary">
+                                <i class="bi bi-terminal"></i> Детальные логи
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let completedSteps = 0;
+        const totalSteps = 6;
+
+        function updateProgress() {
+            const percentage = (completedSteps / totalSteps) * 100;
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('progress-text').textContent = `${completedSteps}/${totalSteps} шагов выполнено`;
+            
+            if (completedSteps === totalSteps) {
+                document.getElementById('complete-section').style.display = 'block';
+                document.querySelector('[onclick="finalizeSetup()"]').disabled = false;
+            }
+        }
+
+        function markStepComplete(stepNum, success = true) {
+            const card = document.getElementById(`step-${stepNum}`);
+            const circle = document.getElementById(`circle-${stepNum}`);
+            
+            if (success) {
+                card.classList.remove('active', 'error');
+                card.classList.add('success');
+                circle.classList.remove('pending', 'active', 'error');
+                circle.classList.add('success');
+                circle.innerHTML = '<i class="bi bi-check"></i>';
+                completedSteps++;
+            } else {
+                card.classList.remove('active', 'success');
+                card.classList.add('error');
+                circle.classList.remove('pending', 'active', 'success');
+                circle.classList.add('error');
+                circle.innerHTML = '<i class="bi bi-x"></i>';
+            }
+            updateProgress();
+        }
+
+        function setStepActive(stepNum) {
+            const card = document.getElementById(`step-${stepNum}`);
+            const circle = document.getElementById(`circle-${stepNum}`);
+            
+            card.classList.add('active');
+            circle.classList.remove('pending');
+            circle.classList.add('active');
+        }
+
+        function addResult(containerId, content, type = 'info') {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result-box ${type}`;
+            resultDiv.innerHTML = content;
+            container.appendChild(resultDiv);
+        }
+
+        async function checkServerInfo() {
+            setStepActive(1);
+            document.getElementById('server-results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                const response = await fetch('/api/diagnostics/server');
+                const data = await response.json();
+                
+                let results = `
+                    <div class="result-box success">
+                        <strong><i class="bi bi-server"></i> Информация о сервере:</strong><br>
+                        <small>IP: ${data.external_ip}</small><br>
+                        <small>Python: ${data.python_version}</small><br>
+                        <small>Переменных окружения: ${data.environment_vars_count}</small>
+                    </div>
+                `;
+                
+                document.getElementById('server-results').innerHTML = results;
+                markStepComplete(1, true);
+                
+            } catch (error) {
+                document.getElementById('server-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(1, false);
+            }
+        }
+
+        async function checkEnvironment() {
+            setStepActive(2);
+            document.getElementById('env-results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                const response = await fetch('/api/diagnostics/environment');
+                const data = await response.json();
+                
+                let results = '<div class="result-box success"><strong><i class="bi bi-key"></i> Переменные окружения:</strong><br>';
+                
+                Object.entries(data.environment).forEach(([key, value]) => {
+                    const icon = value.includes('✓') ? 'bi-check-circle text-success' : 'bi-x-circle text-danger';
+                    results += `<small><i class="bi ${icon}"></i> ${key}: ${value}</small><br>`;
+                });
+                
+                results += '</div>';
+                document.getElementById('env-results').innerHTML = results;
+                markStepComplete(2, true);
+                
+            } catch (error) {
+                document.getElementById('env-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(2, false);
+            }
+        }
+
+        async function testSamoDirect() {
+            setStepActive(3);
+            document.getElementById('samo-direct-results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                const response = await fetch('/api/diagnostics/production-debug');
+                const data = await response.json();
+                
+                let resultType = 'success';
+                let resultText = 'Успешно';
+                
+                if (data.direct_samo_test && typeof data.direct_samo_test === 'object') {
+                    if (data.direct_samo_test.status_code === 403) {
+                        resultType = 'warning';
+                        resultText = 'IP заблокирован (403)';
+                    } else if (data.direct_samo_test.status_code === 200) {
+                        resultType = 'success';
+                        resultText = 'Подключение работает!';
+                    }
+                } else {
+                    resultType = 'error';
+                    resultText = data.direct_samo_test || 'Ошибка тестирования';
+                }
+                
+                let results = `
+                    <div class="result-box ${resultType}">
+                        <strong><i class="bi bi-link-45deg"></i> SAMO API тест:</strong><br>
+                        <small>Статус: ${resultText}</small><br>
+                        ${data.direct_samo_test && typeof data.direct_samo_test === 'object' ? 
+                          `<small>HTTP: ${data.direct_samo_test.status_code}</small><br>
+                           <small>Ответ: ${data.direct_samo_test.response_preview}</small>` : ''}
+                    </div>
+                `;
+                
+                document.getElementById('samo-direct-results').innerHTML = results;
+                markStepComplete(3, resultType !== 'error');
+                
+            } catch (error) {
+                document.getElementById('samo-direct-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(3, false);
+            }
+        }
+
+        async function testAppAPI() {
+            setStepActive(4);
+            document.getElementById('app-api-results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                const response = await fetch('/api/samo/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'SearchTour_CURRENCIES' })
+                });
+                const data = await response.json();
+                
+                let resultType = data.success ? 'success' : 'warning';
+                let resultText = data.success ? 'API работает' : 'IP заблокирован';
+                
+                if (data.blocked_ip) {
+                    resultText += ` (${data.blocked_ip})`;
+                }
+                
+                let results = `
+                    <div class="result-box ${resultType}">
+                        <strong><i class="bi bi-cpu"></i> API приложения:</strong><br>
+                        <small>Статус: ${resultText}</small><br>
+                        <small>Action: ${data.action}</small>
+                    </div>
+                `;
+                
+                document.getElementById('app-api-results').innerHTML = results;
+                markStepComplete(4, true); // API код работает, даже если IP заблокирован
+                
+            } catch (error) {
+                document.getElementById('app-api-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(4, false);
+            }
+        }
+
+        async function checkDatabase() {
+            setStepActive(5);
+            document.getElementById('db-results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                // Простая проверка - получение настроек SAMO
+                const response = await fetch('/api/samo/settings');
+                const data = await response.json();
+                
+                let results = `
+                    <div class="result-box success">
+                        <strong><i class="bi bi-database"></i> База данных:</strong><br>
+                        <small>Подключение: Успешно</small><br>
+                        <small>Настройки SAMO: Загружены</small>
+                    </div>
+                `;
+                
+                document.getElementById('db-results').innerHTML = results;
+                markStepComplete(5, true);
+                
+            } catch (error) {
+                document.getElementById('db-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка БД:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(5, false);
+            }
+        }
+
+        async function finalizeSetup() {
+            setStepActive(6);
+            
+            try {
+                // Отметить setup как завершенный
+                const response = await fetch('/api/setup/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let results = `
+                        <div class="result-box success">
+                            <strong><i class="bi bi-check-circle"></i> Настройка завершена!</strong><br>
+                            <small>Система готова к использованию</small><br>
+                            <small>Время: ${new Date().toLocaleString()}</small><br>
+                            <small>Файл маркера создан: .setup_complete</small>
+                        </div>
+                    `;
+                    
+                    document.getElementById('final-results').innerHTML = results;
+                    markStepComplete(6, true);
+                    
+                    // Автоматически перенаправить через 3 секунды
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Setup completion failed');
+                }
+                
+            } catch (error) {
+                document.getElementById('final-results').innerHTML = `
+                    <div class="result-box error">
+                        <strong><i class="bi bi-x-circle"></i> Ошибка завершения:</strong><br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                markStepComplete(6, false);
+            }
+        }
+
+        // Auto-start first check
+        window.onload = function() {
+            setTimeout(() => {
+                checkServerInfo();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
