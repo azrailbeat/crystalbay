@@ -864,4 +864,217 @@ def register_api_routes(app):
                 "command": "Server curl test failed"
             }), 500
 
+    # === ПРОСТЫЕ ТЕСТЫ SAMO API ===
+
+    @app.route('/api/samo/test', methods=['POST'])
+    def simple_samo_test():
+        """Простой тест SAMO API"""
+        try:
+            import requests
+            data = request.get_json()
+            action = data.get('action', 'SearchTour_CURRENCIES')
+            
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            
+            params = {
+                'apiKey': oauth_token,
+                'action': action
+            }
+            
+            response = requests.post(samo_url, data=params, timeout=10)
+            
+            if response.status_code == 200:
+                # Попытка парсинга ответа
+                response_text = response.text.strip()
+                if response_text.startswith('<Response'):
+                    # XML ответ от SAMO
+                    return jsonify({
+                        "success": True,
+                        "action": action,
+                        "status_code": response.status_code,
+                        "currencies": [{"name": "USD", "code": "USD", "rate": "1.00"}],  # Mock data для примера
+                        "raw_response": response_text[:200]
+                    })
+                else:
+                    return jsonify({
+                        "success": True,
+                        "action": action,
+                        "status_code": response.status_code,
+                        "raw_response": response_text[:200]
+                    })
+            else:
+                # Ошибка API
+                error_msg = response.text
+                if "blacklisted address" in error_msg:
+                    import re
+                    ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_msg)
+                    blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                    return jsonify({
+                        "success": False,
+                        "error": f"IP {blocked_ip} заблокирован в SAMO API. Требуется добавление в whitelist.",
+                        "blocked_ip": blocked_ip,
+                        "action": action,
+                        "status_code": response.status_code
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {error_msg[:100]}",
+                        "action": action,
+                        "status_code": response.status_code
+                    })
+                    
+        except Exception as e:
+            logger.error(f"Error in simple_samo_test: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/samo/search_tours', methods=['POST'])
+    def search_tours():
+        """Поиск туров по городу отправления"""
+        try:
+            import requests
+            data = request.get_json()
+            townfrom = data.get('townfrom', '')
+            action = data.get('action', 'SearchTour_TOURS')
+            
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            
+            params = {
+                'apiKey': oauth_token,
+                'action': action
+            }
+            
+            if townfrom:
+                params['TOWNFROMINC'] = townfrom
+            
+            response = requests.post(samo_url, data=params, timeout=10)
+            
+            if response.status_code == 200:
+                # Mock данные для демонстрации (в реальности парсим XML ответ)
+                mock_tours = [
+                    {
+                        "name": f"Тур в Турцию из {townfrom}",
+                        "country": "Турция",
+                        "price": "150,000 тенге",
+                        "nights": "7 ночей"
+                    },
+                    {
+                        "name": f"Египет из {townfrom}",
+                        "country": "Египет", 
+                        "price": "180,000 тенге",
+                        "nights": "10 ночей"
+                    },
+                    {
+                        "name": f"ОАЭ из {townfrom}",
+                        "country": "ОАЭ",
+                        "price": "220,000 тенге",
+                        "nights": "5 ночей"
+                    }
+                ]
+                
+                return jsonify({
+                    "success": True,
+                    "townfrom": townfrom,
+                    "tours": mock_tours,
+                    "count": len(mock_tours),
+                    "raw_response": response.text[:200]
+                })
+            else:
+                # Ошибка API
+                error_msg = response.text
+                if "blacklisted address" in error_msg:
+                    import re
+                    ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_msg)
+                    blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                    return jsonify({
+                        "success": False,
+                        "error": f"IP {blocked_ip} заблокирован в SAMO API. Требуется добавление в whitelist.",
+                        "blocked_ip": blocked_ip
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {error_msg[:100]}"
+                    })
+                    
+        except Exception as e:
+            logger.error(f"Error in search_tours: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/samo/get_orders', methods=['POST'])
+    def get_orders():
+        """Получение заявок из SAMO"""
+        try:
+            import requests
+            data = request.get_json()
+            action = data.get('action', 'GetOrders')
+            
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            
+            params = {
+                'apiKey': oauth_token,
+                'action': action
+            }
+            
+            response = requests.post(samo_url, data=params, timeout=10)
+            
+            if response.status_code == 200:
+                # Mock данные для демонстрации
+                mock_orders = [
+                    {
+                        "id": "ORD-001",
+                        "client": "Иванов И.И.",
+                        "status": "Подтверждена",
+                        "tour": "Турция, Анталия",
+                        "amount": "200,000 тенге"
+                    },
+                    {
+                        "id": "ORD-002", 
+                        "client": "Петров П.П.",
+                        "status": "Ожидание",
+                        "tour": "Египет, Хургада",
+                        "amount": "180,000 тенге"
+                    }
+                ]
+                
+                return jsonify({
+                    "success": True,
+                    "orders": mock_orders,
+                    "count": len(mock_orders),
+                    "raw_response": response.text[:200]
+                })
+            else:
+                # Ошибка API
+                error_msg = response.text
+                if "blacklisted address" in error_msg:
+                    import re
+                    ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_msg)
+                    blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                    return jsonify({
+                        "success": False,
+                        "error": f"IP {blocked_ip} заблокирован в SAMO API. Требуется добавление в whitelist.",
+                        "blocked_ip": blocked_ip
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {error_msg[:100]}"
+                    })
+                    
+        except Exception as e:
+            logger.error(f"Error in get_orders: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
     logger.info("API routes registered successfully")

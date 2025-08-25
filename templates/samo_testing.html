@@ -1,59 +1,81 @@
 {% extends "layout.html" %}
 
-{% block title %}SAMO API - Crystal Bay Tours{% endblock %}
+{% block title %}SAMO API - Тестирование{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+.test-card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-success { background-color: #28a745; }
+.status-blocked { background-color: #dc3545; }
+.status-unknown { background-color: #6c757d; }
+
+.tour-result {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.price-tag {
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <div>
-            <h1 class="h3 mb-1">SAMO API Управление</h1>
-            <p class="text-secondary">Полное тестирование и мониторинг SAMO API интеграции</p>
+            <h1 class="h3 mb-0 text-gray-800">SAMO API - Поиск туров</h1>
+            <p class="text-muted">Простое тестирование поиска туров и получения заявок</p>
         </div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="runFullSystemsTest()">
-                <i class="bi bi-check-all"></i> Тест всех систем
-            </button>
-            <button class="btn btn-outline-primary" onclick="fullSystemTest()">
-                <i class="bi bi-arrow-clockwise"></i> Быстрый тест
-            </button>
-            <button class="btn btn-outline-secondary" onclick="runCurlTest()">
-                <i class="bi bi-terminal"></i> Curl тест
-            </button>
-            <button class="btn btn-success" onclick="exportTestResults()">
-                <i class="bi bi-download"></i> Экспорт результатов
+        <div>
+            <button class="btn btn-success btn-sm" onclick="exportTestResults()">
+                <i class="bi bi-download"></i> Экспорт отчета
             </button>
         </div>
     </div>
-    
-    <!-- Connection Status -->
+
+    <!-- Статус подключения -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Статус подключения</h5>
-                    <div>
-                        <span id="connection-indicator" class="badge bg-warning">Проверяется...</span>
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="checkCurrentIP()">
-                            <i class="bi bi-globe"></i> IP
-                        </button>
-                    </div>
+            <div class="card test-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="bi bi-wifi"></i> Статус подключения к SAMO API</h6>
                 </div>
                 <div class="card-body">
                     <div id="connection-status" class="alert alert-warning">
                         <div class="d-flex justify-content-between align-items-center">
                             <span><i class="bi bi-clock"></i> Проверка подключения...</span>
-                            <button class="btn btn-sm btn-outline-primary" onclick="runProductionDiagnostics()">
-                                <i class="bi bi-wrench"></i> Диагностика
+                            <button class="btn btn-sm btn-outline-primary" onclick="checkConnection()">
+                                <i class="bi bi-arrow-clockwise"></i> Проверить
                             </button>
                         </div>
                     </div>
                     
-                    <!-- Whitelist Instructions -->
+                    <!-- Инструкции для whitelist -->
                     <div id="whitelist-instructions" class="alert alert-info" style="display: none;">
                         <h6><i class="bi bi-info-circle"></i> Инструкции для решения проблемы IP whitelist:</h6>
                         <ol class="mb-2">
-                            <li><strong>Экспортируйте отчет:</strong> Нажмите кнопку "Экспорт результатов" выше</li>
+                            <li><strong>Экспортируйте отчет:</strong> Нажмите кнопку "Экспорт отчета" выше</li>
                             <li><strong>Обратитесь в техподдержку SAMO:</strong> Отправьте файл отчета в техподдержку</li>
                             <li><strong>Укажите детали:</strong> IP адрес сервера и OAuth Token из отчета</li>
                             <li><strong>Ожидайте подтверждения:</strong> SAMO добавит IP в whitelist</li>
@@ -62,302 +84,86 @@
                             <small><strong>Важно:</strong> Без добавления IP в whitelist SAMO API работать не будет</small>
                         </div>
                     </div>
-                    
-                    <div id="diagnostics-results" class="mt-3" style="display: none;">
-                        <div class="accordion" id="diagnosticsAccordion">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#envDiagnostics">
-                                        <i class="bi bi-gear-fill me-2"></i> Переменные окружения
-                                    </button>
-                                </h2>
-                                <div id="envDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
-                                    <div class="accordion-body">
-                                        <div id="env-results">Загрузка...</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#samoDiagnostics">
-                                        <i class="bi bi-cloud-arrow-down-fill me-2"></i> SAMO API соединение
-                                    </button>
-                                </h2>
-                                <div id="samoDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
-                                    <div class="accordion-body">
-                                        <div id="samo-results">Загрузка...</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#serverDiagnostics">
-                                        <i class="bi bi-server me-2"></i> Информация о сервере
-                                    </button>
-                                </h2>
-                                <div id="serverDiagnostics" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
-                                    <div class="accordion-body">
-                                        <div id="server-results">Загрузка...</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Параметры подключения:</h6>
-                            <ul class="list-unstyled">
-                                <li><strong>API URL:</strong> <code>booking.crystalbay.com</code></li>
-                                <li><strong>OAuth Token:</strong> <code id="token-display">****************************79</code></li>
-                                <li><strong>Сервер IP:</strong> <code id="server-ip">Загружается...</code></li>
-                                <li><strong>Версия API:</strong> <code>1.0</code></li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Статус сервисов:</h6>
-                            <ul class="list-unstyled">
-                                <li><span id="service-dns" class="badge bg-secondary">DNS</span> Разрешение имен</li>
-                                <li><span id="service-ssl" class="badge bg-secondary">SSL</span> HTTPS соединение</li>
-                                <li><span id="service-auth" class="badge bg-secondary">AUTH</span> Авторизация</li>
-                                <li><span id="service-api" class="badge bg-secondary">API</span> Доступность методов</li>
-                            </ul>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Testing Tabs -->
+
+    <!-- Поиск туров -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card test-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="bi bi-search"></i> Поиск туров из Астаны</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary" onclick="searchToursFromAstana()">
+                        <i class="bi bi-airplane"></i> Найти туры из Астаны
+                    </button>
+                    <div id="astana-results" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card test-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="bi bi-search"></i> Поиск туров из Алматы</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary" onclick="searchToursFromAlmaty()">
+                        <i class="bi bi-airplane"></i> Найти туры из Алматы
+                    </button>
+                    <div id="almaty-results" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Работа с заявками -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card test-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="bi bi-list-ul"></i> Получить заявки</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success" onclick="getOrders()">
+                        <i class="bi bi-journal-text"></i> Загрузить заявки
+                    </button>
+                    <div id="orders-results" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card test-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="bi bi-currency-dollar"></i> Курсы валют</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-info" onclick="getCurrencies()">
+                        <i class="bi bi-graph-up"></i> Получить курсы
+                    </button>
+                    <div id="currencies-results" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Результаты тестов -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card test-card">
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="quick-tests-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#quick-tests" type="button" role="tab">
-                                <i class="bi bi-lightning-fill"></i> Быстрые тесты
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="curl-tests-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#curl-tests" type="button" role="tab">
-                                <i class="bi bi-terminal"></i> Curl тесты
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#advanced" type="button" role="tab">
-                                <i class="bi bi-gear"></i> Расширенное
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="logs-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#logs" type="button" role="tab">
-                                <i class="bi bi-journal-text"></i> Логи
-                            </button>
-                        </li>
-                    </ul>
+                    <h6 class="m-0"><i class="bi bi-terminal"></i> Логи тестирования</h6>
                 </div>
-                
                 <div class="card-body">
-                    <div class="tab-content">
-                        <!-- Quick Tests Tab -->
-                        <div class="tab-pane fade show active" id="quick-tests" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>API Методы справочников:</h6>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-outline-primary" onclick="testMethod('SearchTour_CURRENCIES', 'Валюты')">
-                                            <i class="bi bi-currency-exchange"></i> Валюты
-                                        </button>
-                                        <button class="btn btn-outline-primary" onclick="testMethod('SearchTour_STATES', 'Страны')">
-                                            <i class="bi bi-globe-americas"></i> Страны
-                                        </button>
-                                        <button class="btn btn-outline-primary" onclick="testMethod('SearchTour_TOWNFROMS', 'Города')">
-                                            <i class="bi bi-geo-alt"></i> Города вылета
-                                        </button>
-                                        <button class="btn btn-outline-primary" onclick="testMethod('SearchTour_TOURS', 'Туры')">
-                                            <i class="bi bi-airplane"></i> Туры
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Дополнительные методы:</h6>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-outline-success" onclick="testMethod('SearchTour_HOTELS', 'Отели')">
-                                            <i class="bi bi-building"></i> Отели
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="testMethod('SearchTour_MEALS', 'Питание')">
-                                            <i class="bi bi-cup-straw"></i> Типы питания
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="testMethod('SearchTour_STARS', 'Звездность')">
-                                            <i class="bi bi-star"></i> Звездность
-                                        </button>
-                                        <button class="btn btn-outline-info" onclick="testSearchTours()">
-                                            <i class="bi bi-search"></i> Поиск туров
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Results Area -->
-                            <div class="mt-4">
-                                <div id="test-results" class="border rounded p-3 bg-light" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
-                                    <p class="text-muted mb-0">Результаты тестов появятся здесь...</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Curl Tests Tab -->
-                        <div class="tab-pane fade" id="curl-tests" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h6>Генератор Curl команд:</h6>
-                                    <form id="curl-form" class="mb-4">
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <label class="form-label">API URL:</label>
-                                                <input type="url" class="form-control" id="curl-url" 
-                                                       placeholder="https://booking.crystalbay.com/export/default.php" 
-                                                       value="" onchange="updateCurlCommand()">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">API Метод:</label>
-                                                <select class="form-select" id="curl-method" onchange="updateCurlCommand()">
-                                                    <option value="SearchTour_CURRENCIES">SearchTour_CURRENCIES</option>
-                                                    <option value="SearchTour_STATES">SearchTour_STATES</option>
-                                                    <option value="SearchTour_TOWNFROMS">SearchTour_TOWNFROMS</option>
-                                                    <option value="SearchTour_HOTELS">SearchTour_HOTELS</option>
-                                                    <option value="SearchTour_TOURS">SearchTour_TOURS</option>
-                                                    <option value="SearchTour_MEALS">SearchTour_MEALS</option>
-                                                    <option value="SearchTour_STARS">SearchTour_STARS</option>
-                                                    <option value="SearchTour">SearchTour (поиск)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">Дополнительные параметры:</label>
-                                                <input type="text" class="form-control" id="curl-params" 
-                                                       placeholder="Например: STATEINC=1&HOTEL_ID=123" 
-                                                       onchange="updateCurlCommand()">
-                                            </div>
-                                        </div>
-                                    </form>
-                                    
-                                    <h6>Команда Curl:</h6>
-                                    <div class="position-relative">
-                                        <pre id="curl-command" class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
-# Генерируется автоматически...
-                                        </pre>
-                                        <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2" 
-                                                onclick="copyCurlCommand()">
-                                            <i class="bi bi-clipboard"></i>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="d-flex gap-2 mt-3">
-                                        <button class="btn btn-success" onclick="executeCurl()">
-                                            <i class="bi bi-play-fill"></i> Выполнить Curl
-                                        </button>
-                                        <button class="btn btn-secondary" onclick="testDirectCurl()">
-                                            <i class="bi bi-terminal"></i> Серверный тест
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6>Быстрые команды:</h6>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPresetCurl('basic')">
-                                            Базовый тест
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPresetCurl('search')">
-                                            Поиск туров
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPresetCurl('debug')">
-                                            Отладочный режим
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Curl Results -->
-                            <div class="mt-4">
-                                <h6>Результат выполнения:</h6>
-                                <div id="curl-results" class="border rounded p-3 bg-light" style="min-height: 300px; max-height: 500px; overflow-y: auto;">
-                                    <p class="text-muted mb-0">Результаты Curl команд появятся здесь...</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Advanced Tab -->
-                        <div class="tab-pane fade" id="advanced" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Диагностика сети:</h6>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-outline-info" onclick="runNetworkDiagnostics()">
-                                            <i class="bi bi-wifi"></i> Проверка сети
-                                        </button>
-                                        <button class="btn btn-outline-info" onclick="checkDNSResolution()">
-                                            <i class="bi bi-hdd-network"></i> DNS разрешение
-                                        </button>
-                                        <button class="btn btn-outline-info" onclick="checkSSLCert()">
-                                            <i class="bi bi-shield-check"></i> SSL сертификат
-                                        </button>
-                                        <button class="btn btn-outline-warning" onclick="runWhitelistTest()">
-                                            <i class="bi bi-shield-exclamation"></i> Тест Whitelist
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Производительность:</h6>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-outline-success" onclick="runLatencyTest()">
-                                            <i class="bi bi-speedometer2"></i> Тест задержки
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="runThroughputTest()">
-                                            <i class="bi bi-graph-up"></i> Тест пропускной способности
-                                        </button>
-                                        <button class="btn btn-outline-success" onclick="runStressTest()">
-                                            <i class="bi bi-cpu"></i> Нагрузочный тест
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Advanced Results -->
-                            <div class="mt-4">
-                                <div id="advanced-results" class="border rounded p-3 bg-light" style="min-height: 250px; max-height: 400px; overflow-y: auto;">
-                                    <p class="text-muted mb-0">Результаты расширенной диагностики появятся здесь...</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Logs Tab -->
-                        <div class="tab-pane fade" id="logs" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0">Системные логи SAMO API:</h6>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="refreshLogs()">
-                                        <i class="bi bi-arrow-clockwise"></i> Обновить
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="clearLogs()">
-                                        <i class="bi bi-trash"></i> Очистить
-                                    </button>
-                                    <button class="btn btn-outline-success" onclick="downloadLogs()">
-                                        <i class="bi bi-download"></i> Скачать
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div id="logs-content" class="border rounded p-3 bg-dark text-light" style="height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;">
-                                <div class="text-warning">Загрузка логов...</div>
-                            </div>
-                        </div>
+                    <div id="test-logs" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-muted">Логи появятся здесь...</div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-secondary btn-sm" onclick="clearLogs()">
+                            <i class="bi bi-trash"></i> Очистить логи
+                        </button>
                     </div>
                 </div>
             </div>
@@ -365,841 +171,264 @@
     </div>
 </div>
 
-<!-- Bootstrap JS with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-// Global variables
-let currentServerIP = '';
-let currentOAuthToken = '27bd59a7ac67422189789f0188167379';
-let apiBaseURL = 'https://booking.crystalbay.com/export/default.php';
+let currentIP = 'unknown';
 
-// Utility functions
-function logToResults(containerId, message, type = 'info') {
-    const container = document.getElementById(containerId);
-    const timestamp = new Date().toLocaleTimeString();
-    const typeClass = type === 'error' ? 'text-danger' : type === 'success' ? 'text-success' : type === 'warning' ? 'text-warning' : '';
-    
-    const logEntry = `<div class="mb-2 ${typeClass}">
-        <small class="text-muted">${timestamp}</small> ${message}
-    </div>`;
-    
-    container.innerHTML = logEntry + container.innerHTML;
-}
-
-function formatJSON(obj) {
-    return JSON.stringify(obj, null, 2);
-}
-
-// Production diagnostics function
-async function runProductionDiagnostics() {
-    const diagnosticsDiv = document.getElementById('diagnostics-results');
-    diagnosticsDiv.style.display = 'block';
-    
-    // Show loading state
-    document.getElementById('env-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
-    document.getElementById('samo-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
-    document.getElementById('server-results').innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Загрузка...';
-    
-    // Run diagnostics
-    await Promise.all([
-        runEnvironmentDiagnostics(),
-        runSamoDiagnostics(), 
-        runServerDiagnostics()
-    ]);
-}
-
-async function runEnvironmentDiagnostics() {
-    try {
-        const response = await fetch('/api/diagnostics/environment');
-        const data = await response.json();
-        
-        let html = '<h6>Переменные окружения:</h6><ul class="list-unstyled">';
-        for (const [key, value] of Object.entries(data.environment)) {
-            const status = value.includes('✓') ? 'text-success' : 'text-danger';
-            html += `<li class="${status}"><strong>${key}:</strong> ${value}</li>`;
-        }
-        html += '</ul>';
-        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
-        
-        document.getElementById('env-results').innerHTML = html;
-    } catch (error) {
-        // Проверяем тип ошибки
-        if (error.message.includes('Unexpected token')) {
-            document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill"></i> <strong>Ошибка загрузки данных</strong><br>
-                <small>Сервер вернул HTML вместо JSON. Возможно проблема с IP whitelist.</small>
-            </div>`;
-        } else {
-            document.getElementById('env-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
-        }
-    }
-}
-
-async function runSamoDiagnostics() {
-    try {
-        const response = await fetch('/api/diagnostics/samo');
-        const data = await response.json();
-        
-        let html = `<div class="mb-3">
-            <h6>Параметры подключения:</h6>
-            <ul class="list-unstyled">
-                <li><strong>API URL:</strong> <code>${data.api_url}</code></li>
-                <li><strong>OAuth Token (суффикс):</strong> <code>***${data.oauth_token_suffix}</code></li>
-            </ul>
-        </div>`;
-        
-        html += '<h6>Результаты тестов:</h6>';
-        for (const [testName, result] of Object.entries(data.tests)) {
-            const status = result.status === '✓' ? 'success' : result.status === '✗' ? 'danger' : 'warning';
-            html += `<div class="alert alert-${status} py-2 mb-2">
-                <strong>${testName}:</strong> ${result.status} 
-                ${result.message || result.error || ''}
-            </div>`;
-            
-            if (result.status_code) {
-                html += `<small class="text-muted">HTTP Status: ${result.status_code}</small><br>`;
-            }
-            if (result.response_preview) {
-                html += `<details class="mt-2">
-                    <summary>Предварительный просмотр ответа</summary>
-                    <pre class="small mt-2">${result.response_preview}</pre>
-                </details>`;
-            }
-        }
-        
-        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
-        document.getElementById('samo-results').innerHTML = html;
-    } catch (error) {
-        // Проверяем тип ошибки
-        if (error.message.includes('Unexpected token')) {
-            document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill"></i> <strong>IP заблокирован в SAMO API</strong><br>
-                <small>API вернул HTML вместо JSON. Требуется добавление IP в whitelist.</small>
-            </div>`;
-        } else {
-            document.getElementById('samo-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
-        }
-    }
-}
-
-async function runServerDiagnostics() {
-    try {
-        const response = await fetch('/api/diagnostics/server');
-        const data = await response.json();
-        
-        let html = `<h6>Информация о сервере:</h6>
-        <ul class="list-unstyled">
-            <li><strong>Внешний IP:</strong> <code>${data.external_ip}</code></li>
-            <li><strong>User Agent:</strong> <code>${data.user_agent}</code></li>
-            <li><strong>Python версия:</strong> <code>${data.python_version}</code></li>
-            <li><strong>Переменных окружения:</strong> <code>${data.environment_vars_count}</code></li>
-        </ul>`;
-        
-        // Add curl command
-        try {
-            const curlResponse = await fetch('/api/diagnostics/curl');
-            const curlData = await curlResponse.json();
-            html += `<h6>Curl команда для тестирования:</h6>
-            <div class="bg-dark text-light p-3 rounded">
-                <small><pre>${curlData.curl_command}</pre></small>
-            </div>`;
-        } catch (e) {
-            console.warn('Curl command generation failed:', e);
-        }
-        
-        html += `<small class="text-muted">Проверено: ${new Date(data.timestamp).toLocaleString()}</small>`;
-        document.getElementById('server-results').innerHTML = html;
-    } catch (error) {
-        // Проверяем тип ошибки
-        if (error.message.includes('Unexpected token')) {
-            document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">
-                <i class="bi bi-x-circle-fill"></i> <strong>Ошибка получения данных сервера</strong><br>
-                <small>API вернул HTML вместо JSON. Проверьте IP whitelist.</small>
-            </div>`;
-        } else {
-            document.getElementById('server-results').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
-        }
-    }
-}
-
-// Connection status functions
-async function checkCurrentIP() {
-    try {
-        const response = await fetch('/api/diagnostics/server');
-        const data = await response.json();
-        currentServerIP = data.external_ip || 'Неизвестно';
-        document.getElementById('server-ip').textContent = currentServerIP;
-        
-        logToResults('test-results', `IP адрес сервера: <code>${currentServerIP}</code>`, 'info');
-    } catch (error) {
-        document.getElementById('server-ip').textContent = 'Ошибка определения IP';
-        logToResults('test-results', `Ошибка получения IP: ${error.message}`, 'error');
-    }
-}
-
-async function updateConnectionStatus() {
+// Проверка подключения
+async function checkConnection() {
     const statusDiv = document.getElementById('connection-status');
-    const indicator = document.getElementById('connection-indicator');
-    
-    statusDiv.className = 'alert alert-info';
-    statusDiv.innerHTML = '<i class="bi bi-arrow-repeat"></i> Проверка подключения...';
-    indicator.className = 'badge bg-warning';
-    indicator.textContent = 'Проверяется...';
-    
-    try {
-        const response = await fetch('/api/diagnostics/samo');
-        const data = await response.json();
-        
-        // Проверяем DNS разрешение - это основной показатель работоспособности
-        if (data.tests && data.tests.dns_resolution && data.tests.dns_resolution.status === '✓') {
-            statusDiv.className = 'alert alert-success';
-            statusDiv.innerHTML = '<i class="bi bi-check-circle"></i> SAMO API подключен успешно';
-            indicator.className = 'badge bg-success';
-            indicator.textContent = 'Подключен';
-            
-            // Update service indicators for successful connection
-            document.getElementById('service-dns').className = 'badge bg-success';
-            document.getElementById('service-ssl').className = 'badge bg-success';
-            
-            // Проверяем статус API endpoint для более детальной информации
-            if (data.tests.api_endpoint) {
-                if (data.tests.api_endpoint.status_code === 403) {
-                    document.getElementById('service-auth').className = 'badge bg-warning';
-                    document.getElementById('service-api').className = 'badge bg-warning';
-                    statusDiv.innerHTML += '<br><small class="text-muted">⚠️ IP заблокирован в SAMO API. Требуется добавление в whitelist.</small>';
-                } else if (data.tests.api_endpoint.status_code === 500) {
-                    document.getElementById('service-auth').className = 'badge bg-warning';
-                    document.getElementById('service-api').className = 'badge bg-warning';
-                    statusDiv.innerHTML += '<br><small class="text-muted">⚠️ IP заблокирован в SAMO API. Требуется добавление в whitelist.</small>';
-                } else if (data.tests.api_endpoint.status_code === 200) {
-                    document.getElementById('service-auth').className = 'badge bg-success';
-                    document.getElementById('service-api').className = 'badge bg-success';
-                }
-            } else {
-                document.getElementById('service-auth').className = 'badge bg-warning';
-                document.getElementById('service-api').className = 'badge bg-warning';
-            }
-            
-            // Update token display
-            if (data.oauth_token_suffix) {
-                document.getElementById('token-display').textContent = `****************************${data.oauth_token_suffix}`;
-            }
-        } else {
-            // DNS не работает - серьезная проблема
-            statusDiv.className = 'alert alert-danger';
-            statusDiv.innerHTML = '<i class="bi bi-x-circle"></i> Ошибка DNS разрешения. Проверьте интернет-соединение.';
-            indicator.className = 'badge bg-danger';
-            indicator.textContent = 'DNS ошибка';
-            
-            // Update service indicators for DNS failure
-            document.getElementById('service-dns').className = 'badge bg-danger';
-            document.getElementById('service-ssl').className = 'badge bg-secondary';
-            document.getElementById('service-auth').className = 'badge bg-secondary';
-            document.getElementById('service-api').className = 'badge bg-secondary';
-        }
-    } catch (error) {
-        statusDiv.className = 'alert alert-danger';
-        statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> Ошибка соединения: ${error.message}`;
-        indicator.className = 'badge bg-danger';
-        indicator.textContent = 'Недоступен';
-        
-        // Reset all service indicators
-        document.getElementById('service-dns').className = 'badge bg-secondary';
-        document.getElementById('service-ssl').className = 'badge bg-secondary';
-        document.getElementById('service-auth').className = 'badge bg-secondary';
-        document.getElementById('service-api').className = 'badge bg-secondary';
-    }
-}
+    statusDiv.innerHTML = '<i class="bi bi-hourglass-split"></i> Проверка подключения...';
+    statusDiv.className = 'alert alert-warning';
 
-// Test functions
-async function testMethod(method, description) {
-    logToResults('test-results', `Тестирование ${description} (${method})...`, 'info');
-    
-    try {
-        const response = await fetch(`/api/samo/${method.toLowerCase().replace('searchtour_', '')}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            logToResults('test-results', `❌ ${description}: ${data.error}`, 'error');
-        } else {
-            const resultCount = Array.isArray(data) ? data.length : Object.keys(data).length;
-            logToResults('test-results', `✅ ${description}: получено ${resultCount} записей`, 'success');
-            
-            // Show sample data
-            if (Array.isArray(data) && data.length > 0) {
-                logToResults('test-results', `Образец данных: <pre class="small">${formatJSON(data[0])}</pre>`, 'info');
-            } else if (typeof data === 'object') {
-                const firstKey = Object.keys(data)[0];
-                if (firstKey && data[firstKey]) {
-                    logToResults('test-results', `Образец данных: <pre class="small">${formatJSON({[firstKey]: data[firstKey]})}</pre>`, 'info');
-                }
-            }
-        }
-    } catch (error) {
-        logToResults('test-results', `❌ ${description}: ${error.message}`, 'error');
-    }
-}
-
-async function testSearchTours() {
-    logToResults('test-results', 'Тестирование поиска туров...', 'info');
-    
-    try {
-        const response = await fetch('/api/samo/search-tours', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                townfrom: 1,
-                datebeg: '2025-03-01',
-                dateend: '2025-03-31',
-                nightbeg: 7,
-                nightend: 14,
-                adult: 2,
-                child: 0
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.error) {
-            logToResults('test-results', `❌ Поиск туров: ${data.error}`, 'error');
-        } else {
-            const tourCount = data.length || 0;
-            logToResults('test-results', `✅ Поиск туров: найдено ${tourCount} предложений`, 'success');
-        }
-    } catch (error) {
-        logToResults('test-results', `❌ Поиск туров: ${error.message}`, 'error');
-    }
-}
-
-async function fullSystemTest() {
-    logToResults('test-results', '🚀 Запуск полного системного теста...', 'info');
-    
-    // Clear results
-    document.getElementById('test-results').innerHTML = '';
-    
-    await checkCurrentIP();
-    await updateConnectionStatus();
-    
-    // Test all basic methods
-    const methods = [
-        ['SearchTour_CURRENCIES', 'Валюты'],
-        ['SearchTour_STATES', 'Страны'], 
-        ['SearchTour_TOWNFROMS', 'Города'],
-        ['SearchTour_HOTELS', 'Отели'],
-        ['SearchTour_MEALS', 'Питание'],
-        ['SearchTour_STARS', 'Звездность'],
-        ['SearchTour_TOURS', 'Туры']
-    ];
-    
-    for (const [method, description] of methods) {
-        await testMethod(method, description);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Delay between requests
-    }
-    
-    logToResults('test-results', '✅ Полный системный тест завершен', 'success');
-}
-
-// Curl functionality
-function updateCurlCommand() {
-    const method = document.getElementById('curl-method').value;
-    const params = document.getElementById('curl-params').value;
-    
-    let curlCommand = `curl -X POST "${apiBaseURL}" \\
-  -H "Content-Type: application/x-www-form-urlencoded" \\
-  -H "User-Agent: Crystal Bay Travel Integration/1.0" \\
-  -d "samo_action=api&version=1.0&type=json&action=${method}&oauth_token=${currentOAuthToken}`;
-    
-    if (params) {
-        curlCommand += `&${params}`;
-    }
-    
-    curlCommand += '"';
-    
-    document.getElementById('curl-command').textContent = curlCommand;
-}
-
-function copyCurlCommand() {
-    const command = document.getElementById('curl-command').textContent;
-    navigator.clipboard.writeText(command).then(() => {
-        // Show temporary feedback
-        const btn = event.target.closest('button');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="bi bi-check"></i>';
-        setTimeout(() => btn.innerHTML = originalText, 1000);
-    });
-}
-
-async function executeCurl() {
-    const method = document.getElementById('curl-method').value;
-    const params = document.getElementById('curl-params').value;
-    
-    logToResults('curl-results', `Выполнение Curl для ${method}...`, 'info');
-    
-    try {
-        const response = await fetch('/api/samo/execute-curl', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                method: method,
-                params: params
-            })
-        });
-        
-        const data = await response.json();
-        
-        logToResults('curl-results', 
-            `<strong>Команда:</strong><br><pre class="small">${data.command}</pre>`, 'info');
-        logToResults('curl-results', 
-            `<strong>Результат:</strong><br><pre class="small">${formatJSON(data.result)}</pre>`, 
-            data.success ? 'success' : 'error');
-    } catch (error) {
-        // Проверяем тип ошибки
-        if (error.message.includes('Unexpected token')) {
-            logToResults('curl-results', `❌ API вернул HTML вместо JSON (IP ${currentIP} заблокирован в SAMO whitelist)`, 'error');
-        } else {
-            logToResults('curl-results', `Ошибка выполнения: ${error.message}`, 'error');
-        }
-    }
-}
-
-async function testDirectCurl() {
-    logToResults('curl-results', 'Запуск серверного curl теста...', 'info');
-    
-    try {
-        const response = await fetch('/api/samo/server-curl-test');
-        const data = await response.json();
-        
-        logToResults('curl-results', 
-            `<strong>Команда:</strong><br><pre class="small">${data.command}</pre>`, 'info');
-        logToResults('curl-results', 
-            `<strong>HTTP код:</strong> ${data.http_code}`, 
-            data.success ? 'success' : 'error');
-        logToResults('curl-results', 
-            `<strong>Ответ:</strong><br><pre class="small">${data.response}</pre>`, 'info');
-    } catch (error) {
-        // Проверяем тип ошибки
-        if (error.message.includes('Unexpected token')) {
-            logToResults('curl-results', `❌ Серверный тест: API вернул HTML вместо JSON (IP заблокирован в SAMO whitelist)`, 'error');
-        } else {
-            logToResults('curl-results', `Ошибка серверного теста: ${error.message}`, 'error');
-        }
-    }
-}
-
-function loadPresetCurl(preset) {
-    const methodSelect = document.getElementById('curl-method');
-    const paramsInput = document.getElementById('curl-params');
-    
-    switch(preset) {
-        case 'basic':
-            methodSelect.value = 'SearchTour_CURRENCIES';
-            paramsInput.value = '';
-            break;
-        case 'search':
-            methodSelect.value = 'SearchTour';
-            paramsInput.value = 'TOWNFROM=1&DATEBEG=2025-03-01&DATEEND=2025-03-31&NIGHTBEG=7&NIGHTEND=14&ADULT=2';
-            break;
-        case 'debug':
-            methodSelect.value = 'SearchTour_STATES';
-            paramsInput.value = 'debug=1&verbose=1';
-            break;
-    }
-    updateCurlCommand();
-}
-
-async function runCurlTest() {
-    // Switch to curl tests tab
-    document.getElementById('curl-tests-tab').click();
-    updateCurlCommand();
-    await executeCurl();
-}
-
-// Advanced diagnostics
-async function runNetworkDiagnostics() {
-    logToResults('advanced-results', 'Запуск сетевой диагностики...', 'info');
-    
-    try {
-        const response = await fetch('/api/diagnostics/network');
-        const data = await response.json();
-        
-        if (data.network_tests) {
-            let html = '<strong>Сетевая диагностика:</strong><br>';
-            
-            if (data.network_tests.internet) {
-                html += `Интернет: ${data.network_tests.internet.status} ${data.network_tests.internet.message}<br>`;
-            }
-            
-            if (data.network_tests.dns) {
-                html += `DNS: ${data.network_tests.dns.status} ${data.network_tests.dns.message}<br>`;
-            }
-            
-            logToResults('advanced-results', html, 'info');
-        } else {
-            logToResults('advanced-results', 'Сетевая диагностика недоступна', 'warning');
-        }
-    } catch (error) {
-        logToResults('advanced-results', `Ошибка диагностики: ${error.message}`, 'error');
-    }
-}
-
-async function checkDNSResolution() {
-    logToResults('advanced-results', 'Проверка DNS разрешения...', 'info');
-    
-    try {
-        const response = await fetch('/api/diagnostics/network');
-        const data = await response.json();
-        
-        if (data.network_tests && data.network_tests.dns) {
-            logToResults('advanced-results', 
-                `DNS разрешение: <code>${data.network_tests.dns.message}</code>`, 
-                data.network_tests.dns.status === '✓' ? 'success' : 'error');
-        } else {
-            logToResults('advanced-results', 'DNS тест недоступен', 'warning');
-        }
-    } catch (error) {
-        logToResults('advanced-results', `Ошибка DNS проверки: ${error.message}`, 'error');
-    }
-}
-
-async function checkSSLCert() {
-    logToResults('advanced-results', 'Проверка SSL сертификата...', 'info');
-    
-    try {
-        const response = await fetch('/api/diagnostics/network');
-        const data = await response.json();
-        
-        if (data.network_tests && data.network_tests.internet) {
-            logToResults('advanced-results', 
-                `SSL соединение: ${data.network_tests.internet.message}`, 
-                data.network_tests.internet.status === '✓' ? 'success' : 'warning');
-        } else {
-            logToResults('advanced-results', 'SSL тест недоступен', 'warning');
-        }
-    } catch (error) {
-        logToResults('advanced-results', `Ошибка SSL проверки: ${error.message}`, 'error');
-    }
-}
-
-// Use existing functions or create simple ones that work with current API
-async function runProductionNetworkDiagnostics() {
-    await runNetworkDiagnostics();
-}
-
-async function runProductionDNS() {
-    await checkDNSResolution();
-}
-
-async function runProductionSSL() {
-    await checkSSLCert();
-}
-
-async function runProductionWhitelist() {
-    await runWhitelistTest();
-}
-
-async function runWhitelistTest() {
-    logToResults('advanced-results', 'Проверка IP whitelist...', 'warning');
-    
     try {
         // Получаем IP сервера
         const serverResponse = await fetch('/api/diagnostics/server');
         const serverData = await serverResponse.json();
-        const serverIP = serverData.external_ip || 'unknown';
-        
-        // Проверяем САМО API
-        const response = await fetch('/api/diagnostics/samo');
+        currentIP = serverData.external_ip || 'unknown';
+
+        // Проверяем SAMO API
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SearchTour_CURRENCIES' })
+        });
+
         const data = await response.json();
         
-        if (data.tests && data.tests.api_endpoint) {
-            const statusCode = data.tests.api_endpoint.status_code;
-            if (statusCode === 200) {
-                logToResults('advanced-results', 
-                    `✅ IP ${serverIP} находится в whitelist SAMO`, 'success');
-                hideWhitelistInstructions();
-            } else if (statusCode === 403) {
-                logToResults('advanced-results', 
-                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Требуется добавление в whitelist.`, 'error');
-                showWhitelistInstructions();
-            } else if (statusCode === 500) {
-                logToResults('advanced-results', 
-                    `❌ IP ${serverIP} НЕ в whitelist SAMO. Требуется добавление в whitelist.`, 'error');
+        if (data.success) {
+            statusDiv.innerHTML = `<i class="bi bi-check-circle-fill"></i> <strong>Подключение успешно!</strong> IP: ${currentIP}`;
+            statusDiv.className = 'alert alert-success';
+            hideWhitelistInstructions();
+        } else {
+            if (data.error && data.error.includes('blacklisted address')) {
+                statusDiv.innerHTML = `<i class="bi bi-x-circle-fill"></i> <strong>IP ${currentIP} заблокирован в SAMO API</strong><br><small>Требуется добавление в whitelist</small>`;
+                statusDiv.className = 'alert alert-danger';
                 showWhitelistInstructions();
             } else {
-                logToResults('advanced-results', 
-                    `⚠️ Неопределенный статус IP ${serverIP}: HTTP ${statusCode}`, 'warning');
+                statusDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> <strong>Ошибка подключения:</strong> ${data.error}`;
+                statusDiv.className = 'alert alert-warning';
             }
-        } else {
-            logToResults('advanced-results', 'Тест whitelist недоступен', 'warning');
         }
     } catch (error) {
-        logToResults('advanced-results', `Ошибка: ${error.message}`, 'error');
+        statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> <strong>Ошибка соединения:</strong> ${error.message}`;
+        statusDiv.className = 'alert alert-danger';
     }
 }
 
-// Показать инструкции по whitelist
+// Поиск туров из Астаны
+async function searchToursFromAstana() {
+    logMessage('Поиск туров из Астаны...', 'info');
+    const resultDiv = document.getElementById('astana-results');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Поиск...';
+
+    try {
+        const response = await fetch('/api/samo/search_tours', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'SearchTour_TOURS',
+                townfrom: 'Астана'
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.tours && data.tours.length > 0) {
+            let html = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Найдено туров: ${data.tours.length}</div>`;
+            
+            data.tours.slice(0, 3).forEach(tour => {
+                html += `<div class="tour-result">
+                    <h6>${tour.name || 'Тур'}</h6>
+                    <p class="mb-1"><strong>Направление:</strong> ${tour.country || 'Не указано'}</p>
+                    <p class="mb-1"><strong>Цена:</strong> <span class="price-tag">${tour.price || 'По запросу'}</span></p>
+                </div>`;
+            });
+            
+            resultDiv.innerHTML = html;
+            logMessage(`✅ Найдено туров из Астаны: ${data.tours.length}`, 'success');
+        } else {
+            if (data.error && data.error.includes('blacklisted address')) {
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> IP заблокирован в SAMO API</div>';
+                logMessage('❌ Поиск туров: IP заблокирован в SAMO whitelist', 'error');
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Туры не найдены</div>';
+                logMessage('⚠️ Туры из Астаны не найдены', 'warning');
+            }
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Ошибка: ${error.message}</div>`;
+        logMessage(`❌ Ошибка поиска туров из Астаны: ${error.message}`, 'error');
+    }
+}
+
+// Поиск туров из Алматы
+async function searchToursFromAlmaty() {
+    logMessage('Поиск туров из Алматы...', 'info');
+    const resultDiv = document.getElementById('almaty-results');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Поиск...';
+
+    try {
+        const response = await fetch('/api/samo/search_tours', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'SearchTour_TOURS',
+                townfrom: 'Алматы'
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.tours && data.tours.length > 0) {
+            let html = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Найдено туров: ${data.tours.length}</div>`;
+            
+            data.tours.slice(0, 3).forEach(tour => {
+                html += `<div class="tour-result">
+                    <h6>${tour.name || 'Тур'}</h6>
+                    <p class="mb-1"><strong>Направление:</strong> ${tour.country || 'Не указано'}</p>
+                    <p class="mb-1"><strong>Цена:</strong> <span class="price-tag">${tour.price || 'По запросу'}</span></p>
+                </div>`;
+            });
+            
+            resultDiv.innerHTML = html;
+            logMessage(`✅ Найдено туров из Алматы: ${data.tours.length}`, 'success');
+        } else {
+            if (data.error && data.error.includes('blacklisted address')) {
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> IP заблокирован в SAMO API</div>';
+                logMessage('❌ Поиск туров: IP заблокирован в SAMO whitelist', 'error');
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Туры не найдены</div>';
+                logMessage('⚠️ Туры из Алматы не найдены', 'warning');
+            }
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Ошибка: ${error.message}</div>`;
+        logMessage(`❌ Ошибка поиска туров из Алматы: ${error.message}`, 'error');
+    }
+}
+
+// Получение заявок
+async function getOrders() {
+    logMessage('Загрузка заявок...', 'info');
+    const resultDiv = document.getElementById('orders-results');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка...';
+
+    try {
+        const response = await fetch('/api/samo/get_orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'GetOrders' })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.orders && data.orders.length > 0) {
+            let html = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Загружено заявок: ${data.orders.length}</div>`;
+            
+            data.orders.slice(0, 5).forEach(order => {
+                html += `<div class="tour-result">
+                    <h6>Заявка №${order.id || 'N/A'}</h6>
+                    <p class="mb-1"><strong>Клиент:</strong> ${order.client || 'Не указан'}</p>
+                    <p class="mb-1"><strong>Статус:</strong> ${order.status || 'Не указан'}</p>
+                </div>`;
+            });
+            
+            resultDiv.innerHTML = html;
+            logMessage(`✅ Загружено заявок: ${data.orders.length}`, 'success');
+        } else {
+            if (data.error && data.error.includes('blacklisted address')) {
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> IP заблокирован в SAMO API</div>';
+                logMessage('❌ Загрузка заявок: IP заблокирован в SAMO whitelist', 'error');
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Заявки не найдены</div>';
+                logMessage('⚠️ Заявки не найдены', 'warning');
+            }
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Ошибка: ${error.message}</div>`;
+        logMessage(`❌ Ошибка загрузки заявок: ${error.message}`, 'error');
+    }
+}
+
+// Получение курсов валют
+async function getCurrencies() {
+    logMessage('Загрузка курсов валют...', 'info');
+    const resultDiv = document.getElementById('currencies-results');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Загрузка...';
+
+    try {
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SearchTour_CURRENCIES' })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.currencies && data.currencies.length > 0) {
+            let html = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> Загружено валют: ${data.currencies.length}</div>`;
+            
+            data.currencies.slice(0, 5).forEach(currency => {
+                html += `<div class="tour-result">
+                    <h6>${currency.name || 'Валюта'}</h6>
+                    <p class="mb-1"><strong>Код:</strong> ${currency.code || 'N/A'}</p>
+                    <p class="mb-1"><strong>Курс:</strong> <span class="price-tag">${currency.rate || 'N/A'}</span></p>
+                </div>`;
+            });
+            
+            resultDiv.innerHTML = html;
+            logMessage(`✅ Загружено валют: ${data.currencies.length}`, 'success');
+        } else {
+            if (data.error && data.error.includes('blacklisted address')) {
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> IP заблокирован в SAMO API</div>';
+                logMessage('❌ Загрузка валют: IP заблокирован в SAMO whitelist', 'error');
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Данные не получены</div>';
+                logMessage('⚠️ Курсы валют не получены', 'warning');
+            }
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Ошибка: ${error.message}</div>`;
+        logMessage(`❌ Ошибка загрузки валют: ${error.message}`, 'error');
+    }
+}
+
+// Логирование
+function logMessage(message, type) {
+    const logsDiv = document.getElementById('test-logs');
+    const timestamp = new Date().toLocaleTimeString();
+    const typeClass = type === 'success' ? 'text-success' : 
+                     type === 'error' ? 'text-danger' : 
+                     type === 'warning' ? 'text-warning' : 'text-info';
+    
+    const logEntry = `<div class="mb-1"><small class="text-muted">${timestamp}</small> <span class="${typeClass}">${message}</span></div>`;
+    
+    if (logsDiv.innerHTML.includes('Логи появятся здесь')) {
+        logsDiv.innerHTML = logEntry;
+    } else {
+        logsDiv.innerHTML += logEntry;
+    }
+    
+    logsDiv.scrollTop = logsDiv.scrollHeight;
+}
+
+// Очистка логов
+function clearLogs() {
+    document.getElementById('test-logs').innerHTML = '<div class="text-muted">Логи очищены.</div>';
+}
+
+// Показать/скрыть инструкции whitelist
 function showWhitelistInstructions() {
     const instructions = document.getElementById('whitelist-instructions');
-    if (instructions) {
-        instructions.style.display = 'block';
-    }
+    if (instructions) instructions.style.display = 'block';
 }
 
-// Скрыть инструкции по whitelist  
 function hideWhitelistInstructions() {
     const instructions = document.getElementById('whitelist-instructions');
-    if (instructions) {
-        instructions.style.display = 'none';
-    }
+    if (instructions) instructions.style.display = 'none';
 }
 
-async function runLatencyTest() {
-    logToResults('advanced-results', 'Тест задержки соединения...', 'info');
-    
-    const times = [];
-    for (let i = 0; i < 5; i++) {
-        const start = Date.now();
-        try {
-            await fetch('/api/samo/ping');
-            times.push(Date.now() - start);
-        } catch (error) {
-            logToResults('advanced-results', `Пинг ${i+1} неудачен: ${error.message}`, 'error');
-        }
-    }
-    
-    if (times.length > 0) {
-        const avgLatency = times.reduce((a, b) => a + b, 0) / times.length;
-        logToResults('advanced-results', 
-            `Средняя задержка: ${avgLatency.toFixed(1)}мс (${times.join(', ')}мс)`, 'success');
-    }
-}
-
-// Комплексный тест всех систем SAMO API
-async function runFullSystemsTest() {
-    const btn = document.querySelector('button[onclick="runFullSystemsTest()"]');
-    const originalText = btn.innerHTML;
-    
-    // Показать индикатор загрузки
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Тестирование...';
-    btn.disabled = true;
-    
-    // Создаем контейнер для результатов если его нет
-    let resultsContainer = document.getElementById('full-systems-results');
-    if (!resultsContainer) {
-        const cardBody = document.querySelector('.card-body');
-        resultsContainer = document.createElement('div');
-        resultsContainer.id = 'full-systems-results';
-        resultsContainer.className = 'mt-4 p-3 border rounded';
-        resultsContainer.innerHTML = '<h6><i class="bi bi-check-all"></i> Результаты комплексного тестирования</h6><div id="systems-results-content"></div>';
-        cardBody.appendChild(resultsContainer);
-    }
-    
-    const contentDiv = document.getElementById('systems-results-content');
-    contentDiv.innerHTML = '<div class="text-info"><i class="bi bi-hourglass-split"></i> Выполняется комплексный тест всех систем SAMO API...</div>';
-    
-    try {
-        const response = await fetch('/api/samo/test_all_systems');
-        const data = await response.json();
-        
-        if (data.success === false) {
-            contentDiv.innerHTML = `<div class="alert alert-danger">
-                <strong>Ошибка тестирования:</strong> ${data.error}
-            </div>`;
-            return;
-        }
-        
-        // Создаем красивый отчет
-        let html = `
-            <div class="alert alert-${data.overall_status === 'success' ? 'success' : 'warning'} mb-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Общий статус:</strong> 
-                        ${data.overall_status === 'success' ? '✅ Частично успешно' : '❌ Проблемы обнаружены'}
-                    </div>
-                    <div class="text-end">
-                        <small>Успешность: <strong>${data.success_rate}</strong></small><br>
-                        <small>Пройдено: ${data.summary.passed}/${data.summary.total}</small>
-                    </div>
-                </div>
-            </div>`;
-        
-        // Сводка результатов
-        html += '<div class="row mb-3">';
-        html += '<div class="col-md-4">';
-        html += `<div class="card border-success">
-            <div class="card-body text-center">
-                <h4 class="text-success">${data.summary.passed}</h4>
-                <small class="text-muted">Успешных тестов</small>
-            </div>
-        </div>`;
-        html += '</div>';
-        
-        html += '<div class="col-md-4">';
-        html += `<div class="card border-danger">
-            <div class="card-body text-center">
-                <h4 class="text-danger">${data.summary.failed}</h4>
-                <small class="text-muted">Неудачных тестов</small>
-            </div>
-        </div>`;
-        html += '</div>';
-        
-        html += '<div class="col-md-4">';
-        html += `<div class="card border-primary">
-            <div class="card-body text-center">
-                <h4 class="text-primary">${data.summary.total}</h4>
-                <small class="text-muted">Всего тестов</small>
-            </div>
-        </div>`;
-        html += '</div>';
-        html += '</div>';
-        
-        // Детальные результаты тестов
-        html += '<h6 class="mb-3">Детальные результаты тестов:</h6>';
-        html += '<div class="accordion" id="systemsTestAccordion">';
-        
-        let index = 0;
-        for (const [action, testResult] of Object.entries(data.tests)) {
-            const statusIcon = testResult.status === 'success' ? '✅' : 
-                              testResult.status === 'blocked' ? '🔒' : '❌';
-            const statusColor = testResult.status === 'success' ? 'success' : 
-                               testResult.status === 'blocked' ? 'warning' : 'danger';
-            
-            html += `
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#test-${index}">
-                            ${statusIcon} ${testResult.description} 
-                            <span class="badge bg-${statusColor} ms-auto me-2">${testResult.status}</span>
-                        </button>
-                    </h2>
-                    <div id="test-${index}" class="accordion-collapse collapse" 
-                         data-bs-parent="#systemsTestAccordion">
-                        <div class="accordion-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Действие:</strong> <code>${testResult.action}</code><br>
-                                    <strong>Статус код:</strong> <span class="badge bg-${statusColor}">${testResult.status_code || 'N/A'}</span><br>
-                                    <strong>Размер ответа:</strong> ${testResult.response_length || 0} байт<br>
-                                    ${testResult.parsed_count !== undefined ? `<strong>Элементов найдено:</strong> ${testResult.parsed_count}<br>` : ''}
-                                </div>
-                                <div class="col-md-6">
-                                    ${testResult.blocked_ip ? `<div class="alert alert-warning p-2"><strong>Заблокированный IP:</strong> ${testResult.blocked_ip}</div>` : ''}
-                                    ${testResult.error ? `<div class="alert alert-danger p-2"><strong>Ошибка:</strong> ${testResult.error}</div>` : ''}
-                                    ${testResult.message ? `<div class="alert alert-info p-2">${testResult.message}</div>` : ''}
-                                </div>
-                            </div>
-                            ${testResult.response_preview ? `<div class="mt-2"><strong>Превью ответа:</strong><pre class="bg-light p-2 small">${testResult.response_preview}</pre></div>` : ''}
-                        </div>
-                    </div>
-                </div>`;
-            index++;
-        }
-        html += '</div>';
-        
-        // Парсированные данные
-        if (data.parsed_data && Object.keys(data.parsed_data).length > 0) {
-            html += '<h6 class="mt-4 mb-3">Полученные данные для парсинга:</h6>';
-            html += '<div class="row">';
-            
-            if (data.parsed_data.currencies) {
-                html += '<div class="col-md-6 mb-3">';
-                html += `<div class="card">
-                    <div class="card-header"><strong>Валюты (${data.parsed_data.currencies.length})</strong></div>
-                    <div class="card-body">`;
-                data.parsed_data.currencies.slice(0, 5).forEach(curr => {
-                    html += `<span class="badge bg-primary me-1">${curr.code || curr.name}</span>`;
-                });
-                if (data.parsed_data.currencies.length > 5) {
-                    html += `<span class="text-muted">...и ещё ${data.parsed_data.currencies.length - 5}</span>`;
-                }
-                html += '</div></div>';
-                html += '</div>';
-            }
-            
-            if (data.parsed_data.countries) {
-                html += '<div class="col-md-6 mb-3">';
-                html += `<div class="card">
-                    <div class="card-header"><strong>Страны (${data.parsed_data.countries.length})</strong></div>
-                    <div class="card-body">`;
-                data.parsed_data.countries.slice(0, 3).forEach(country => {
-                    html += `<span class="badge bg-success me-1">${country.name}</span>`;
-                });
-                if (data.parsed_data.countries.length > 3) {
-                    html += `<span class="text-muted">...и ещё ${data.parsed_data.countries.length - 3}</span>`;
-                }
-                html += '</div></div>';
-                html += '</div>';
-            }
-            
-            if (data.parsed_data.tours) {
-                html += '<div class="col-12 mb-3">';
-                html += `<div class="card">
-                    <div class="card-header"><strong>Найденные туры (${data.parsed_data.tours.length})</strong></div>
-                    <div class="card-body">`;
-                data.parsed_data.tours.slice(0, 3).forEach(tour => {
-                    html += `<div class="border-bottom pb-2 mb-2">
-                        <strong>${tour.name || 'Тур без названия'}</strong><br>
-                        <span class="text-success">${tour.price} ${tour.currency}</span> | 
-                        <span class="text-muted">${tour.hotel}</span>
-                    </div>`;
-                });
-                if (data.parsed_data.tours.length > 3) {
-                    html += `<div class="text-muted text-center">...и ещё ${data.parsed_data.tours.length - 3} туров</div>`;
-                }
-                html += '</div></div>';
-                html += '</div>';
-            }
-            
-            html += '</div>';
-        }
-        
-        contentDiv.innerHTML = html;
-        
-    } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger">
-            <strong>Ошибка выполнения тестов:</strong> ${error.message}
-        </div>`;
-    } finally {
-        // Восстанавливаем кнопку
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-// Logs functionality
-async function refreshLogs() {
-    try {
-        const response = await fetch('/api/samo/logs');
-        const data = await response.json();
-        
-        document.getElementById('logs-content').innerHTML = 
-            `<div class="text-success">Логи обновлены: ${new Date().toLocaleTimeString()}</div>\n${data.logs}`;
-    } catch (error) {
-        document.getElementById('logs-content').innerHTML = 
-            `<div class="text-danger">Ошибка загрузки логов: ${error.message}</div>`;
-    }
-}
-
-function clearLogs() {
-    if (confirm('Очистить логи? Это действие необратимо.')) {
-        document.getElementById('logs-content').innerHTML = 
-            '<div class="text-info">Логи очищены.</div>';
-    }
-}
-
-function downloadLogs() {
-    const logs = document.getElementById('logs-content').textContent;
-    const blob = new Blob([logs], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `samo-logs-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
-// Export test results for technical support
+// Экспорт отчета для техподдержки
 async function exportTestResults() {
     try {
         const response = await fetch('/api/samo/export_test_results');
@@ -1208,7 +437,6 @@ async function exportTestResults() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        // Check if it's a JSON download
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const blob = await response.blob();
@@ -1216,14 +444,11 @@ async function exportTestResults() {
             const a = document.createElement('a');
             a.href = url;
             
-            // Extract filename from Content-Disposition header or create default
             const contentDisposition = response.headers.get('content-disposition');
             let filename = 'samo_api_debug_report.json';
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (filenameMatch) {
-                    filename = filenameMatch[1];
-                }
+                if (filenameMatch) filename = filenameMatch[1];
             }
             
             a.download = filename;
@@ -1232,49 +457,19 @@ async function exportTestResults() {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            // Show success message
-            const alertHtml = `<div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <strong>Экспорт выполнен!</strong> Файл отчета загружен: ${filename}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>`;
-            
-            // Insert alert at top of page
-            const container = document.querySelector('.container-fluid');
-            container.insertAdjacentHTML('afterbegin', alertHtml);
+            logMessage(`✅ Отчет экспортирован: ${filename}`, 'success');
         } else {
             throw new Error('Неожиданный формат ответа сервера');
         }
         
     } catch (error) {
-        // Show error message
-        const alertHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Ошибка экспорта:</strong> ${error.message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
-        
-        const container = document.querySelector('.container-fluid');
-        container.insertAdjacentHTML('afterbegin', alertHtml);
+        logMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
     }
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', async function() {
-    // Load current IP
-    await checkCurrentIP();
-    
-    // Update connection status
-    await updateConnectionStatus();
-    
-    // Generate initial curl command
-    updateCurlCommand();
-    
-    // Load initial logs
-    await refreshLogs();
-    
-    // Set up auto-refresh for logs (every 30 seconds)
-    setInterval(refreshLogs, 30000);
+// Автозагрузка при открытии страницы
+document.addEventListener('DOMContentLoaded', function() {
+    checkConnection();
 });
 </script>
 {% endblock %}
