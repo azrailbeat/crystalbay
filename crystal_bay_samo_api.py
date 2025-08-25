@@ -81,7 +81,7 @@ class CrystalBaySamoAPI:
             except Exception as e:
                 logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
             
-            # Fallback to direct request (will likely get 403)
+            # Fallback to direct request (will likely get 403 due to NAT Gateway IP)
             # Правильные параметры согласно официальной документации SAMO API
             request_params = {
                 'samo_action': 'api',
@@ -97,6 +97,15 @@ class CrystalBaySamoAPI:
             
             logger.info(f"SAMO API запрос (direct): {action}")
             logger.info(f"Параметры: {json.dumps(request_params, indent=2)}")
+            
+            # Определяем текущий внешний IP для диагностики
+            try:
+                import requests as check_requests
+                ip_response = check_requests.get('https://api.ipify.org?format=json', timeout=5)
+                current_external_ip = ip_response.json().get('ip', 'unknown')
+                logger.warning(f"🌐 Исходящий IP: {current_external_ip} (может отличаться от IP сервера)")
+            except:
+                current_external_ip = 'detection_failed'
             
             # Headers for production deployment
             headers = {
