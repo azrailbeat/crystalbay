@@ -127,7 +127,7 @@ def register_api_routes(app):
         try:
             from crystal_bay_samo_api import CrystalBaySamoAPI
             samo_api = CrystalBaySamoAPI()
-            result = samo_api.get_currencies()
+            result = samo_api.get_all_data()
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error getting SAMO currencies: {str(e)}")
@@ -139,7 +139,7 @@ def register_api_routes(app):
         try:
             from crystal_bay_samo_api import CrystalBaySamoAPI
             samo_api = CrystalBaySamoAPI()
-            result = samo_api.get_states()
+            result = samo_api.get_all_data()
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error getting SAMO states: {str(e)}")
@@ -151,7 +151,7 @@ def register_api_routes(app):
         try:
             from crystal_bay_samo_api import CrystalBaySamoAPI
             samo_api = CrystalBaySamoAPI()
-            result = samo_api.get_town_froms()
+            result = samo_api.get_all_data()
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error getting SAMO townfroms: {str(e)}")
@@ -163,7 +163,7 @@ def register_api_routes(app):
         try:
             from crystal_bay_samo_api import CrystalBaySamoAPI
             samo_api = CrystalBaySamoAPI()
-            result = samo_api.get_stars()
+            result = samo_api.get_all_data()
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error getting SAMO stars: {str(e)}")
@@ -175,7 +175,7 @@ def register_api_routes(app):
         try:
             from crystal_bay_samo_api import CrystalBaySamoAPI
             samo_api = CrystalBaySamoAPI()
-            result = samo_api.get_meals()
+            result = samo_api.get_all_data()
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error getting SAMO meals: {str(e)}")

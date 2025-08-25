@@ -35,11 +35,11 @@ class CrystalBaySamoAPI:
         self.session = requests.Session()
     
     def _make_request(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Выполняет запрос к SAMO API"""
+        """Выполняет запрос к SAMO API - точно как работающий curl"""
         try:
-            # Прямой запрос к SAMO API с IP сервера
-            # Правильные параметры согласно официальной документации SAMO API
+            # ТОЧНО КАК В РАБОЧЕМ CURL - все параметры в URL
             request_params = {
+                'samo_action': 'api',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
                 'action': action
@@ -50,15 +50,16 @@ class CrystalBaySamoAPI:
                 request_params.update(params)
             
             logger.info(f"SAMO API запрос: {action}")
+            logger.info(f"Параметры: {request_params}")
             
-            
-            # Headers exactly like curl - minimal set
+            # Headers exactly like curl
             headers = {
                 'User-Agent': 'curl/7.68.0',
                 'Accept': '*/*'
             }
             
-            response = self.session.get(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
+            # ВАЖНО: используем POST как в рабочем curl
+            response = self.session.post(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
             
             # Обработка всех статус кодов без raise_for_status для лучшего контроля
             if response.status_code == 200:
@@ -143,46 +144,11 @@ class CrystalBaySamoAPI:
             
             return error_response
     
-    # === СПРАВОЧНИКИ ===
+    # === РАБОЧИЙ API МЕТОД ===
     
-    def get_townfroms(self) -> Dict[str, Any]:
-        """Получить города отправления"""
-        return self._make_request('SearchTour_TOWNFROMS')
-    
-    def get_town_froms(self) -> Dict[str, Any]:
-        """Alias для совместимости - получить города отправления"""
-        return self.get_townfroms()
-    
-    def get_states(self) -> Dict[str, Any]:
-        """Получить страны"""
-        return self._make_request('SearchTour_STATES')
-    
-    def get_currencies(self) -> Dict[str, Any]:
-        """Получить валюты"""
-        return self._make_request('SearchTour_CURRENCIES')
-    
-    def get_hotels(self, state_key: Optional[str] = None) -> Dict[str, Any]:
-        """Получить отели"""
-        params = {}
-        if state_key is not None:
-            params['STATEINC'] = state_key
-        return self._make_request('SearchTour_HOTELS', params)
-    
-    def get_tours(self) -> Dict[str, Any]:
-        """Получить туры"""
-        return self._make_request('SearchTour_TOURS')
-    
-    def get_programs(self) -> Dict[str, Any]:
-        """Получить программы"""
-        return self._make_request('SearchTour_PROGRAMS')
-    
-    def get_stars(self) -> Dict[str, Any]:
-        """Получить звездность отелей"""
-        return self._make_request('SearchTour_STARS')
-    
-    def get_meals(self) -> Dict[str, Any]:
-        """Получить типы питания"""
-        return self._make_request('SearchTour_MEALS')
+    def get_all_data(self) -> Dict[str, Any]:
+        """Получить все данные через рабочий SearchTour_ALL"""
+        return self._make_request('SearchTour_ALL')
     
     # === ПОИСК ТУРОВ ===
     
@@ -414,7 +380,7 @@ class CrystalBaySamoAPI:
         """Тестирование подключения к API"""
         try:
             # Простой запрос для проверки доступности API
-            result = self.get_currencies()
+            result = self.get_all_data()
             
             if 'error' in result:
                 return {
@@ -441,7 +407,7 @@ class CrystalBaySamoAPI:
         """Получить список бронирований (production - без демо-данных)"""
         try:
             # Пробуем получить справочники для проверки доступности API
-            townfroms = self.get_townfroms()
+            townfroms = self.get_all_data()
             
             if 'error' not in townfroms:
                 # API доступен, возвращаем пустой результат для продакшн

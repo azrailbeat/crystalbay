@@ -69,41 +69,25 @@
                 </div>
             </div>
 
-            <!-- Individual API Tests -->
+            <!-- Working API Test -->
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-gear"></i> Individual API Tests
+                        <i class="bi bi-check-circle"></i> Working API Test
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="list-group">
-                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_CURRENCIES')">
-                                    <i class="bi bi-currency-exchange"></i> Test Currencies API
-                                </button>
-                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_STATES')">
-                                    <i class="bi bi-globe"></i> Test Countries API
-                                </button>
-                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_TOWNFROMS')">
-                                    <i class="bi bi-building"></i> Test Cities API
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="list-group">
-                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_STARS')">
-                                    <i class="bi bi-star"></i> Test Hotel Stars API
-                                </button>
-                                <button class="list-group-item list-group-item-action" onclick="testSingleAction('SearchTour_MEALS')">
-                                    <i class="bi bi-cup"></i> Test Meal Types API
-                                </button>
-                                <button class="list-group-item list-group-item-action" onclick="testConnection()">
-                                    <i class="bi bi-wifi"></i> Test Connection
-                                </button>
-                            </div>
-                        </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Tested and Working:</strong> SearchTour_ALL endpoint returns all available data
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg" onclick="testSingleAction('SearchTour_ALL')">
+                            <i class="bi bi-database"></i> Test SearchTour_ALL (Working)
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="testConnection()">
+                            <i class="bi bi-wifi"></i> Test Connection
+                        </button>
                     </div>
                 </div>
             </div>
@@ -122,20 +106,15 @@
                                 <div class="mb-3">
                                     <label for="testAction" class="form-label">API Action</label>
                                     <select class="form-select" id="testAction" name="action">
-                                        <option value="SearchTour_CURRENCIES">Currencies</option>
-                                        <option value="SearchTour_STATES">Countries</option>
-                                        <option value="SearchTour_TOWNFROMS">Cities</option>
-                                        <option value="SearchTour_STARS">Hotel Stars</option>
-                                        <option value="SearchTour_MEALS">Meal Types</option>
-                                        <option value="SearchTour_TOURS">Search Tours (requires params)</option>
+                                        <option value="SearchTour_ALL">Get All Data (Working)</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="customParams" class="form-label">Custom Parameters (JSON)</label>
-                                    <textarea class="form-control" id="customParams" rows="3" placeholder='{"TOWNFROMINC": "2", "STATEINC": "6", "DATE1": "30.09.2024", "NIGHTS": "7", "ADULTINC": "2"}'></textarea>
-                                    <small class="text-muted">SearchTour_TOURS requires: TOWNFROMINC, STATEINC, DATE1, NIGHTS, ADULTINC</small>
+                                    <textarea class="form-control" id="customParams" rows="3" placeholder='{"optional": "parameters"}'></textarea>
+                                    <small class="text-muted">SearchTour_ALL works without additional parameters</small>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -183,11 +162,7 @@ async function runFullTestSuite() {
     resultDiv.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div>Running comprehensive test suite...</div>';
     
     const tests = [
-        'SearchTour_CURRENCIES',
-        'SearchTour_STATES', 
-        'SearchTour_TOWNFROMS',
-        'SearchTour_STARS',
-        'SearchTour_MEALS'
+        'SearchTour_ALL'
     ];
     
     const results = [];
@@ -300,17 +275,7 @@ async function runAdvancedTest(event) {
     
     let params = {};
     
-    // Pre-fill required parameters for SearchTour_TOURS
-    if (action === 'SearchTour_TOURS' && !customParams.trim()) {
-        params = {
-            "TOWNFROMINC": "2",
-            "STATEINC": "6", 
-            "DATE1": "30.09.2024",
-            "NIGHTS": "7",
-            "ADULTINC": "2"
-        };
-        document.getElementById('customParams').value = JSON.stringify(params, null, 2);
-    } else if (customParams.trim()) {
+    if (customParams.trim()) {
         try {
             params = JSON.parse(customParams);
         } catch (error) {
