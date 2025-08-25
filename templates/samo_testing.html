@@ -52,19 +52,43 @@
                 </div>
             </div>
 
-            <!-- Test Suite Results -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-list-check"></i> Test Suite Results
-                    </h5>
+            <!-- Unified Testing & Logs -->
+            <div class="row">
+                <!-- Test Results Column -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-list-check"></i> Test Results
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="testSuiteResults" class="bg-light p-3 rounded" style="height: 300px; overflow-y: auto;">
+                                <p class="text-muted mb-0">
+                                    <i class="bi bi-info-circle"></i> 
+                                    Click "Test SearchTour_ALL" to run API test
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="testSuiteResults" class="bg-light p-3 rounded">
-                        <p class="text-muted mb-0">
-                            <i class="bi bi-info-circle"></i> 
-                            Click "Full Test Suite" to run comprehensive SAMO API tests
-                        </p>
+                
+                <!-- Live Logs Column -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-terminal"></i> Live API Logs
+                            </h5>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">
+                                <i class="bi bi-trash"></i> Clear
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="liveLogContainer" class="bg-dark text-light p-3 rounded" style="height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px;">
+                                <div class="text-muted">Waiting for API calls...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -141,6 +165,7 @@
 // Initialize connection check
 document.addEventListener('DOMContentLoaded', function() {
     checkServerStatus();
+    addLogEntry('INFO', 'SAMO API Testing interface loaded');
 });
 
 async function checkServerStatus() {
@@ -159,39 +184,44 @@ async function checkServerStatus() {
 
 async function runFullTestSuite() {
     const resultDiv = document.getElementById('testSuiteResults');
-    resultDiv.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div>Running comprehensive test suite...</div>';
+    resultDiv.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div>Testing SearchTour_ALL...</div>';
     
-    const tests = [
-        'SearchTour_ALL'
-    ];
+    addLogEntry('INFO', 'Starting API test...');
     
-    const results = [];
-    
-    for (const action of tests) {
-        try {
-            const response = await fetch('/api/samo/test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action })
-            });
-            
-            const result = await response.json();
-            results.push({
-                action,
-                success: result.success,
-                error: result.error,
-                status_code: result.status_code
-            });
-        } catch (error) {
-            results.push({
-                action,
-                success: false,
-                error: error.message
-            });
+    try {
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SearchTour_ALL' })
+        });
+        
+        addLogEntry('INFO', `HTTP Response: ${response.status} ${response.statusText}`);
+        
+        const result = await response.json();
+        
+        addLogEntry(result.success ? 'SUCCESS' : 'ERROR', 
+                   `API Result: ${result.success ? 'Success' : result.error}`);
+        
+        if (result.debug_info) {
+            addLogEntry('DEBUG', `Debug: ${JSON.stringify(result.debug_info, null, 2)}`);
         }
+        
+        renderTestResults([{
+            action: 'SearchTour_ALL',
+            success: result.success,
+            error: result.error,
+            status_code: result.status_code,
+            data: result.data
+        }]);
+        
+    } catch (error) {
+        addLogEntry('ERROR', `Network Error: ${error.message}`);
+        renderTestResults([{
+            action: 'SearchTour_ALL',
+            success: false,
+            error: error.message
+        }]);
     }
-    
-    renderTestResults(results);
 }
 
 function renderTestResults(results) {
@@ -241,18 +271,35 @@ function renderTestResults(results) {
 }
 
 async function testSingleAction(action) {
-    const response = await fetch('/api/samo/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-    });
+    addLogEntry('INFO', `Testing ${action}...`);
     
-    const result = await response.json();
-    
-    showToast(
-        result.success ? 'success' : 'error',
-        `${action}: ${result.success ? 'Success' : result.error}`
-    );
+    try {
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        
+        addLogEntry('INFO', `HTTP ${response.status} ${response.statusText}`);
+        
+        const result = await response.json();
+        
+        addLogEntry(result.success ? 'SUCCESS' : 'ERROR', 
+                   `${action}: ${result.success ? 'Success' : result.error}`);
+        
+        if (result.debug_info) {
+            addLogEntry('DEBUG', JSON.stringify(result.debug_info, null, 2));
+        }
+        
+        showToast(
+            result.success ? 'success' : 'error',
+            `${action}: ${result.success ? 'Success' : result.error}`
+        );
+        
+    } catch (error) {
+        addLogEntry('ERROR', `Network Error: ${error.message}`);
+        showToast('error', `Error: ${error.message}`);
+    }
 }
 
 async function testConnection() {
@@ -310,6 +357,52 @@ async function runAdvancedTest(event) {
     } catch (error) {
         showToast('error', 'Advanced test failed: ' + error.message);
     }
+}
+
+let logEntries = [];
+
+function addLogEntry(level, message) {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = {
+        timestamp,
+        level,
+        message
+    };
+    
+    logEntries.unshift(entry);
+    if (logEntries.length > 100) logEntries.pop();
+    
+    updateLogDisplay();
+}
+
+function updateLogDisplay() {
+    const container = document.getElementById('liveLogContainer');
+    const html = logEntries.map(entry => {
+        const levelClass = {
+            'ERROR': 'text-danger',
+            'SUCCESS': 'text-success',
+            'WARNING': 'text-warning',
+            'INFO': 'text-info',
+            'DEBUG': 'text-muted'
+        }[entry.level] || 'text-light';
+        
+        return `
+            <div class="log-line">
+                <span class="text-muted">[${entry.timestamp}]</span>
+                <span class="${levelClass}">[${entry.level}]</span>
+                <span>${entry.message}</span>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html || '<div class="text-muted">No logs available</div>';
+    container.scrollTop = 0;
+}
+
+function clearLogs() {
+    logEntries = [];
+    updateLogDisplay();
+    addLogEntry('INFO', 'Logs cleared');
 }
 
 function showToast(type, message) {
