@@ -402,9 +402,9 @@ def register_api_routes(app):
             
             # API Test - используем правильные параметры как в работающих логах
             try:
-                # Корректные параметры согласно рабочим curl командам
+                # Рабочие параметры - документация не соответствует реальности
                 params = {
-                    'apiKey': oauth_token,  # Правильный параметр
+                    'apiKey': oauth_token,
                     'action': 'SearchTour_CURRENCIES'
                 }
                 
@@ -547,18 +547,20 @@ def register_api_routes(app):
                 "parsed_data": {}
             }
             
-            # Список всех тестируемых функций SAMO API
+            # Список всех тестируемых функций SAMO API (согласно документации)
             test_actions = [
                 ("SearchTour_CURRENCIES", "Валюты"),
                 ("SearchTour_STATES", "Страны"),
                 ("SearchTour_STARS", "Звездность отелей"),
                 ("SearchTour_TOWNFROMS", "Города вылета"),
                 ("SearchTour_MEALS", "Типы питания"),
-                ("SearchTour_COUNTRIES", "Страны назначения"),
                 ("SearchTour_TOURS", "Поиск туров"),
                 ("SearchTour_HOTELS", "Отели"),
-                ("GetTourInfo", "Информация о туре"),
-                ("GetOrders", "Список заявок")
+                ("SearchTour_ALL", "Все данные поиска"),
+                ("TheBest_ALL", "Лучшие предложения"),
+                ("Tickets_ALL", "Данные авиабилетов"),
+                ("FreightMonitor_ALL", "Мониторинг рейсов"),
+                ("Currency_CURRENCIES", "Курсы валют")
             ]
             
             for action, description in test_actions:
@@ -570,24 +572,38 @@ def register_api_routes(app):
                 }
                 
                 try:
-                    # Параметры запроса (правильный формат)
+                    # Параметры запроса - рабочий формат
                     request_params = {
                         'apiKey': oauth_token,
                         'action': action
                     }
                     
-                    # Дополнительные параметры для некоторых запросов
+                    # Дополнительные параметры согласно официальной документации SAMO
                     if action == "SearchTour_TOURS":
-                        from datetime import timedelta
                         request_params.update({
-                            'dateFrom': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
-                            'dateTo': (datetime.now() + timedelta(days=37)).strftime('%Y-%m-%d'),
-                            'countryId': '1',  # Египет
-                            'adults': '2'
+                            'TOWNFROMINC': '2',  # Москва
+                            'STATEINC': '1'      # Тестовая страна
                         })
-                    elif action == "GetTourInfo":
+                    elif action == "SearchTour_ALL":
                         request_params.update({
-                            'tourId': '12345'  # Тестовый ID
+                            'TOWNFROMINC': '2',  # Москва  
+                            'STATEINC': '1'      # Тестовая страна
+                        })
+                    elif action == "TheBest_ALL":
+                        request_params.update({
+                            'PACKET': '0',       # Полный пакет
+                            'TOWNFROMINC': '2',  # Москва
+                            'STATEINC': '1'      # Тестовая страна
+                        })
+                    elif action == "Tickets_ALL":
+                        request_params.update({
+                            'SOURCE': '2',       # Москва
+                            'TARGET': '8'        # Тестовое назначение
+                        })
+                    elif action == "FreightMonitor_ALL":
+                        request_params.update({
+                            'SOURCE': '2.0',     # Москва - Все
+                            'TARGET': '5.0'      # Анталия - Все
                         })
                     
                     # Выполняем запрос
