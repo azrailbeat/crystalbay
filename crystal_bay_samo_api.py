@@ -82,10 +82,12 @@ class CrystalBaySamoAPI:
                 logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
             
             # Fallback to direct request (will likely get 403)
-            # Базовые параметры - согласно рабочему формату (не документации)
-            # Документация показывает oauth_token, но SAMO API требует apiKey
+            # Правильные параметры согласно официальной документации SAMO API
             request_params = {
-                'apiKey': self.oauth_token,  
+                'samo_action': 'api',
+                'version': '1.0',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
                 'action': action
             }
             
@@ -103,7 +105,7 @@ class CrystalBaySamoAPI:
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
             
-            response = self.session.post(self.base_url, data=request_params, headers=headers, timeout=self.timeout)
+            response = self.session.get(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
             response.raise_for_status()
             
             # Пробуем парсить как JSON
