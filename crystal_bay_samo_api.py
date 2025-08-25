@@ -239,8 +239,60 @@ class CrystalBaySamoAPI:
     # === РАБОЧИЙ API МЕТОД ===
     
     def get_all_data(self) -> Dict[str, Any]:
-        """Получить все данные через рабочий SearchTour_ALL"""
-        return self._make_request('SearchTour_ALL')
+        """Получить все данные через рабочий SearchTour_ALL - прямой GET как curl"""
+        try:
+            # Точно как в рабочем curl - GET запрос
+            request_params = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_ALL'
+            }
+            
+            logger.info(f"GET запрос SearchTour_ALL: {request_params}")
+            
+            # GET запрос как в рабочем curl
+            response = self.session.get(self.base_url, params=request_params, timeout=self.timeout)
+            
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    logger.info(f"✅ SearchTour_ALL SUCCESS: {len(result) if isinstance(result, list) else 'dict data'}")
+                    
+                    return {
+                        "success": True,
+                        "action": "SearchTour_ALL",
+                        "data": result,
+                        "status_code": 200
+                    }
+                    
+                except json.JSONDecodeError as je:
+                    logger.error(f"❌ SearchTour_ALL JSON parse error: {je}")
+                    return {
+                        "success": False,
+                        "error": f"Invalid JSON response: {str(je)}",
+                        "raw_response": response.text,
+                        "status_code": 200,
+                        "action": "SearchTour_ALL"
+                    }
+            else:
+                logger.error(f"❌ SearchTour_ALL HTTP {response.status_code}")
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code} {response.reason}",
+                    "raw_response": response.text,
+                    "status_code": response.status_code,
+                    "action": "SearchTour_ALL"
+                }
+                
+        except requests.RequestException as e:
+            logger.error(f"❌ SearchTour_ALL Network error: {e}")
+            return {
+                "success": False,
+                "error": f"Network error: {str(e)}",
+                "action": "SearchTour_ALL",
+                "status_code": 0
+            }
     
     # === ПОИСК ТУРОВ ===
     
