@@ -181,24 +181,92 @@ class CrystalBaySamoAPI:
     # === ПОИСК ТУРОВ ===
     
     def search_tour_prices(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Поиск цен на туры"""
-        default_params = {
-            'TOWNFROMINC': '',
-            'STATEINC': '',
-            'CHECKIN_BEG': '',
-            'CHECKIN_END': '',
-            'NIGHTS_FROM': 7,
-            'NIGHTS_TILL': 14,
-            'ADULT': 2,
-            'CHILD': 0,
-            'CURRENCY': 'USD',
-            'FILTER': 1
-        }
-        
-        if params is not None:
-            default_params.update(params)
+        """Поиск цен на туры - прямой вызов как curl"""
+        try:
+            # Базовые параметры точно как в рабочем curl
+            request_params = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_PRICES'
+            }
             
-        return self._make_request('SearchTour_PRICES', default_params)
+            # Добавляем параметры поиска если переданы
+            if params:
+                # Маппинг параметров в формат SAMO API
+                if 'townfrom' in params:
+                    request_params['TOWNFROMINC'] = params['townfrom']
+                if 'stateinc' in params:
+                    request_params['STATEINC'] = params['stateinc']
+                if 'checkin' in params:
+                    request_params['CHECKIN_BEG'] = params['checkin']
+                if 'checkout' in params:
+                    request_params['CHECKIN_END'] = params['checkout']
+                if 'nights' in params:
+                    request_params['NIGHTS_FROM'] = params['nights']
+                    request_params['NIGHTS_TILL'] = params['nights']
+                if 'adults' in params:
+                    request_params['ADULT'] = params['adults']
+                if 'children' in params:
+                    request_params['CHILD'] = params['children']
+                if 'currency' in params:
+                    request_params['CURRENCY'] = params['currency']
+            
+            logger.info(f"SAMO SearchTour_PRICES request: {request_params}")
+            
+            # Прямой GET запрос как curl
+            response = self.session.get(self.base_url, params=request_params, timeout=self.timeout)
+            
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    tours_data = result.get('SearchTour_PRICES', [])
+                    
+                    logger.info(f"SAMO tour search SUCCESS: {len(tours_data)} tours found")
+                    
+                    return {
+                        "success": True,
+                        "action": "SearchTour_PRICES",
+                        "tours": tours_data,
+                        "total_count": len(tours_data),
+                        "search_params": params or {},
+                        "raw_response": result
+                    }
+                    
+                except json.JSONDecodeError:
+                    logger.warning(f"SAMO API response not JSON: {response.text[:200]}")
+                    return {
+                        "error": "Invalid JSON response",
+                        "success": False,
+                        "response_text": response.text[:500]
+                    }
+            
+            elif response.status_code == 403:
+                error_text = response.text
+                logger.error(f"SAMO API IP blocked: {error_text}")
+                return {
+                    "error": "IP address not whitelisted in SAMO API",
+                    "success": False,
+                    "status_code": 403,
+                    "response": error_text,
+                    "blocked_ip": "Current server IP is blocked"
+                }
+            else:
+                logger.error(f"SAMO API error: HTTP {response.status_code}")
+                return {
+                    "error": f"HTTP {response.status_code}",
+                    "success": False,
+                    "status_code": response.status_code,
+                    "response": response.text[:200]
+                }
+                
+        except requests.RequestException as e:
+            logger.error(f"SAMO API tour search error: {e}")
+            return {
+                "error": str(e),
+                "success": False,
+                "action": "SearchTour_PRICES"
+            }
     
     def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Детальный поиск туров"""
