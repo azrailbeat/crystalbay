@@ -288,9 +288,15 @@ class CrystalBaySamoAPI:
             full_url = f"{self.base_url}?{query_string}"
             
             logger.info(f"Full URL: {full_url}")
+            logger.info(f"Точно как curl: curl -X POST \"{full_url}\"")
             
-            # POST запрос без параметров в body (все в URL)
-            response = self.session.post(full_url, timeout=self.timeout)
+            # POST запрос как в рабочем curl - с пустым body
+            headers = {
+                'User-Agent': 'curl/7.68.0',
+                'Accept': '*/*',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            response = self.session.post(full_url, headers=headers, timeout=self.timeout)
             
             # Детальное логирование ответа
             logger.info(f"Response Status: {response.status_code}")
