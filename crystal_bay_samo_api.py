@@ -270,125 +270,71 @@ class CrystalBaySamoAPI:
             }
 
     def get_all_data(self) -> Dict[str, Any]:
-        """Получить все данные через рабочий SearchTour_ALL - POST как curl"""
+        """ТЕСТ ВСЕХ ВОЗМОЖНЫХ ВАРИАНТОВ API ВЫЗОВА"""
+        logger.info("🔍 НАЧИНАЕМ ПОЛНУЮ ДИАГНОСТИКУ SAMO API")
+        
+        # Вариант 1: GET запрос (как многие API работают)
         try:
-            # Точно как в рабочем curl - POST запрос
-            request_params = {
+            logger.info("=== ТЕСТ 1: GET запрос ===")
+            get_params = {
                 'samo_action': 'api',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
                 'action': 'SearchTour_ALL'
             }
+            response1 = self.session.get(self.base_url, params=get_params, timeout=10)
+            logger.info(f"GET результат: {response1.status_code}, Content-Type: {response1.headers.get('content-type')}")
+            if response1.status_code == 200 and 'application/json' in response1.headers.get('content-type', ''):
+                return {"success": True, "method": "GET", "data": response1.json()}
+        except Exception as e:
+            logger.info(f"GET не сработал: {e}")
             
-            logger.info(f"POST запрос SearchTour_ALL: {request_params}")
-            
-            # Строим URL точно как в рабочем curl
-            from urllib.parse import urlencode
-            query_string = urlencode(request_params)
-            full_url = f"{self.base_url}?{query_string}"
-            
-            logger.info(f"Full URL: {full_url}")
-            logger.info(f"Точно как curl: curl -X POST \"{full_url}\"")
-            
-            # POST запрос как в рабочем curl - с пустым body
-            headers = {
-                'User-Agent': 'curl/7.68.0',
-                'Accept': '*/*',
-                'Content-Type': 'application/x-www-form-urlencoded'
+        # Вариант 2: POST с данными в body
+        try:
+            logger.info("=== ТЕСТ 2: POST с данными в body ===")
+            post_data = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_ALL'
             }
-            response = self.session.post(full_url, headers=headers, timeout=self.timeout)
+            response2 = self.session.post(self.base_url, data=post_data, timeout=10)
+            logger.info(f"POST body результат: {response2.status_code}, Content-Type: {response2.headers.get('content-type')}")
+            if response2.status_code == 200 and 'application/json' in response2.headers.get('content-type', ''):
+                return {"success": True, "method": "POST_BODY", "data": response2.json()}
+        except Exception as e:
+            logger.info(f"POST body не сработал: {e}")
             
-            # Детальное логирование ответа
-            logger.info(f"Response Status: {response.status_code}")
-            logger.info(f"Content-Type: {response.headers.get('content-type', 'unknown')}")
-            logger.info(f"Response Size: {len(response.text)} bytes")
-            logger.info(f"Response (first 200 chars): {response.text[:200]}")
-            
-            # Проверяем Content-Type сначала
-            content_type = response.headers.get('content-type', '')
-            logger.info(f"Content-Type: {content_type}")
-            
-            if 'application/json' not in content_type:
-                logger.error(f"❌ Wrong Content-Type: {content_type}")
-                logger.error(f"❌ Expected JSON but got HTML/text")
-                logger.error(f"Response preview: {response.text[:200]}")
-                return {
-                    "success": False,
-                    "error": f"Server returned {content_type} instead of JSON",
-                    "raw_response": response.text[:1000],
-                    "status_code": response.status_code,
-                    "action": "SearchTour_ALL",
-                    "debug_info": {
-                        "content_type": content_type,
-                        "url_used": full_url,
-                        "response_preview": response.text[:200],
-                        "expected": "application/json",
-                        "actual": content_type
-                    }
-                }
-            
-            if response.status_code == 200:
-                try:
-                    result = response.json()
-                    logger.info(f"✅ SearchTour_ALL SUCCESS: {len(result) if isinstance(result, list) else 'dict data'}")
-                    
-                    return {
-                        "success": True,
-                        "action": "SearchTour_ALL",
-                        "data": result,
-                        "status_code": 200
-                    }
-                    
-                except json.JSONDecodeError as je:
-                    logger.error(f"❌ SearchTour_ALL JSON parse error: {je}")
-                    logger.error(f"Raw response: {response.text[:500]}")
-                    
-                    return {
-                        "success": False,
-                        "error": f"JSON Parse Error: {str(je)}",
-                        "debug_info": {
-                            "full_error_response": response.text[:1000],
-                            "json_error": str(je),
-                            "response_headers": dict(response.headers)
-                        },
-                        "raw_response": response.text,
-                        "status_code": response.status_code,
-                        "action": "SearchTour_ALL"
-                    }
-                    
-                    return {
-                        "success": False,
-                        "error": f"Invalid JSON response: {str(je)}",
-                        "raw_response": response.text[:500],
-                        "status_code": 200,
-                        "action": "SearchTour_ALL"
-                    }
-            else:
-                logger.error(f"❌ SearchTour_ALL HTTP {response.status_code}")
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code} {response.reason}",
-                    "raw_response": response.text,
-                    "status_code": response.status_code,
-                    "action": "SearchTour_ALL"
-                }
-                
-        except requests.RequestException as e:
-            logger.error(f"❌ SearchTour_ALL Network error: {e}")
-            return {
-                "success": False,
-                "error": f"Network error: {str(e)}",
-                "action": "SearchTour_ALL",
-                "status_code": 0,
-                "debug_info": {
-                    "error_type": type(e).__name__,
-                    "possible_solutions": [
-                        "Проверить подключение к интернету",
-                        "Проверить доступность SAMO API",
-                        "Увеличить timeout запроса"
-                    ]
-                }
+        # Вариант 3: Простейший тест подключения
+        try:
+            logger.info("=== ТЕСТ 3: Простейший API тест ===")
+            simple_params = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
+                'action': 'GetStates'  # Самый простой action
             }
+            response3 = self.session.get(self.base_url, params=simple_params, timeout=10)
+            logger.info(f"Простой тест: {response3.status_code}, Content-Type: {response3.headers.get('content-type')}")
+            logger.info(f"Ответ: {response3.text[:200]}")
+            
+            if response3.status_code == 200:
+                return {
+                    "success": True, 
+                    "method": "SIMPLE_TEST", 
+                    "working_endpoint": True,
+                    "response": response3.text[:500]
+                }
+        except Exception as e:
+            logger.info(f"Простой тест не сработал: {e}")
+            
+        # Возвращаем диагностику
+        return {
+            "success": False,
+            "error": "ВСЕ МЕТОДЫ ТЕСТИРОВАНИЯ НЕ СРАБОТАЛИ",
+            "action": "FULL_DIAGNOSTIC",
+            "recommendation": "Нужно связаться с техподдержкой SAMO API"
+        }
     
     # === ПОИСК ТУРОВ ===
     
