@@ -49,41 +49,99 @@ class CrystalBaySamoAPI:
             if params is not None:
                 request_params.update(params)
             
-            logger.info(f"SAMO API запрос: {action}")
-            logger.info(f"Параметры: {request_params}")
+            import time
+            start_time = time.time()
+            
+            # Детальное логирование запроса
+            logger.info(f"=== SAMO API REQUEST START ===")
+            logger.info(f"Action: {action}")
+            logger.info(f"Method: POST")
+            logger.info(f"URL: {self.base_url}")
+            logger.info(f"Request Parameters: {request_params}")
             
             # Headers exactly like curl
             headers = {
                 'User-Agent': 'curl/7.68.0',
                 'Accept': '*/*'
             }
+            logger.info(f"Request Headers: {headers}")
+            
+            # Создаем полный URL для логирования
+            from urllib.parse import urlencode
+            full_url = f"{self.base_url}?{urlencode(request_params)}"
+            logger.info(f"Full URL: {full_url}")
             
             # ВАЖНО: используем POST как в рабочем curl
             response = self.session.post(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
+            
+            request_time = time.time() - start_time
+            
+            # Детальное логирование ответа
+            logger.info(f"=== SAMO API RESPONSE ===")
+            logger.info(f"HTTP Status: {response.status_code} {response.reason}")
+            logger.info(f"Response Time: {request_time:.3f}s")
+            logger.info(f"Response Headers: {dict(response.headers)}")
+            logger.info(f"Response Size: {len(response.text)} bytes")
+            logger.info(f"Content-Type: {response.headers.get('content-type', 'unknown')}")
+            
+            # Логируем первые 500 символов ответа для диагностики
+            response_preview = response.text[:500] if response.text else "(empty)"
+            logger.info(f"Response Preview (first 500 chars): {response_preview}")
             
             # Обработка всех статус кодов без raise_for_status для лучшего контроля
             if response.status_code == 200:
                 try:
                     result = response.json()
-                    logger.info(f"SAMO API успешный ответ {action}: количество записей={len(result) if isinstance(result, list) else 'unknown'}")
+                    data_info = ""
+                    if isinstance(result, dict):
+                        data_info = f"dict with {len(result)} keys: {list(result.keys())}"
+                    elif isinstance(result, list):
+                        data_info = f"list with {len(result)} items"
+                    else:
+                        data_info = f"type: {type(result)}"
+                    
+                    logger.info(f"✅ JSON PARSE SUCCESS - {data_info}")
+                    logger.info(f"=== SAMO API REQUEST END ===")
+                    
                     return {
                         "success": True,
                         "data": result,
                         "status_code": 200,
-                        "action": action
+                        "action": action,
+                        "request_details": {
+                            "url": full_url,
+                            "method": "POST",
+                            "headers": headers,
+                            "params": request_params,
+                            "response_time": f"{request_time:.3f}s",
+                            "response_headers": dict(response.headers),
+                            "response_size": len(response.text)
+                        }
                     }
                 except json.JSONDecodeError as je:
-                    logger.error(f"SAMO API JSON parse error {action}: {je}")
+                    logger.error(f"❌ JSON PARSE ERROR: {je}")
+                    logger.error(f"Raw response text: {response.text}")
+                    logger.info(f"=== SAMO API REQUEST END (JSON ERROR) ===")
                     return {
                         "success": False,
-                        "error": "Invalid JSON response from SAMO API",
-                        "raw_response": response.text[:500],
+                        "error": f"Invalid JSON response from SAMO API: {str(je)}",
+                        "raw_response": response.text,
                         "status_code": 200,
-                        "action": action
+                        "action": action,
+                        "request_details": {
+                            "url": full_url,
+                            "method": "POST", 
+                            "headers": headers,
+                            "params": request_params,
+                            "response_time": f"{request_time:.3f}s",
+                            "response_headers": dict(response.headers),
+                            "response_size": len(response.text)
+                        }
                     }
             elif response.status_code == 403:
                 error_text = response.text
-                logger.error(f"SAMO API 403 Forbidden {action}: {error_text}")
+                logger.error(f"❌ HTTP 403 FORBIDDEN")
+                logger.error(f"Error response: {error_text}")
                 
                 # Извлечение IP из ответа для лучшей диагностики
                 blocked_ip = "Unknown"
@@ -91,6 +149,9 @@ class CrystalBaySamoAPI:
                     import re
                     ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_text)
                     blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                    logger.error(f"🚫 DETECTED BLOCKED IP: {blocked_ip}")
+                
+                logger.info(f"=== SAMO API REQUEST END (403 ERROR) ===")
                 
                 return {
                     "success": False,
@@ -98,26 +159,57 @@ class CrystalBaySamoAPI:
                     "raw_response": error_text,
                     "status_code": 403,
                     "action": action,
-                    "blocked_ip": blocked_ip
+                    "blocked_ip": blocked_ip,
+                    "request_details": {
+                        "url": full_url,
+                        "method": "POST",
+                        "headers": headers,
+                        "params": request_params,
+                        "response_time": f"{request_time:.3f}s",
+                        "response_headers": dict(response.headers),
+                        "response_size": len(response.text)
+                    }
                 }
             elif response.status_code == 500:
-                logger.error(f"SAMO API 500 Internal Server Error {action}")
+                logger.error(f"❌ HTTP 500 INTERNAL SERVER ERROR")
+                logger.error(f"Server error response: {response.text}")
+                logger.info(f"=== SAMO API REQUEST END (500 ERROR) ===")
                 return {
                     "success": False,
                     "error": "SAMO API Internal Server Error",
-                    "raw_response": response.text[:500],
+                    "raw_response": response.text,
                     "status_code": 500,
                     "action": action,
-                    "help": "Check required parameters for this action"
+                    "help": "Check required parameters for this action",
+                    "request_details": {
+                        "url": full_url,
+                        "method": "POST",
+                        "headers": headers,
+                        "params": request_params,
+                        "response_time": f"{request_time:.3f}s",
+                        "response_headers": dict(response.headers),
+                        "response_size": len(response.text)
+                    }
                 }
             else:
-                logger.error(f"SAMO API unexpected status {action}: {response.status_code}")
+                logger.error(f"❌ HTTP {response.status_code} {response.reason}")
+                logger.error(f"Unexpected response: {response.text}")
+                logger.info(f"=== SAMO API REQUEST END (ERROR {response.status_code}) ===")
                 return {
                     "success": False,
                     "error": f"HTTP {response.status_code} {response.reason}",
-                    "raw_response": response.text[:500],
+                    "raw_response": response.text,
                     "status_code": response.status_code,
-                    "action": action
+                    "action": action,
+                    "request_details": {
+                        "url": full_url,
+                        "method": "POST",
+                        "headers": headers,
+                        "params": request_params,
+                        "response_time": f"{request_time:.3f}s",
+                        "response_headers": dict(response.headers),
+                        "response_size": len(response.text)
+                    }
                 }
             
         except requests.RequestException as e:

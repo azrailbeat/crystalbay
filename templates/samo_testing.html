@@ -203,7 +203,15 @@ async function runFullTestSuite() {
                    `API Result: ${result.success ? 'Success' : result.error}`);
         
         if (result.debug_info) {
-            addLogEntry('DEBUG', `Debug: ${JSON.stringify(result.debug_info, null, 2)}`);
+            addLogEntry('DEBUG', `Debug Info: ${JSON.stringify(result.debug_info, null, 2)}`);
+        }
+        
+        if (result.request_details) {
+            addLogEntry('DEBUG', `Request Details: ${JSON.stringify(result.request_details, null, 2)}`);
+        }
+        
+        if (result.raw_response) {
+            addLogEntry('DEBUG', `Raw Response: ${result.raw_response.substring(0, 200)}...`);
         }
         
         renderTestResults([{
@@ -288,7 +296,20 @@ async function testSingleAction(action) {
                    `${action}: ${result.success ? 'Success' : result.error}`);
         
         if (result.debug_info) {
-            addLogEntry('DEBUG', JSON.stringify(result.debug_info, null, 2));
+            addLogEntry('DEBUG', `Debug Info: ${JSON.stringify(result.debug_info, null, 2)}`);
+        }
+        
+        if (result.request_details) {
+            addLogEntry('INFO', `URL: ${result.request_details.url}`);
+            addLogEntry('INFO', `Method: ${result.request_details.method}`);
+            addLogEntry('INFO', `Response Time: ${result.request_details.response_time}`);
+            addLogEntry('INFO', `Response Size: ${result.request_details.response_size} bytes`);
+            addLogEntry('DEBUG', `Headers: ${JSON.stringify(result.request_details.headers, null, 2)}`);
+            addLogEntry('DEBUG', `Response Headers: ${JSON.stringify(result.request_details.response_headers, null, 2)}`);
+        }
+        
+        if (result.raw_response) {
+            addLogEntry('DEBUG', `Raw Response (first 300 chars): ${result.raw_response.substring(0, 300)}...`);
         }
         
         showToast(
