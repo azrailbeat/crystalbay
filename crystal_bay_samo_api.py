@@ -23,6 +23,9 @@ class CrystalBaySamoAPI:
             
             self.base_url = base_url or settings.get('api_url', 'https://booking.crystalbay.com/export/default.php')
             self.oauth_token = oauth_token or settings.get('oauth_token', '27bd59a7ac67422189789f0188167379')
+            
+            logger.info(f"🔧 SAMO API CONFIG: URL={self.base_url}")
+            logger.info(f"🔧 OAuth Token: {self.oauth_token[:8]}***{self.oauth_token[-4:] if self.oauth_token else 'None'}")
             self.timeout = int(settings.get('timeout', 30))
             self.user_agent = settings.get('user_agent', 'Crystal Bay Travel Integration/1.0')
         except ImportError:
@@ -238,6 +241,34 @@ class CrystalBaySamoAPI:
     
     # === РАБОЧИЙ API МЕТОД ===
     
+    def test_api_connection(self) -> Dict[str, Any]:
+        """Тест подключения к API с минимальными параметрами"""
+        try:
+            # Самый простой запрос для проверки
+            simple_params = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'action': 'GetStates'  # Простой action
+            }
+            
+            logger.info(f"🧪 ТЕСТ API CONNECTION: {simple_params}")
+            response = self.session.get(self.base_url, params=simple_params, timeout=10)
+            
+            return {
+                "success": response.status_code == 200,
+                "status_code": response.status_code,
+                "content_type": response.headers.get('content-type', 'unknown'),
+                "response_size": len(response.text),
+                "response_preview": response.text[:200],
+                "test_type": "simple_connection"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "test_type": "simple_connection"
+            }
+
     def get_all_data(self) -> Dict[str, Any]:
         """Получить все данные через рабочий SearchTour_ALL - прямой GET как curl"""
         try:
@@ -246,13 +277,20 @@ class CrystalBaySamoAPI:
                 'samo_action': 'api',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
-                'action': 'SearchTour_ALL'
+                'action': 'SearchTour_ALL',
+                'version': '1.0'  # Может требоваться для API
             }
             
             logger.info(f"GET запрос SearchTour_ALL: {request_params}")
             
             # GET запрос как в рабочем curl
             response = self.session.get(self.base_url, params=request_params, timeout=self.timeout)
+            
+            # Детальное логирование ответа
+            logger.info(f"Response Status: {response.status_code}")
+            logger.info(f"Content-Type: {response.headers.get('content-type', 'unknown')}")
+            logger.info(f"Response Size: {len(response.text)} bytes")
+            logger.info(f"Response (first 200 chars): {response.text[:200]}")
             
             if response.status_code == 200:
                 try:
@@ -268,10 +306,33 @@ class CrystalBaySamoAPI:
                     
                 except json.JSONDecodeError as je:
                     logger.error(f"❌ SearchTour_ALL JSON parse error: {je}")
+                    logger.error(f"Raw HTML response: {response.text[:500]}")
+                    
+                    # Проверяем если это HTML с ошибкой 500
+                    if "500" in response.text or "Internal Server Error" in response.text:
+                        return {
+                            "success": False,
+                            "error": "HTTP 500 Internal Server Error",
+                            "debug_info": {
+                                "full_error_response": response.text[:1000],
+                                "possible_causes": [
+                                    "Неправильные параметры запроса",
+                                    "Ошибка на стороне SAMO сервера", 
+                                    "Изменение в API SAMO",
+                                    "Проблемы с OAuth токеном"
+                                ],
+                                "request_time": "unknown",
+                                "response_headers": dict(response.headers)
+                            },
+                            "raw_response": response.text,
+                            "status_code": 500,  # Реальный статус
+                            "action": "SearchTour_ALL"
+                        }
+                    
                     return {
                         "success": False,
                         "error": f"Invalid JSON response: {str(je)}",
-                        "raw_response": response.text,
+                        "raw_response": response.text[:500],
                         "status_code": 200,
                         "action": "SearchTour_ALL"
                     }
@@ -291,7 +352,15 @@ class CrystalBaySamoAPI:
                 "success": False,
                 "error": f"Network error: {str(e)}",
                 "action": "SearchTour_ALL",
-                "status_code": 0
+                "status_code": 0,
+                "debug_info": {
+                    "error_type": type(e).__name__,
+                    "possible_solutions": [
+                        "Проверить подключение к интернету",
+                        "Проверить доступность SAMO API",
+                        "Увеличить timeout запроса"
+                    ]
+                }
             }
     
     # === ПОИСК ТУРОВ ===
