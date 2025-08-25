@@ -1104,7 +1104,7 @@ def register_api_routes(app):
                 "error": f"Критическая ошибка: {str(e)}",
                 "debug_info": {
                     "error_type": type(e).__name__,
-                    "action": action if 'action' in locals() else 'Unknown'
+                    "action": locals().get('action', 'Unknown')
                 }
             }), 500
 

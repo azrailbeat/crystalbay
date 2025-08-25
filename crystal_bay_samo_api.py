@@ -32,7 +32,6 @@ class CrystalBaySamoAPI:
             self.user_agent = 'Crystal Bay Travel Integration/1.0'
             
         self.session = requests.Session()
-        logger.info(f"Crystal Bay SAMO API инициализирован: {self.base_url}")
     
     def _make_request(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Выполняет запрос к SAMO API"""
@@ -50,16 +49,7 @@ class CrystalBaySamoAPI:
                 request_params.update(params)
             
             logger.info(f"SAMO API запрос: {action}")
-            logger.info(f"Параметры: {json.dumps(request_params, indent=2)}")
             
-            # Определяем текущий внешний IP для диагностики
-            try:
-                import requests as check_requests
-                ip_response = check_requests.get('https://api.ipify.org?format=json', timeout=5)
-                current_external_ip = ip_response.json().get('ip', 'unknown')
-                logger.warning(f"🌐 Исходящий IP: {current_external_ip} (может отличаться от IP сервера)")
-            except:
-                current_external_ip = 'detection_failed'
             
             # Headers exactly like curl - minimal set
             headers = {

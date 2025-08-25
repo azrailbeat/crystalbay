@@ -49,15 +49,13 @@ except Exception as e:
 def home():
     """Главная страница / Дашборд"""
     # Проверить, нужна ли первоначальная настройка
-    setup_needed = should_show_setup()
-    if setup_needed:
-        return redirect('/setup')
+    # Setup disabled in production
     return render_template('dashboard.html', active_page='dashboard')
 
 @app.route('/setup')
 def setup():
     """Страница первоначальной настройки"""
-    return render_template('setup.html')
+    return redirect('/')
 
 @app.route('/api/setup/complete', methods=['POST'])
 def complete_setup():
@@ -173,13 +171,13 @@ def unified_settings():
 
 @app.route('/samo-testing')
 def samo_testing():
-    """SAMO API testing and management page"""
-    return render_template('samo_testing.html')
+    """SAMO API testing - redirect to settings in production"""
+    return redirect('/unified-settings')
 
 @app.route('/samo-logs')
 def samo_logs():
-    """SAMO API detailed logging and monitoring page"""
-    return render_template('samo_logs.html')
+    """SAMO API logs - redirect to dashboard in production"""
+    return redirect('/')
 
 @app.route('/samo-api')
 def samo_api():
