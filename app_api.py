@@ -404,11 +404,14 @@ def register_api_routes(app):
             try:
                 # Рабочие параметры - документация не соответствует реальности
                 params = {
-                    'apiKey': oauth_token,
+                    'samo_action': 'api',
+                    'version': '1.0',
+                    'oauth_token': oauth_token,
+                    'type': 'json',
                     'action': 'SearchTour_CURRENCIES'
                 }
                 
-                response = requests.post(samo_url, data=params, timeout=10)
+                response = requests.get(samo_url, params=params, timeout=10)
                 
                 diagnostics["tests"]["api_endpoint"] = {
                     "status": "Tested",
@@ -888,16 +891,20 @@ def register_api_routes(app):
             logger.info(f"SAMO URL: {samo_url}")
             logger.info(f"OAuth Token (masked): {oauth_token[:8]}***{oauth_token[-8:]}")
             
+            # Правильный формат согласно документации SAMO API
             params = {
-                'apiKey': oauth_token,
+                'samo_action': 'api',
+                'version': '1.0',
+                'oauth_token': oauth_token,
+                'type': 'json',
                 'action': action
             }
             logger.info(f"Параметры запроса: {params}")
             
-            # Выполнение запроса
-            logger.info("Отправка HTTP POST запроса к SAMO API...")
+            # Выполнение запроса - согласно документации используем GET с параметрами в URL
+            logger.info("Отправка HTTP GET запроса к SAMO API...")
             try:
-                response = requests.post(samo_url, data=params, timeout=10)
+                response = requests.get(samo_url, params=params, timeout=10)
                 request_time = time.time() - start_time
                 logger.info(f"Запрос выполнен за {request_time:.3f} секунд")
                 logger.info(f"HTTP Status: {response.status_code}")
@@ -1052,15 +1059,19 @@ def register_api_routes(app):
             samo_url = "https://booking.crystalbay.com/export/default.php"
             oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
             
+            # Правильный формат согласно документации SAMO API
             params = {
-                'apiKey': oauth_token,
+                'samo_action': 'api',
+                'version': '1.0',
+                'oauth_token': oauth_token,
+                'type': 'json',
                 'action': action
             }
             
             if townfrom:
                 params['TOWNFROMINC'] = townfrom
             
-            response = requests.post(samo_url, data=params, timeout=10)
+            response = requests.get(samo_url, params=params, timeout=10)
             
             if response.status_code == 200:
                 # Mock данные для демонстрации (в реальности парсим XML ответ)
@@ -1128,12 +1139,16 @@ def register_api_routes(app):
             samo_url = "https://booking.crystalbay.com/export/default.php"
             oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
             
+            # Правильный формат согласно документации SAMO API
             params = {
-                'apiKey': oauth_token,
+                'samo_action': 'api',
+                'version': '1.0',
+                'oauth_token': oauth_token,
+                'type': 'json',
                 'action': action
             }
             
-            response = requests.post(samo_url, data=params, timeout=10)
+            response = requests.get(samo_url, params=params, timeout=10)
             
             if response.status_code == 200:
                 # Mock данные для демонстрации
