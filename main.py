@@ -148,6 +148,11 @@ def samo_testing():
     """SAMO API testing and management page"""
     return render_template('samo_testing.html')
 
+@app.route('/samo-logs')
+def samo_logs():
+    """SAMO API detailed logging and monitoring page"""
+    return render_template('samo_logs.html')
+
 @app.route('/samo-api')
 def samo_api():
     """Redirect to unified SAMO testing page"""
