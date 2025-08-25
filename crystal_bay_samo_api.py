@@ -35,53 +35,9 @@ class CrystalBaySamoAPI:
         logger.info(f"Crystal Bay SAMO API инициализирован: {self.base_url}")
     
     def _make_request(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Выполняет запрос к SAMO API через TinyProxy или напрямую"""
+        """Выполняет запрос к SAMO API"""
         try:
-            # Try using VPS script first if configured
-            try:
-                from proxy_client import VPSProxy  # type: ignore
-                vps_proxy = VPSProxy()
-                
-                # Check if VPS script is configured
-                if (vps_proxy.vps_endpoint and 
-                    vps_proxy.vps_endpoint != 'http://your-vps-server.com/samo_proxy.php'):
-                    logger.info(f"Using VPS script for SAMO API request: {action}")
-                    result = vps_proxy.make_samo_request(action, 'GET', params)
-                    
-                    # If VPS script request successful, return result
-                    if 'error' not in result:
-                        logger.info(f"SAMO API via VPS script success: {action}")
-                        return result
-                    else:
-                        logger.warning(f"VPS script failed, trying TinyProxy: {result.get('message', '')}")
-                        
-            except ImportError:
-                logger.debug("VPS proxy not available")
-            except Exception as e:
-                logger.warning(f"VPS script request failed: {e}")
-            
-            # Try TinyProxy as fallback
-            try:
-                from proxy_client import get_proxy_client
-                proxy_client = get_proxy_client()
-                
-                if proxy_client.is_configured():
-                    logger.info(f"Using TinyProxy for SAMO API request: {action}")
-                    result = proxy_client.make_samo_request(action, 'GET', params or {})
-                    
-                    # If proxy request successful, return result
-                    if 'error' not in result:
-                        logger.info(f"SAMO API via TinyProxy success: {action}")
-                        return result
-                    else:
-                        logger.warning(f"TinyProxy failed, trying direct: {result.get('message', '')}")
-                        
-            except ImportError:
-                logger.debug("TinyProxy client not available")
-            except Exception as e:
-                logger.warning(f"TinyProxy request failed: {e}, falling back to direct")
-            
-            # Fallback to direct request (will likely get 403 due to NAT Gateway IP)
+            # Прямой запрос к SAMO API с IP сервера
             # Правильные параметры согласно официальной документации SAMO API
             request_params = {
                 'oauth_token': self.oauth_token,
@@ -93,7 +49,7 @@ class CrystalBaySamoAPI:
             if params is not None:
                 request_params.update(params)
             
-            logger.info(f"SAMO API запрос (direct): {action}")
+            logger.info(f"SAMO API запрос: {action}")
             logger.info(f"Параметры: {json.dumps(request_params, indent=2)}")
             
             # Определяем текущий внешний IP для диагностики
