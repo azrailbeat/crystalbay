@@ -11,10 +11,13 @@
             <p class="text-secondary">Полное тестирование и мониторинг SAMO API интеграции</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-primary" onclick="fullSystemTest()">
-                <i class="bi bi-arrow-clockwise"></i> Полный тест
+            <button class="btn btn-primary" onclick="runFullSystemsTest()">
+                <i class="bi bi-check-all"></i> Тест всех систем
             </button>
-            <button class="btn btn-outline-primary" onclick="runCurlTest()">
+            <button class="btn btn-outline-primary" onclick="fullSystemTest()">
+                <i class="bi bi-arrow-clockwise"></i> Быстрый тест
+            </button>
+            <button class="btn btn-outline-secondary" onclick="runCurlTest()">
                 <i class="bi bi-terminal"></i> Curl тест
             </button>
         </div>
@@ -898,6 +901,199 @@ async function runLatencyTest() {
         const avgLatency = times.reduce((a, b) => a + b, 0) / times.length;
         logToResults('advanced-results', 
             `Средняя задержка: ${avgLatency.toFixed(1)}мс (${times.join(', ')}мс)`, 'success');
+    }
+}
+
+// Комплексный тест всех систем SAMO API
+async function runFullSystemsTest() {
+    const btn = document.querySelector('button[onclick="runFullSystemsTest()"]');
+    const originalText = btn.innerHTML;
+    
+    // Показать индикатор загрузки
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Тестирование...';
+    btn.disabled = true;
+    
+    // Создаем контейнер для результатов если его нет
+    let resultsContainer = document.getElementById('full-systems-results');
+    if (!resultsContainer) {
+        const cardBody = document.querySelector('.card-body');
+        resultsContainer = document.createElement('div');
+        resultsContainer.id = 'full-systems-results';
+        resultsContainer.className = 'mt-4 p-3 border rounded';
+        resultsContainer.innerHTML = '<h6><i class="bi bi-check-all"></i> Результаты комплексного тестирования</h6><div id="systems-results-content"></div>';
+        cardBody.appendChild(resultsContainer);
+    }
+    
+    const contentDiv = document.getElementById('systems-results-content');
+    contentDiv.innerHTML = '<div class="text-info"><i class="bi bi-hourglass-split"></i> Выполняется комплексный тест всех систем SAMO API...</div>';
+    
+    try {
+        const response = await fetch('/api/samo/test_all_systems');
+        const data = await response.json();
+        
+        if (data.success === false) {
+            contentDiv.innerHTML = `<div class="alert alert-danger">
+                <strong>Ошибка тестирования:</strong> ${data.error}
+            </div>`;
+            return;
+        }
+        
+        // Создаем красивый отчет
+        let html = `
+            <div class="alert alert-${data.overall_status === 'success' ? 'success' : 'warning'} mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Общий статус:</strong> 
+                        ${data.overall_status === 'success' ? '✅ Частично успешно' : '❌ Проблемы обнаружены'}
+                    </div>
+                    <div class="text-end">
+                        <small>Успешность: <strong>${data.success_rate}</strong></small><br>
+                        <small>Пройдено: ${data.summary.passed}/${data.summary.total}</small>
+                    </div>
+                </div>
+            </div>`;
+        
+        // Сводка результатов
+        html += '<div class="row mb-3">';
+        html += '<div class="col-md-4">';
+        html += `<div class="card border-success">
+            <div class="card-body text-center">
+                <h4 class="text-success">${data.summary.passed}</h4>
+                <small class="text-muted">Успешных тестов</small>
+            </div>
+        </div>`;
+        html += '</div>';
+        
+        html += '<div class="col-md-4">';
+        html += `<div class="card border-danger">
+            <div class="card-body text-center">
+                <h4 class="text-danger">${data.summary.failed}</h4>
+                <small class="text-muted">Неудачных тестов</small>
+            </div>
+        </div>`;
+        html += '</div>';
+        
+        html += '<div class="col-md-4">';
+        html += `<div class="card border-primary">
+            <div class="card-body text-center">
+                <h4 class="text-primary">${data.summary.total}</h4>
+                <small class="text-muted">Всего тестов</small>
+            </div>
+        </div>`;
+        html += '</div>';
+        html += '</div>';
+        
+        // Детальные результаты тестов
+        html += '<h6 class="mb-3">Детальные результаты тестов:</h6>';
+        html += '<div class="accordion" id="systemsTestAccordion">';
+        
+        let index = 0;
+        for (const [action, testResult] of Object.entries(data.tests)) {
+            const statusIcon = testResult.status === 'success' ? '✅' : 
+                              testResult.status === 'blocked' ? '🔒' : '❌';
+            const statusColor = testResult.status === 'success' ? 'success' : 
+                               testResult.status === 'blocked' ? 'warning' : 'danger';
+            
+            html += `
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#test-${index}">
+                            ${statusIcon} ${testResult.description} 
+                            <span class="badge bg-${statusColor} ms-auto me-2">${testResult.status}</span>
+                        </button>
+                    </h2>
+                    <div id="test-${index}" class="accordion-collapse collapse" 
+                         data-bs-parent="#systemsTestAccordion">
+                        <div class="accordion-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Действие:</strong> <code>${testResult.action}</code><br>
+                                    <strong>Статус код:</strong> <span class="badge bg-${statusColor}">${testResult.status_code || 'N/A'}</span><br>
+                                    <strong>Размер ответа:</strong> ${testResult.response_length || 0} байт<br>
+                                    ${testResult.parsed_count !== undefined ? `<strong>Элементов найдено:</strong> ${testResult.parsed_count}<br>` : ''}
+                                </div>
+                                <div class="col-md-6">
+                                    ${testResult.blocked_ip ? `<div class="alert alert-warning p-2"><strong>Заблокированный IP:</strong> ${testResult.blocked_ip}</div>` : ''}
+                                    ${testResult.error ? `<div class="alert alert-danger p-2"><strong>Ошибка:</strong> ${testResult.error}</div>` : ''}
+                                    ${testResult.message ? `<div class="alert alert-info p-2">${testResult.message}</div>` : ''}
+                                </div>
+                            </div>
+                            ${testResult.response_preview ? `<div class="mt-2"><strong>Превью ответа:</strong><pre class="bg-light p-2 small">${testResult.response_preview}</pre></div>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            index++;
+        }
+        html += '</div>';
+        
+        // Парсированные данные
+        if (data.parsed_data && Object.keys(data.parsed_data).length > 0) {
+            html += '<h6 class="mt-4 mb-3">Полученные данные для парсинга:</h6>';
+            html += '<div class="row">';
+            
+            if (data.parsed_data.currencies) {
+                html += '<div class="col-md-6 mb-3">';
+                html += `<div class="card">
+                    <div class="card-header"><strong>Валюты (${data.parsed_data.currencies.length})</strong></div>
+                    <div class="card-body">`;
+                data.parsed_data.currencies.slice(0, 5).forEach(curr => {
+                    html += `<span class="badge bg-primary me-1">${curr.code || curr.name}</span>`;
+                });
+                if (data.parsed_data.currencies.length > 5) {
+                    html += `<span class="text-muted">...и ещё ${data.parsed_data.currencies.length - 5}</span>`;
+                }
+                html += '</div></div>';
+                html += '</div>';
+            }
+            
+            if (data.parsed_data.countries) {
+                html += '<div class="col-md-6 mb-3">';
+                html += `<div class="card">
+                    <div class="card-header"><strong>Страны (${data.parsed_data.countries.length})</strong></div>
+                    <div class="card-body">`;
+                data.parsed_data.countries.slice(0, 3).forEach(country => {
+                    html += `<span class="badge bg-success me-1">${country.name}</span>`;
+                });
+                if (data.parsed_data.countries.length > 3) {
+                    html += `<span class="text-muted">...и ещё ${data.parsed_data.countries.length - 3}</span>`;
+                }
+                html += '</div></div>';
+                html += '</div>';
+            }
+            
+            if (data.parsed_data.tours) {
+                html += '<div class="col-12 mb-3">';
+                html += `<div class="card">
+                    <div class="card-header"><strong>Найденные туры (${data.parsed_data.tours.length})</strong></div>
+                    <div class="card-body">`;
+                data.parsed_data.tours.slice(0, 3).forEach(tour => {
+                    html += `<div class="border-bottom pb-2 mb-2">
+                        <strong>${tour.name || 'Тур без названия'}</strong><br>
+                        <span class="text-success">${tour.price} ${tour.currency}</span> | 
+                        <span class="text-muted">${tour.hotel}</span>
+                    </div>`;
+                });
+                if (data.parsed_data.tours.length > 3) {
+                    html += `<div class="text-muted text-center">...и ещё ${data.parsed_data.tours.length - 3} туров</div>`;
+                }
+                html += '</div></div>';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+        }
+        
+        contentDiv.innerHTML = html;
+        
+    } catch (error) {
+        contentDiv.innerHTML = `<div class="alert alert-danger">
+            <strong>Ошибка выполнения тестов:</strong> ${error.message}
+        </div>`;
+    } finally {
+        // Восстанавливаем кнопку
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 

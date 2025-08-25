@@ -526,63 +526,176 @@ def register_api_routes(app):
     
     # === SAMO CURL EXECUTION ===
     
-    @app.route('/api/samo/execute-curl', methods=['POST'])
-    def api_samo_execute_curl():
-        """Execute curl command for SAMO API"""
+    @app.route('/api/samo/test_all_systems', methods=['GET'])
+    def api_samo_test_all_systems():
+        """Комплексный тест всех систем SAMO API с парсингом туров и заявок"""
         try:
-            data = request.get_json() or {}
-            method = data.get('method', 'SearchTour_CURRENCIES')
-            params = data.get('params', '')
+            import requests
+            import xml.etree.ElementTree as ET
             
             oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
             samo_url = "https://booking.crystalbay.com/export/default.php"
             
-            # Build request parameters
-            request_params = {
-                'samo_action': 'api',
-                'version': '1.0', 
-                'type': 'json',
-                'action': method,
-                'oauth_token': oauth_token
+            results = {
+                "timestamp": datetime.now().isoformat(),
+                "tests": {},
+                "summary": {
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0
+                },
+                "parsed_data": {}
             }
             
-            # Add additional parameters if provided
-            if params:
-                for param in params.split('&'):
-                    if '=' in param:
-                        key, value = param.split('=', 1)
-                        request_params[key] = value
+            # Список всех тестируемых функций SAMO API
+            test_actions = [
+                ("SearchTour_CURRENCIES", "Валюты"),
+                ("SearchTour_STATES", "Страны"),
+                ("SearchTour_STARS", "Звездность отелей"),
+                ("SearchTour_TOWNFROMS", "Города вылета"),
+                ("SearchTour_MEALS", "Типы питания"),
+                ("SearchTour_COUNTRIES", "Страны назначения"),
+                ("SearchTour_TOURS", "Поиск туров"),
+                ("SearchTour_HOTELS", "Отели"),
+                ("GetTourInfo", "Информация о туре"),
+                ("GetOrders", "Список заявок")
+            ]
             
-            # Generate curl command for display
-            curl_command = f"curl -X POST '{samo_url}' \\\n"
-            curl_command += "  -H 'Content-Type: application/x-www-form-urlencoded' \\\n"
-            curl_command += "  -H 'User-Agent: Crystal Bay Travel/1.0' \\\n"
-            curl_command += "  -d '" + "&".join([f"{k}={v}" for k, v in request_params.items()]) + "'"
+            for action, description in test_actions:
+                results["summary"]["total"] += 1
+                test_result = {
+                    "description": description,
+                    "action": action,
+                    "status": "testing"
+                }
+                
+                try:
+                    # Параметры запроса (правильный формат)
+                    request_params = {
+                        'apiKey': oauth_token,
+                        'action': action
+                    }
+                    
+                    # Дополнительные параметры для некоторых запросов
+                    if action == "SearchTour_TOURS":
+                        from datetime import timedelta
+                        request_params.update({
+                            'dateFrom': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
+                            'dateTo': (datetime.now() + timedelta(days=37)).strftime('%Y-%m-%d'),
+                            'countryId': '1',  # Египет
+                            'adults': '2'
+                        })
+                    elif action == "GetTourInfo":
+                        request_params.update({
+                            'tourId': '12345'  # Тестовый ID
+                        })
+                    
+                    # Выполняем запрос
+                    response = requests.post(samo_url, data=request_params, timeout=15)
+                    
+                    test_result.update({
+                        "status_code": response.status_code,
+                        "response_length": len(response.text),
+                        "response_preview": response.text[:200]
+                    })
+                    
+                    if response.status_code == 200:
+                        test_result["status"] = "success"
+                        results["summary"]["passed"] += 1
+                        
+                        # Парсим XML ответ
+                        try:
+                            root = ET.fromstring(response.text)
+                            
+                            # Парсинг данных в зависимости от типа запроса
+                            if action == "SearchTour_CURRENCIES":
+                                currencies = []
+                                for currency in root.findall('.//Currency'):
+                                    currencies.append({
+                                        'id': currency.get('id'),
+                                        'name': currency.get('name'),
+                                        'code': currency.get('code')
+                                    })
+                                results["parsed_data"]["currencies"] = currencies
+                                test_result["parsed_count"] = len(currencies)
+                                
+                            elif action == "SearchTour_STATES":
+                                countries = []
+                                for country in root.findall('.//Country'):
+                                    countries.append({
+                                        'id': country.get('id'),
+                                        'name': country.get('name')
+                                    })
+                                results["parsed_data"]["countries"] = countries
+                                test_result["parsed_count"] = len(countries)
+                                
+                            elif action == "SearchTour_TOURS":
+                                tours = []
+                                for tour in root.findall('.//Tour'):
+                                    tours.append({
+                                        'id': tour.get('id'),
+                                        'name': tour.get('name'),
+                                        'price': tour.get('price'),
+                                        'currency': tour.get('currency'),
+                                        'hotel': tour.get('hotel')
+                                    })
+                                results["parsed_data"]["tours"] = tours
+                                test_result["parsed_count"] = len(tours)
+                                
+                            elif action == "GetOrders":
+                                orders = []
+                                for order in root.findall('.//Order'):
+                                    orders.append({
+                                        'id': order.get('id'),
+                                        'status': order.get('status'),
+                                        'date': order.get('date'),
+                                        'client': order.get('client'),
+                                        'tour': order.get('tour')
+                                    })
+                                results["parsed_data"]["orders"] = orders
+                                test_result["parsed_count"] = len(orders)
+                                
+                            test_result["parsing"] = "success"
+                            
+                        except ET.ParseError as parse_error:
+                            test_result["parsing"] = f"XML parsing error: {parse_error}"
+                            
+                    elif response.status_code == 403:
+                        test_result["status"] = "blocked"
+                        results["summary"]["failed"] += 1
+                        
+                        # Извлекаем IP из ответа
+                        if "blacklisted address" in response.text:
+                            import re
+                            ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', response.text)
+                            blocked_ip = ip_match.group(1) if ip_match else "Unknown"
+                            test_result["blocked_ip"] = blocked_ip
+                            test_result["message"] = f"IP {blocked_ip} не в whitelist SAMO"
+                        
+                    else:
+                        test_result["status"] = "failed"
+                        results["summary"]["failed"] += 1
+                        test_result["error"] = f"HTTP {response.status_code}"
+                        
+                except Exception as e:
+                    test_result["status"] = "error"
+                    test_result["error"] = str(e)
+                    results["summary"]["failed"] += 1
+                    
+                results["tests"][action] = test_result
             
-            # Execute request
-            import requests
-            response = requests.post(samo_url, data=request_params, timeout=15)
+            # Общий статус
+            results["overall_status"] = "success" if results["summary"]["passed"] > 0 else "failed"
+            results["success_rate"] = f"{(results['summary']['passed'] / results['summary']['total'] * 100):.1f}%"
             
-            result = {
-                "command": curl_command,
-                "success": response.status_code == 200,
-                "status_code": response.status_code,
-                "response_length": len(response.text),
-                "result": response.text[:1000] if response.text else "No response"
-            }
-            
-            if response.status_code == 403:
-                result["error"] = "IP заблокирован в SAMO API"
-                result["message"] = "Необходимо разблокировать IP у поставщика"
-            
-            return jsonify(result)
+            return jsonify(results)
             
         except Exception as e:
-            logger.error(f"SAMO curl execution error: {e}")
+            logger.error(f"SAMO test all systems error: {e}")
             return jsonify({
                 "success": False,
                 "error": str(e),
-                "command": "curl command generation failed"
+                "timestamp": datetime.now().isoformat()
             }), 500
     
     @app.route('/api/samo/server-curl-test', methods=['GET'])
