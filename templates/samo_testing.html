@@ -269,7 +269,10 @@ function renderTestResults(results) {
             <tr>
                 <td><code>${result.action}</code></td>
                 <td>${statusBadge}</td>
-                <td class="text-muted small">${result.error || 'OK'}</td>
+                <td class="text-muted small">
+                    ${result.error || 'OK'}
+                    ${result.tour_count ? '<br><small class="text-success">Tours: ' + result.tour_count + '</small>' : ''}
+                </td>
             </tr>
         `;
     });
@@ -279,6 +282,10 @@ function renderTestResults(results) {
 }
 
 async function testSingleAction(action) {
+    // Обновляем Test Results - показываем спиннер
+    const resultDiv = document.getElementById('testSuiteResults');
+    resultDiv.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2"></div>Testing ' + action + '...</div>';
+    
     addLogEntry('INFO', `Testing ${action}...`);
     
     try {
@@ -312,6 +319,17 @@ async function testSingleAction(action) {
             addLogEntry('DEBUG', `Raw Response (first 300 chars): ${result.raw_response.substring(0, 300)}...`);
         }
         
+        // ✅ ДОБАВЛЯЕМ ОБНОВЛЕНИЕ TEST RESULTS!
+        renderTestResults([{
+            action: action,
+            success: result.success,
+            error: result.error,
+            status_code: result.status_code,
+            data: result.data,
+            tour_count: result.data && result.data.SearchTour_ALL && result.data.SearchTour_ALL.TOURS ? 
+                       result.data.SearchTour_ALL.TOURS.length : 0
+        }]);
+        
         showToast(
             result.success ? 'success' : 'error',
             `${action}: ${result.success ? 'Success' : result.error}`
@@ -319,6 +337,14 @@ async function testSingleAction(action) {
         
     } catch (error) {
         addLogEntry('ERROR', `Network Error: ${error.message}`);
+        
+        // Обновляем результаты с ошибкой
+        renderTestResults([{
+            action: action,
+            success: false,
+            error: error.message
+        }]);
+        
         showToast('error', `Error: ${error.message}`);
     }
 }
