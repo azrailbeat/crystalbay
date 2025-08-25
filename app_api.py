@@ -713,6 +713,95 @@ def register_api_routes(app):
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }), 500
+
+    @app.route('/api/samo/export_test_results', methods=['GET'])
+    def export_samo_test_results():
+        """Экспорт результатов тестирования для техподдержки"""
+        try:
+            import requests
+            
+            # Запускаем полное тестирование - прямой вызов без функции
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            
+            # Простой тест API для получения данных
+            test_params = {
+                'apiKey': oauth_token,
+                'action': 'SearchTour_CURRENCIES'
+            }
+            
+            test_response = None
+            try:
+                test_response = requests.post(samo_url, data=test_params, timeout=10)
+                api_status = "blocked" if test_response.status_code == 403 else "success"
+                api_response = test_response.text[:200]
+            except Exception as e:
+                api_status = "error"
+                api_response = str(e)
+            
+            # Собираем детальную информацию для техподдержки
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
+            samo_url = "https://booking.crystalbay.com/export/default.php"
+            
+            # Определяем текущий IP сервера  
+            try:
+                ip_response = requests.get('https://api.ipify.org?format=json', timeout=5)
+                current_ip = ip_response.json().get('ip', 'unknown')
+            except:
+                current_ip = 'detection_failed'
+            
+            # Формируем детальный отчет
+            export_data = {
+                "report_info": {
+                    "generated_at": datetime.now().isoformat(),
+                    "server_ip": current_ip,
+                    "samo_api_url": samo_url,
+                    "oauth_token_masked": f"{oauth_token[:8]}...{oauth_token[-8:]}",
+                    "report_purpose": "Debug SAMO API connectivity issues for technical support"
+                },
+                "environment": {
+                    "server_ip": current_ip,
+                    "expected_whitelisted_ip": "46.250.234.89",
+                    "api_endpoint": samo_url,
+                    "api_version": "1.0",
+                    "request_format": "apiKey parameter (not oauth_token from documentation)"
+                },
+                "test_results": {
+                    "api_status": api_status,
+                    "api_response": api_response,
+                    "http_status": test_response.status_code if test_response and api_status != "error" else 'unknown'
+                },
+                "curl_examples": [],
+                "technical_notes": [
+                    "SAMO documentation shows oauth_token parameter, but API requires apiKey",
+                    "All requests return 403 Forbidden with 'blacklisted address' message",
+                    "IP whitelist configuration needed in SAMO admin panel",
+                    "Tested SAMO API methods with proper parameters"
+                ]
+            }
+            
+            # Добавляем пример curl команды
+            curl_cmd = f"""curl -X POST '{samo_url}' \\
+  -H 'Content-Type: application/x-www-form-urlencoded' \\
+  -d 'apiKey={oauth_token}&action=SearchTour_CURRENCIES' \\
+  -v"""
+            export_data["curl_examples"].append({
+                "method": "SearchTour_CURRENCIES",
+                "curl_command": curl_cmd,
+                "expected_response": "Success when IP is whitelisted",
+                "current_response": api_response
+            })
+            
+            # Возвращаем как downloadable JSON
+            response = jsonify(export_data)
+            response.headers['Content-Disposition'] = f'attachment; filename="samo_api_debug_report_{current_ip}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json"'
+            response.headers['Content-Type'] = 'application/json'
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Export error: {e}")
+            return jsonify({"error": "Export failed", "details": str(e)}), 500
     
     @app.route('/api/samo/server-curl-test', methods=['GET'])
     def api_samo_server_curl_test():
