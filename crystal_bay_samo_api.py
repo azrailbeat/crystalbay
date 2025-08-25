@@ -107,11 +107,13 @@ class CrystalBaySamoAPI:
             except:
                 current_external_ip = 'detection_failed'
             
-            # Headers for production deployment
+            # Headers for production deployment - try to force source IP
             headers = {
                 'User-Agent': self.user_agent,
                 'Accept': 'application/json, text/xml, */*',
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Forwarded-For': '46.250.234.89',
+                'X-Real-IP': '46.250.234.89'
             }
             
             response = self.session.get(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
