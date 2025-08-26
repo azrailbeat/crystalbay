@@ -16,7 +16,7 @@
                         💱 Load Currencies
                     </button>
                     <button type="button" class="btn btn-outline-info" onclick="loadCountries()">
-                        🌍 Load Countries
+                        🏖️ Load Destinations
                     </button>
                 </div>
             </div>
@@ -36,9 +36,9 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label for="countryTo" class="form-label">Destination Country</label>
+                                <label for="countryTo" class="form-label">Destination</label>
                                 <select class="form-select" id="countryTo" name="countryTo">
-                                    <option value="">Select Country...</option>
+                                    <option value="">Select Destination...</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -181,16 +181,15 @@ async function loadTownFroms() {
 async function loadCurrencies() {
     try {
         showLoading('Loading currencies...');
-        const response = await fetch('/api/samo/test_api', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: 'SearchTour_CURRENCIES'})
+        const response = await fetch('/api/samo/get_currencies', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
         });
         
         const data = await response.json();
         if (data.success && data.data) {
-            currenciesData = Array.isArray(data.data) ? data.data : [data.data];
-            showSuccess(`Loaded currencies data`);
+            currenciesData = data.data;
+            showSuccess(`Loaded ${currenciesData.length} currencies from real SAMO data`);
             console.log('Currencies:', currenciesData);
         } else {
             showError(`Failed to load currencies: ${data.error || 'Unknown error'}`);
@@ -200,26 +199,25 @@ async function loadCurrencies() {
     }
 }
 
-// Load countries from SAMO API
+// Load destinations from SAMO API
 async function loadCountries() {
     try {
-        showLoading('Loading countries...');
-        const response = await fetch('/api/samo/test_api', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: 'SearchTour_STATES'})
+        showLoading('Loading destinations...');
+        const response = await fetch('/api/samo/get_destinations', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
         });
         
         const data = await response.json();
         if (data.success && data.data) {
-            countriesData = Array.isArray(data.data) ? data.data : [data.data];
+            countriesData = data.data;
             populateSelect('countryTo', countriesData, 'id', 'name');
-            showSuccess(`Loaded ${countriesData.length} countries`);
+            showSuccess(`Loaded ${countriesData.length} destinations from real SAMO data`);
         } else {
-            showError(`Failed to load countries: ${data.error || 'Unknown error'}`);
+            showError(`Failed to load destinations: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
-        showError(`Error loading countries: ${error.message}`);
+        showError(`Error loading destinations: ${error.message}`);
     }
 }
 
