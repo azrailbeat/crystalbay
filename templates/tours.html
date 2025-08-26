@@ -1,0 +1,405 @@
+{% extends "layout.html" %}
+
+{% block title %}Tour Search - SAMO API{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">🏖️ Tour Search & Booking</h1>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="loadTownFroms()">
+                        🏙️ Load Cities
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="loadCurrencies()">
+                        💱 Load Currencies
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="loadCountries()">
+                        🌍 Load Countries
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Parameters -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🔍 Search Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="tourSearchForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="townFrom" class="form-label">Departure City</label>
+                                <select class="form-select" id="townFrom" name="townFrom">
+                                    <option value="">Select City...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="countryTo" class="form-label">Destination Country</label>
+                                <select class="form-select" id="countryTo" name="countryTo">
+                                    <option value="">Select Country...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="checkIn" class="form-label">Check-in Date</label>
+                                <input type="date" class="form-control" id="checkIn" name="checkIn">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="nights" class="form-label">Nights</label>
+                                <select class="form-select" id="nights" name="nights">
+                                    <option value="">Any</option>
+                                    <option value="3">3 nights</option>
+                                    <option value="7">7 nights</option>
+                                    <option value="10">10 nights</option>
+                                    <option value="14">14 nights</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="adults" class="form-label">Adults</label>
+                                <select class="form-select" id="adults" name="adults">
+                                    <option value="2" selected>2 adults</option>
+                                    <option value="1">1 adult</option>
+                                    <option value="3">3 adults</option>
+                                    <option value="4">4 adults</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-2">
+                                <label for="children" class="form-label">Children</label>
+                                <select class="form-select" id="children" name="children">
+                                    <option value="0" selected>No children</option>
+                                    <option value="1">1 child</option>
+                                    <option value="2">2 children</option>
+                                    <option value="3">3 children</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="stars" class="form-label">Hotel Stars</label>
+                                <select class="form-select" id="stars" name="stars">
+                                    <option value="">Any stars</option>
+                                    <option value="3">3 stars</option>
+                                    <option value="4">4 stars</option>
+                                    <option value="5">5 stars</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="meal" class="form-label">Meal Type</label>
+                                <select class="form-select" id="meal" name="meal">
+                                    <option value="">Any meal</option>
+                                    <option value="BB">Breakfast</option>
+                                    <option value="HB">Half Board</option>
+                                    <option value="FB">Full Board</option>
+                                    <option value="AI">All Inclusive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="priceFrom" class="form-label">Price From (USD)</label>
+                                <input type="number" class="form-control" id="priceFrom" name="priceFrom" min="0" step="100">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="priceTo" class="form-label">Price To (USD)</label>
+                                <input type="number" class="form-control" id="priceTo" name="priceTo" min="0" step="100">
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="searchTours()">
+                                    🔍 Search Tours
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                                    🔄 Clear
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="loadAllData()">
+                                    📊 Load All SAMO Data
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">🎯 Search Results</h5>
+                    <span id="resultCount" class="badge bg-primary">0 tours found</span>
+                </div>
+                <div class="card-body">
+                    <div id="searchResults">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <p>Use search parameters above to find tours</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw API Data (for debugging) -->
+            <div class="card mt-4" id="rawDataCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">🔧 Raw API Response</h5>
+                </div>
+                <div class="card-body">
+                    <pre id="rawApiData" class="small bg-light p-3"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables for SAMO data
+let townFromsData = [];
+let currenciesData = [];
+let countriesData = [];
+
+// Load departure cities from SAMO API
+async function loadTownFroms() {
+    try {
+        showLoading('Loading cities...');
+        const response = await fetch('/api/samo/get_townfroms', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data && data.data.townfroms) {
+            townFromsData = data.data.townfroms;
+            populateSelect('townFrom', townFromsData, 'id', 'name');
+            showSuccess(`Loaded ${townFromsData.length} cities`);
+        } else {
+            showError(`Failed to load cities: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showError(`Error loading cities: ${error.message}`);
+    }
+}
+
+// Load currencies from SAMO API
+async function loadCurrencies() {
+    try {
+        showLoading('Loading currencies...');
+        const response = await fetch('/api/samo/test_api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'SearchTour_CURRENCIES'})
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data) {
+            currenciesData = Array.isArray(data.data) ? data.data : [data.data];
+            showSuccess(`Loaded currencies data`);
+            console.log('Currencies:', currenciesData);
+        } else {
+            showError(`Failed to load currencies: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showError(`Error loading currencies: ${error.message}`);
+    }
+}
+
+// Load countries from SAMO API
+async function loadCountries() {
+    try {
+        showLoading('Loading countries...');
+        const response = await fetch('/api/samo/test_api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'SearchTour_STATES'})
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data) {
+            countriesData = Array.isArray(data.data) ? data.data : [data.data];
+            populateSelect('countryTo', countriesData, 'id', 'name');
+            showSuccess(`Loaded ${countriesData.length} countries`);
+        } else {
+            showError(`Failed to load countries: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showError(`Error loading countries: ${error.message}`);
+    }
+}
+
+// Load all SAMO data for comprehensive view
+async function loadAllData() {
+    try {
+        showLoading('Loading all SAMO data...');
+        const response = await fetch('/api/samo/test_api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'SearchTour_ALL'})
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showRawData(data);
+            showSuccess('All SAMO data loaded successfully');
+        } else {
+            showError(`Failed to load all data: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showError(`Error loading all data: ${error.message}`);
+    }
+}
+
+// Search tours with parameters
+async function searchTours() {
+    try {
+        const form = document.getElementById('tourSearchForm');
+        const formData = new FormData(form);
+        const searchParams = Object.fromEntries(formData.entries());
+        
+        // Remove empty values
+        Object.keys(searchParams).forEach(key => {
+            if (!searchParams[key]) delete searchParams[key];
+        });
+        
+        showLoading('Searching tours...');
+        
+        const response = await fetch('/api/samo/search_tours_detailed', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(searchParams)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySearchResults(data.data || data.tours || []);
+            showRawData(data);
+            showSuccess(`Found ${(data.data || data.tours || []).length} tours`);
+        } else {
+            showError(`Search failed: ${data.error || 'Unknown error'}`);
+            showRawData(data);
+        }
+        
+    } catch (error) {
+        showError(`Search error: ${error.message}`);
+    }
+}
+
+// Display search results
+function displaySearchResults(tours) {
+    const resultsDiv = document.getElementById('searchResults');
+    const countSpan = document.getElementById('resultCount');
+    
+    if (!tours || tours.length === 0) {
+        resultsDiv.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <p>No tours found matching your criteria</p>
+            </div>
+        `;
+        countSpan.textContent = '0 tours found';
+        return;
+    }
+    
+    countSpan.textContent = `${tours.length} tours found`;
+    
+    let resultsHtml = '<div class="row">';
+    
+    tours.forEach((tour, index) => {
+        resultsHtml += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${tour.name || tour.hotel || `Tour ${index + 1}`}</h6>
+                        <p class="card-text small">
+                            <strong>Country:</strong> ${tour.country || tour.destination || 'N/A'}<br>
+                            <strong>Duration:</strong> ${tour.nights || tour.duration || 'N/A'} nights<br>
+                            <strong>Price:</strong> ${tour.price || tour.cost || 'Price on request'}<br>
+                            <strong>Meal:</strong> ${tour.meal || tour.board || 'N/A'}
+                        </p>
+                        ${tour.hotel_stars ? `<div class="mb-2">${'⭐'.repeat(parseInt(tour.hotel_stars))}</div>` : ''}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-primary btn-sm" onclick="viewTourDetails(${index})">
+                            📋 View Details
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="bookTour(${index})">
+                            ✈️ Book Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    resultsHtml += '</div>';
+    resultsDiv.innerHTML = resultsHtml;
+}
+
+// View tour details
+function viewTourDetails(index) {
+    // Implementation for tour details modal
+    alert('Tour details feature coming soon!');
+}
+
+// Book tour
+function bookTour(index) {
+    // Implementation for booking
+    alert('Booking feature coming soon!');
+}
+
+// Utility functions
+function populateSelect(selectId, data, valueField, textField) {
+    const select = document.getElementById(selectId);
+    // Clear existing options except first
+    select.innerHTML = select.children[0].outerHTML;
+    
+    data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item[valueField] || item.id || item.code;
+        option.textContent = item[textField] || item.name || item.title;
+        select.appendChild(option);
+    });
+}
+
+function clearForm() {
+    document.getElementById('tourSearchForm').reset();
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <p>Use search parameters above to find tours</p>
+        </div>
+    `;
+    document.getElementById('resultCount').textContent = '0 tours found';
+    hideRawData();
+}
+
+function showRawData(data) {
+    document.getElementById('rawApiData').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('rawDataCard').style.display = 'block';
+}
+
+function hideRawData() {
+    document.getElementById('rawDataCard').style.display = 'none';
+}
+
+function showLoading(message) {
+    // Simple loading implementation
+    console.log('Loading:', message);
+}
+
+function showSuccess(message) {
+    console.log('Success:', message);
+    // You can implement toast notifications here
+}
+
+function showError(message) {
+    console.error('Error:', message);
+    // You can implement error notifications here
+}
+
+// Auto-load basic data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default check-in date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('checkIn').value = tomorrow.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

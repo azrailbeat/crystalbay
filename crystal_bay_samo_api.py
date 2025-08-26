@@ -373,56 +373,174 @@ class CrystalBaySamoAPI:
             logger.info(f"SAMO SearchTour_PRICES request: {request_params}")
             
             # Прямой GET запрос как curl
-            response = self.session.get(self.base_url, params=request_params, timeout=self.timeout)
+            response = self.session.get(self.base_url, params=request_params, timeout=30)
+            
+            logger.info(f"Search prices response: {response.status_code}")
+            logger.info(f"Response content type: {response.headers.get('content-type')}")
             
             if response.status_code == 200:
                 try:
-                    result = response.json()
-                    tours_data = result.get('SearchTour_PRICES', [])
-                    
-                    logger.info(f"SAMO tour search SUCCESS: {len(tours_data)} tours found")
-                    
-                    return {
-                        "success": True,
-                        "action": "SearchTour_PRICES",
-                        "data": {
-                            "tours": tours_data,
-                            "total_count": len(tours_data)
-                        },
-                        "search_params": params or {},
-                        "raw_response": result
-                    }
-                    
-                except json.JSONDecodeError as je:
-                    logger.error(f"SAMO SearchTour_PRICES JSON parse error: {je}")
+                    if 'application/json' in response.headers.get('content-type', ''):
+                        data = response.json()
+                        return {"success": True, "data": data, "action": "SearchTour_PRICES"}
+                    else:
+                        # HTML или текст ответ
+                        return {
+                            "success": True,
+                            "data": {"raw_response": response.text},
+                            "action": "SearchTour_PRICES",
+                            "content_type": response.headers.get('content-type')
+                        }
+                except Exception as e:
                     return {
                         "success": False,
-                        "error": "Invalid JSON response from SAMO API",
-                        "raw_response": response.text[:500],
-                        "status_code": 200,
-                        "action": "SearchTour_PRICES",
-                        "search_params": params or {}
+                        "error": f"JSON parse error: {e}",
+                        "raw_response": response.text[:500]
                     }
             else:
-                # Общая обработка всех не-200 статусов  
-                return handle_error_response(response, "SearchTour_PRICES", {"search_params": params or {}})
+                return handle_error_response(response, "SearchTour_PRICES")
                 
-        except requests.RequestException as e:
-            logger.error(f"SAMO API tour search error: {e}")
+        except Exception as e:
+            logger.error(f"Search prices error: {e}")
+            return {"success": False, "error": str(e)}
+
+    def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Детальный поиск туров с использованием SearchTour_ALL - рабочий метод"""
+        try:
+            # Базовые параметры - ТОЧНО как в работающем production curl
+            request_params = {
+                'samo_action': 'api',
+                'oauth_token': self.oauth_token,
+                'type': 'json',
+                'action': 'SearchTour_ALL'
+            }
+            
+            # Добавляем параметры поиска если переданы
+            if params:
+                # Маппинг параметров в формат SAMO API
+                if 'townFrom' in params or 'townfrom' in params:
+                    townfrom = params.get('townFrom') or params.get('townfrom')
+                    if townfrom:
+                        request_params['TOWNFROMINC'] = townfrom
+                
+                if 'countryTo' in params or 'country' in params:
+                    country = params.get('countryTo') or params.get('country')
+                    if country:
+                        request_params['STATEINC'] = country
+                
+                if 'checkIn' in params:
+                    request_params['CHECKIN_BEG'] = params['checkIn']
+                
+                if 'nights' in params and params['nights']:
+                    nights = str(params['nights'])
+                    request_params['NIGHTS_FROM'] = nights
+                    request_params['NIGHTS_TILL'] = nights
+                
+                if 'adults' in params and params['adults']:
+                    request_params['ADULT'] = str(params['adults'])
+                
+                if 'children' in params and params['children']:
+                    request_params['CHILD'] = str(params['children'])
+                
+                if 'stars' in params and params['stars']:
+                    request_params['STARS'] = str(params['stars'])
+                
+                if 'meal' in params and params['meal']:
+                    request_params['MEAL'] = params['meal']
+                
+                if 'priceFrom' in params and params['priceFrom']:
+                    request_params['PRICE_FROM'] = str(params['priceFrom'])
+                
+                if 'priceTo' in params and params['priceTo']:
+                    request_params['PRICE_TO'] = str(params['priceTo'])
+            
+            logger.info(f"=== DETAILED TOUR SEARCH START ===")
+            logger.info(f"Search parameters: {params}")
+            logger.info(f"SAMO API parameters: {request_params}")
+            
+            # Используем прямой POST как в рабочем curl
+            import time
+            start_time = time.time()
+            
+            response = requests.post(
+                self.base_url,
+                params=request_params,
+                headers={
+                    'User-Agent': self.user_agent,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                timeout=30
+            )
+            
+            request_time = time.time() - start_time
+            
+            logger.info(f"Search response: HTTP {response.status_code}")
+            logger.info(f"Response time: {request_time:.3f}s")
+            logger.info(f"Response size: {len(response.text)} bytes")
+            logger.info(f"Content-Type: {response.headers.get('content-type')}")
+            
+            if response.status_code == 200:
+                try:
+                    if len(response.text) > 0:
+                        # Попытка парсинга JSON
+                        if 'application/json' in response.headers.get('content-type', ''):
+                            data = response.json()
+                            logger.info(f"✅ JSON parsed successfully, keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")
+                            return {
+                                "success": True,
+                                "data": data,
+                                "action": "SearchTour_ALL",
+                                "search_params": params,
+                                "request_details": {
+                                    "url": self.base_url,
+                                    "method": "POST",
+                                    "params": request_params,
+                                    "response_time": f"{request_time:.3f}s",
+                                    "response_size": len(response.text)
+                                }
+                            }
+                        else:
+                            # HTML или текстовый ответ - возможно данные в другом формате
+                            logger.info("⚠️ Non-JSON response, treating as raw data")
+                            return {
+                                "success": True,
+                                "data": {"raw_response": response.text[:1000]},
+                                "action": "SearchTour_ALL",
+                                "search_params": params,
+                                "content_type": response.headers.get('content-type'),
+                                "note": "Non-JSON response format"
+                            }
+                    else:
+                        logger.error("❌ Empty response body")
+                        return {
+                            "success": False,
+                            "error": "Empty response from SAMO API",
+                            "action": "SearchTour_ALL",
+                            "search_params": params,
+                            "help": "Check OAuth token and API parameters"
+                        }
+                        
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e}")
+                    return {
+                        "success": False,
+                        "error": f"Invalid JSON response: {e}",
+                        "raw_response": response.text[:500],
+                        "action": "SearchTour_ALL"
+                    }
+            else:
+                logger.error(f"❌ HTTP {response.status_code} error")
+                return handle_error_response(response, "SearchTour_ALL")
+                
+        except Exception as e:
+            logger.error(f"Detailed search error: {e}")
             return {
                 "success": False,
-                "error": f"Network error: {str(e)}",
-                "action": "SearchTour_PRICES",
-                "search_params": params or {},
-                "error_type": type(e).__name__
+                "error": str(e),
+                "action": "SearchTour_ALL",
+                "search_params": params or {}
             }
-    
-    def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Детальный поиск туров - точно как в рабочем production curl"""
-        # Используем ПРОСТОЙ запрос как в working production curl - без дополнительных параметров
-        # Рабочий curl: samo_action=api&oauth_token=27bd59a7ac67422189789f0188167379&type=json&action=SearchTour_ALL
-        logger.info("🎯 SearchTour_ALL: Используем ПРОСТОЙ формат как в working production")
-        return self._make_request('SearchTour_ALL', None)  # Без дополнительных параметров!
     
     # === БРОНИРОВАНИЕ ===
     

@@ -1074,6 +1074,149 @@ def register_api_routes(app):
                 "error": str(e)
             }), 500
 
+    # === NEW COMPREHENSIVE TOUR SEARCH API ===
+
+    @app.route('/api/samo/get_townfroms', methods=['GET'])
+    def api_samo_get_townfroms():
+        """Get list of departure cities from SAMO API"""
+        try:
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            api = CrystalBaySamoAPI()
+            
+            result = api._make_request('SearchTour_TOWNFROMS')
+            
+            if result.get('success'):
+                # Parse the response and format for frontend
+                townfroms_data = result.get('data', {})
+                
+                # Create standardized city list
+                cities = []
+                if isinstance(townfroms_data, dict):
+                    for city_id, city_name in townfroms_data.items():
+                        cities.append({
+                            'id': city_id,
+                            'name': city_name,
+                            'code': city_id
+                        })
+                elif isinstance(townfroms_data, list):
+                    for i, city in enumerate(townfroms_data):
+                        if isinstance(city, dict):
+                            cities.append({
+                                'id': city.get('id', i),
+                                'name': city.get('name', str(city)),
+                                'code': city.get('code', city.get('id', i))
+                            })
+                        else:
+                            cities.append({
+                                'id': i,
+                                'name': str(city),
+                                'code': str(i)
+                            })
+                
+                return jsonify({
+                    "success": True,
+                    "data": {
+                        "townfroms": cities,
+                        "count": len(cities)
+                    },
+                    "raw_response": result
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.get('error', 'Failed to fetch cities'),
+                    "raw_response": result
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"Error getting townfroms: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/samo/search_tours_detailed', methods=['POST'])
+    def api_samo_search_tours_detailed():
+        """Detailed tour search with all parameters"""
+        try:
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            api = CrystalBaySamoAPI()
+            
+            # Get search parameters from request
+            search_params = request.get_json() or {}
+            
+            logger.info(f"Tour search parameters: {search_params}")
+            
+            # Use the working SearchTour_ALL method
+            result = api.search_tours_detailed(search_params)
+            
+            if result.get('success'):
+                # Parse and format tour data
+                tours_data = result.get('data', {})
+                formatted_tours = []
+                
+                # Handle different response formats
+                if isinstance(tours_data, dict):
+                    if 'tours' in tours_data:
+                        tours_list = tours_data['tours']
+                    elif 'offers' in tours_data:
+                        tours_list = tours_data['offers']
+                    else:
+                        # Treat the dict as a single tour
+                        tours_list = [tours_data]
+                elif isinstance(tours_data, list):
+                    tours_list = tours_data
+                else:
+                    tours_list = []
+                
+                # Format each tour
+                for i, tour in enumerate(tours_list):
+                    if isinstance(tour, dict):
+                        formatted_tour = {
+                            'id': tour.get('id', i),
+                            'name': tour.get('name', tour.get('hotel', f'Tour {i+1}')),
+                            'country': tour.get('country', tour.get('destination', tour.get('state', 'Unknown'))),
+                            'city': tour.get('city', tour.get('resort', '')),
+                            'hotel': tour.get('hotel', tour.get('name', '')),
+                            'hotel_stars': tour.get('stars', tour.get('hotel_stars', '')),
+                            'nights': tour.get('nights', tour.get('duration', '')),
+                            'price': tour.get('price', tour.get('cost', tour.get('price_from', 'Price on request'))),
+                            'currency': tour.get('currency', 'USD'),
+                            'meal': tour.get('meal', tour.get('board', tour.get('food', ''))),
+                            'check_in': tour.get('check_in', tour.get('date_from', '')),
+                            'check_out': tour.get('check_out', tour.get('date_to', '')),
+                            'adults': tour.get('adults', tour.get('pax', 2)),
+                            'children': tour.get('children', 0),
+                            'description': tour.get('description', ''),
+                            'tour_operator': tour.get('operator', tour.get('tour_operator', '')),
+                            'raw_data': tour  # Keep original data for debugging
+                        }
+                        formatted_tours.append(formatted_tour)
+                
+                return jsonify({
+                    "success": True,
+                    "data": formatted_tours,
+                    "tours": formatted_tours,  # Alternative key for compatibility
+                    "count": len(formatted_tours),
+                    "search_params": search_params,
+                    "raw_response": result
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.get('error', 'Search failed'),
+                    "search_params": search_params,
+                    "raw_response": result
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"Error in detailed tour search: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "search_params": request.get_json() or {}
+            }), 500
+
     @app.route('/api/samo/get_orders', methods=['POST'])
     def get_orders():
         """Получение заявок из SAMO"""
