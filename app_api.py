@@ -932,13 +932,9 @@ def register_api_routes(app):
 
     @app.route('/api/samo/test', methods=['POST'])
     def simple_samo_test():
-        """Детальный тест SAMO API с полным логированием"""
+        """Детальный тест SAMO API с полным логированием - использует проверенный _make_request метод"""
         try:
-            import requests
-            import time
-            
             logger.info("=== НАЧАЛО SAMO API ТЕСТА ===")
-            start_time = time.time()
             
             # Получаем данные запроса
             data = request.get_json()
@@ -946,165 +942,54 @@ def register_api_routes(app):
             logger.info(f"Получен action: {action}")
             logger.info(f"Полный payload: {data}")
             
-            # Подготовка параметров
-            samo_url = "https://booking.crystalbay.com/export/default.php"
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
-            logger.info(f"SAMO URL: {samo_url}")
-            logger.info(f"OAuth Token (masked): {oauth_token[:8]}***{oauth_token[-8:]}")
+            # Используем проверенный CrystalBaySamoAPI класс
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            api = CrystalBaySamoAPI()
             
-            # Правильный формат согласно документации SAMO API
-            params = {
-                'samo_action': 'api',
-
-                'oauth_token': oauth_token,
-                'type': 'json',
-                'action': action
-            }
-            logger.info(f"Параметры запроса: {params}")
+            # Специальная обработка для SearchTour_ALL - используем метод с правильными параметрами
+            if action == 'SearchTour_ALL':
+                logger.info("Используем search_tours_detailed для SearchTour_ALL")
+                result = api.search_tours_detailed()
+            else:
+                # Для остальных действий используем стандартный _make_request
+                logger.info(f"Используем _make_request для {action}")
+                result = api._make_request(action)
             
-            # Выполнение запроса - согласно документации используем GET с параметрами в URL
-            logger.info("Отправка HTTP POST запроса к SAMO API...")
-            try:
-                response = requests.post(samo_url, params=params, timeout=10)
-                request_time = time.time() - start_time
-                logger.info(f"Запрос выполнен за {request_time:.3f} секунд")
-                logger.info(f"HTTP Status: {response.status_code}")
-                logger.info(f"Response Headers: {dict(response.headers)}")
-                logger.info(f"Response размер: {len(response.text)} символов")
-                logger.info(f"Response (первые 300 символов): {response.text[:300]}")
-                
-            except Exception as req_error:
-                logger.error(f"Ошибка HTTP запроса: {req_error}")
+            logger.info(f"=== РЕЗУЛЬТАТ SAMO API ТЕСТА ===")
+            logger.info(f"Success: {result.get('success', False)}")
+            
+            if result.get('success'):
+                logger.info("✅ SAMO API ТЕСТ УСПЕШЕН")
                 return jsonify({
-                    "success": False,
-                    "error": f"Ошибка соединения: {str(req_error)}",
+                    "success": True,
                     "action": action,
-                    "debug_info": {
-                        "request_url": samo_url,
-                        "request_timeout": "10 seconds",
-                        "error_type": type(req_error).__name__
-                    }
-                }), 500
-            
-            # Анализ ответа
-            if response.status_code == 200:
-                logger.info("✅ Получен успешный HTTP 200 ответ")
-                response_text = response.text.strip()
-                
-                if response_text.startswith('<Response'):
-                    logger.info("✅ Распознан XML ответ от SAMO")
-                    return jsonify({
-                        "success": True,
-                        "action": action,
-                        "status_code": response.status_code,
-                        "response_type": "XML",
-                        "currencies": [{"name": "USD", "code": "USD", "rate": "1.00"}],
-                        "raw_response": response_text[:200],
-                        "debug_info": {
-                            "request_time": f"{request_time:.3f}s",
-                            "response_length": len(response_text),
-                            "response_headers": dict(response.headers)
-                        }
-                    })
-                else:
-                    logger.info("ℹ️ Получен не-XML ответ")
-                    return jsonify({
-                        "success": True,
-                        "action": action,
-                        "status_code": response.status_code,
-                        "response_type": "Other",
-                        "raw_response": response_text[:200],
-                        "debug_info": {
-                            "request_time": f"{request_time:.3f}s",
-                            "response_length": len(response_text),
-                            "response_headers": dict(response.headers)
-                        }
-                    })
-                    
-            elif response.status_code == 403:
-                logger.error("❌ Получен HTTP 403 Forbidden")
-                error_msg = response.text
-                logger.error(f"403 Response: {error_msg}")
-                
-                if "blacklisted address" in error_msg:
-                    import re
-                    ip_match = re.search(r'blacklisted address (\d+\.\d+\.\d+\.\d+)', error_msg)
-                    blocked_ip = ip_match.group(1) if ip_match else "Unknown"
-                    logger.error(f"🚫 IP заблокирован: {blocked_ip}")
-                    
-                    return jsonify({
-                        "success": False,
-                        "error": f"IP {blocked_ip} заблокирован в SAMO API. Требуется добавление в whitelist.",
-                        "blocked_ip": blocked_ip,
-                        "action": action,
-                        "status_code": response.status_code,
-                        "debug_info": {
-                            "request_time": f"{request_time:.3f}s",
-                            "full_error_response": error_msg,
-                            "response_headers": dict(response.headers)
-                        }
-                    })
-                else:
-                    logger.error("❌ HTTP 403 но не blacklist ошибка")
-                    return jsonify({
-                        "success": False,
-                        "error": f"HTTP 403 Forbidden: {error_msg[:100]}",
-                        "action": action,
-                        "status_code": response.status_code,
-                        "debug_info": {
-                            "request_time": f"{request_time:.3f}s",
-                            "full_error_response": error_msg,
-                            "response_headers": dict(response.headers)
-                        }
-                    })
-                    
-            elif response.status_code == 500:
-                logger.error("❌ Получен HTTP 500 Internal Server Error")
-                error_msg = response.text
-                logger.error(f"500 Response: {error_msg}")
-                
-                return jsonify({
-                    "success": False,
-                    "error": f"HTTP 500 Internal Server Error: {error_msg[:100]}",
-                    "action": action,
-                    "status_code": response.status_code,
-                    "debug_info": {
-                        "request_time": f"{request_time:.3f}s",
-                        "full_error_response": error_msg,
-                        "response_headers": dict(response.headers),
-                        "possible_causes": [
-                            "Неправильные параметры запроса",
-                            "Ошибка на стороне SAMO сервера", 
-                            "Изменение в API SAMO",
-                            "Проблемы с OAuth токеном"
-                        ]
-                    }
+                    "data": result.get('data', {}),
+                    "request_details": result.get('request_details', {}),
+                    "status": "✅ PASSED"
                 })
             else:
-                logger.error(f"❌ Получен неожиданный HTTP {response.status_code}")
-                error_msg = response.text
+                logger.error(f"❌ SAMO API ТЕСТ ПРОВАЛЕН: {result.get('error', 'Unknown error')}")
                 return jsonify({
                     "success": False,
-                    "error": f"HTTP {response.status_code}: {error_msg[:100]}",
                     "action": action,
-                    "status_code": response.status_code,
-                    "debug_info": {
-                        "request_time": f"{request_time:.3f}s",
-                        "full_error_response": error_msg,
-                        "response_headers": dict(response.headers)
-                    }
+                    "error": result.get('error', 'Unknown error'),
+                    "raw_response": result.get('raw_response', ''),
+                    "request_details": result.get('request_details', {}),
+                    "status": "❌ FAILED"
                 })
-                    
+                
         except Exception as e:
-            logger.error(f"💥 КРИТИЧЕСКАЯ ОШИБКА в simple_samo_test: {str(e)}")
+            logger.error(f"=== SAMO API ТЕСТ ОШИБКА ===")
+            logger.error(f"Exception: {str(e)}")
             logger.error(f"Error type: {type(e).__name__}")
             logger.error(f"Error traceback:", exc_info=True)
             return jsonify({
                 "success": False,
-                "error": f"Критическая ошибка: {str(e)}",
+                "error": f"Internal error: {str(e)}",
+                "action": 'unknown',
+                "status": "❌ ERROR",
                 "debug_info": {
-                    "error_type": type(e).__name__,
-                    "action": locals().get('action', 'Unknown')
+                    "error_type": type(e).__name__
                 }
             }), 500
 
