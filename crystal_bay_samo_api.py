@@ -418,23 +418,11 @@ class CrystalBaySamoAPI:
             }
     
     def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Детальный поиск туров"""
-        default_params = {
-            'TOWNFROMINC': '',
-            'STATEINC': '',
-            'CHECKIN_BEG': '',
-            'CHECKIN_END': '',
-            'NIGHTS_FROM': 7,
-            'NIGHTS_TILL': 14,
-            'ADULT': 2,
-            'CHILD': 0,
-            'CURRENCY': 'USD'
-        }
-        
-        if params is not None:
-            default_params.update(params)
-            
-        return self._make_request('SearchTour_ALL', default_params)
+        """Детальный поиск туров - точно как в рабочем production curl"""
+        # Используем ПРОСТОЙ запрос как в working production curl - без дополнительных параметров
+        # Рабочий curl: samo_action=api&oauth_token=27bd59a7ac67422189789f0188167379&type=json&action=SearchTour_ALL
+        logger.info("🎯 SearchTour_ALL: Используем ПРОСТОЙ формат как в working production")
+        return self._make_request('SearchTour_ALL', None)  # Без дополнительных параметров!
     
     # === БРОНИРОВАНИЕ ===
     
