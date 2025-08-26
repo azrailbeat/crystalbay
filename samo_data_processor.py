@@ -15,19 +15,23 @@ class SamoDataProcessor:
     
     def load_real_samo_data(self) -> Dict[str, Any]:
         """Load real SAMO API response data from attached file or fallback"""
-        # First try to load fallback data created from real SAMO hotel data
+        # Try to load the newest SAMO API file first
         try:
-            with open('samo_fallback_data.json', 'r') as f:
-                data = json.load(f)
-                print(f"Loaded fallback SAMO data with {len(data['data']['SearchTour_ALL']['HOTELS'])} hotels")
-                return data
-        except FileNotFoundError:
-            print("Fallback data not found, attempting to parse original file...")
-        
-        # Fallback to parsing the original file  
-        try:
-            with open('attached_assets/Pasted-Advanced-Test-Result-Action-SearchTour-ALL-Status-Success-Full-Response-action-SearchTou-1756206308297_1756206308297.txt', 'r', encoding='utf-8') as f:
+            with open('attached_assets/Pasted-Advanced-Test-Result-Action-SearchTour-ALL-Status-Success-Full-Response-action-SearchTou-1756210673934_1756210673935.txt', 'r', encoding='utf-8') as f:
                 content = f.read()
+                print("Loading newest SAMO API data file...")
+        except FileNotFoundError:
+            # Fallback to older file
+            try:
+                with open('attached_assets/Pasted-Advanced-Test-Result-Action-SearchTour-ALL-Status-Success-Full-Response-action-SearchTou-1756206308297_1756206308297.txt', 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    print("Loading older SAMO API data file...")
+            except FileNotFoundError:
+                print("No SAMO files found, using minimal fallback...")
+                return self._create_minimal_fallback()
+        
+        # Parse the content to extract JSON
+        try:
             
             start_idx = content.find('{')
             if start_idx == -1:
@@ -40,14 +44,23 @@ class SamoDataProcessor:
             import re
             json_content = re.sub(r',(\s*[}\]])', r'\1', json_content)
             
-            try:
-                parsed_data = json.loads(json_content)
-                print(f"Successfully parsed original SAMO file with keys: {list(parsed_data.keys())}")
-                return parsed_data
-            except json.JSONDecodeError as je:
-                print(f"JSON parse failed: {je}")
-                return self._create_minimal_fallback()
+            parsed_data = json.loads(json_content)
+            
+            # Log detailed info about the loaded data
+            if 'data' in parsed_data and 'SearchTour_ALL' in parsed_data['data']:
+                samo_data = parsed_data['data']['SearchTour_ALL']
+                print(f"Successfully parsed SAMO file:")
+                print(f"  - Hotels: {len(samo_data.get('HOTELS', []))}")
+                print(f"  - Currencies: {len(samo_data.get('CURRENCIES', []))}")
+                print(f"  - Towns: {len(samo_data.get('TOWNS', []))}")
+                print(f"  - Countries: {len(samo_data.get('COUNTRIES', []))}")
+                print(f"  - Top level keys: {list(samo_data.keys())}")
+            
+            return parsed_data
                 
+        except json.JSONDecodeError as je:
+            print(f"JSON parse failed: {je}")
+            return self._create_minimal_fallback()
         except Exception as e:
             print(f"Error loading SAMO data: {e}")
             return self._create_minimal_fallback()
@@ -203,9 +216,22 @@ class SamoDataProcessor:
         try:
             # Check if we have townfroms in the SAMO data
             samo_data = self.real_data.get('data', {}).get('SearchTour_ALL', {})
+            
+            # Check multiple possible keys for departure cities
             if 'TOWNFROMS' in samo_data:
                 townfroms = samo_data['TOWNFROMS']
+                print(f"Found {len(townfroms)} departure cities in SAMO data")
                 return townfroms
+            elif 'TOWNS' in samo_data:
+                # Sometimes towns can be departure cities too
+                towns = samo_data['TOWNS']
+                print(f"Using {len(towns)} towns as potential departure cities")
+                return towns
+            elif 'COUNTRIES' in samo_data:
+                # Use countries as a fallback
+                countries = samo_data['COUNTRIES']
+                print(f"Using {len(countries)} countries as departure options")
+                return countries
             
             # For now, since SAMO API doesn't provide real townfroms, return empty list
             # This forces users to use only real destinations available in hotels data
