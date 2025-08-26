@@ -8,7 +8,7 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ### Authentic Data Implementation Complete (August 26, 2025)
 - **All Placeholders Removed**: Interface now shows only authentic SAMO API data without any mock values
-- **Real Data Integration**: 112 hotels from Vietnam/Thailand with authentic star ratings and locations
+- **Real Data Integration**: 112 hotels primarily from Vietnam with authentic star ratings and locations
 - **Clean Currency Loading**: 5 real currencies (RUB, USD, KZT, UZS, KGS) loaded dynamically from SAMO
 - **Dynamic Destination Loading**: Cities and hotels populated from real SAMO response data
 - **Authentic Price Display**: "Price on request" shown instead of fictional pricing
