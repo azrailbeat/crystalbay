@@ -384,7 +384,7 @@ def register_api_routes(app):
             import socket
             import ssl
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
             samo_url = "https://booking.crystalbay.com/export/default.php"
             
             diagnostics = {
@@ -597,7 +597,7 @@ def register_api_routes(app):
             import requests
             import xml.etree.ElementTree as ET
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
             samo_url = "https://booking.crystalbay.com/export/default.php"
             
             results = {
@@ -888,7 +888,7 @@ def register_api_routes(app):
             import subprocess
             import os
             
-            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN")
+            oauth_token = os.environ.get("SAMO_OAUTH_TOKEN", "27bd59a7ac67422189789f0188167379")
             
             curl_command = [
                 'curl', '-s', '-w', '%{http_code}',
