@@ -351,22 +351,34 @@ async function validateAndSearchTours() {
         const formData = new FormData(document.getElementById('tourSearchForm'));
         const searchParams = Object.fromEntries(formData.entries());
         
+        // Detailed validation logging
+        console.log('Validation Check - Form Data:', searchParams);
+        console.log('Check-in date:', searchParams.checkIn);
+        console.log('Check-out date:', searchParams.checkOut);
+        console.log('Currency:', searchParams.currency);
+        console.log('Destination:', searchParams.countryTo);
+        
         // Validate required fields
         if (!searchParams.checkIn || !searchParams.checkOut) {
+            console.log('Validation Failed: Missing dates');
             showError('Please select check-in and check-out dates');
             return;
         }
         
         if (!searchParams.currency) {
+            console.log('Validation Failed: Missing currency');
             showError('Please select a currency');
             return;
         }
         
         // Validate destination is selected
         if (!searchParams.countryTo) {
+            console.log('Validation Failed: Missing destination');
             showError('Please select a destination');
             return;
         }
+        
+        console.log('All validation passed, proceeding with search...');
         
         // Validate destination is selected
         if (!searchParams.countryTo) {
@@ -455,45 +467,53 @@ async function loadTownFroms() {
 // Load currencies from SAMO API
 async function loadCurrencies() {
     try {
-        showLoading('Loading currencies...');
+        console.log('Loading:', 'Loading currencies...');
         const response = await fetch('/api/samo/get_currencies', {
             method: 'GET',
             headers: {'Content-Type': 'application/json'}
         });
         
+        console.log('Currency API Response Status:', response.status);
         const data = await response.json();
+        console.log('Currency API Response Data:', data);
+        
         if (data.success && data.data) {
             currenciesData = data.data;
-            showSuccess(`Loaded ${currenciesData.length} currencies from real SAMO data`);
+            populateSelect('currency', currenciesData, 'code', 'code');
+            console.log('Success:', `Loaded ${currenciesData.length} currencies from real SAMO data`);
             console.log('Currencies:', currenciesData);
         } else {
-            showError(`Failed to load currencies: ${data.error || 'Unknown error'}`);
+            console.log('Error:', `Failed to load currencies: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
-        showError(`Error loading currencies: ${error.message}`);
+        console.log('Error:', `Error loading currencies: ${error.message}`);
     }
 }
 
 // Load destinations from SAMO API
 async function loadCountries() {
     try {
-        showLoading('Loading destinations...');
+        console.log('Loading:', 'Loading destinations...');
         const response = await fetch('/api/samo/get_destinations', {
             method: 'GET',
             headers: {'Content-Type': 'application/json'}
         });
         
+        console.log('Destinations API Response Status:', response.status);
         const data = await response.json();
+        console.log('Destinations API Response Data:', data);
+        
         if (data.success && data.data) {
             countriesData = data.data;
-            populateSelect('countryTo', countriesData, 'id', 'name');
+            console.log('Countries Data Structure:', countriesData);
+            populateSelect('countryTo', countriesData, 'name', 'name');
             populateCitiesCheckboxes(countriesData);
-            showSuccess(`Loaded ${countriesData.length} destinations from real SAMO data`);
+            console.log('Success:', `Loaded ${countriesData.length} destinations from real SAMO data`);
         } else {
-            showError(`Failed to load destinations: ${data.error || 'Unknown error'}`);
+            console.log('Error:', `Failed to load destinations: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
-        showError(`Error loading destinations: ${error.message}`);
+        console.log('Error:', `Error loading destinations: ${error.message}`);
     }
 }
 
@@ -738,16 +758,30 @@ function bookTour(index) {
 
 // Utility functions
 function populateSelect(selectId, data, valueField, textField) {
+    console.log('PopulateSelect called:', {selectId, dataLength: data.length, valueField, textField, data});
     const select = document.getElementById(selectId);
-    // Clear existing options except first
-    select.innerHTML = select.children[0].outerHTML;
+    if (!select) {
+        console.log('Error:', `Select element ${selectId} not found`);
+        return;
+    }
     
-    data.forEach(item => {
+    // Clear existing options except first
+    console.log('Current select options before clear:', select.children.length);
+    select.innerHTML = select.children[0].outerHTML;
+    console.log('Select cleared, adding new options...');
+    
+    data.forEach((item, index) => {
+        console.log(`Adding option ${index}:`, item);
         const option = document.createElement('option');
-        option.value = item[valueField] || item.id || item.code;
-        option.textContent = item[textField] || item.name || item.title;
+        const value = item[valueField] || item.id || item.code;
+        const text = item[textField] || item.name || item.title;
+        option.value = value;
+        option.textContent = text;
         select.appendChild(option);
+        console.log(`Added option: value="${value}", text="${text}"`);
     });
+    
+    console.log(`Populated ${selectId} with ${data.length} options. Total options now:`, select.children.length);
 }
 
 function clearForm() {
