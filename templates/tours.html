@@ -68,13 +68,13 @@
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Departure City</label>
                                         <select class="form-select form-select-lg" id="townFrom" name="townFrom">
-                                            <option value="">Almaty</option>
+                                            <option value="">Select departure city...</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Destination</label>
                                         <select class="form-select form-select-lg" id="countryTo" name="countryTo">
-                                            <option value="">Vietnam</option>
+                                            <option value="">Select destination...</option>
                                         </select>
                                     </div>
                                     <div class="col-md-2">
@@ -127,15 +127,12 @@
                                     <div class="col-md-2">
                                         <label class="form-label fw-bold">Currency</label>
                                         <select class="form-select" id="currency" name="currency">
-                                            <option value="RUB">RUB</option>
-                                            <option value="USD" selected>USD</option>
-                                            <option value="KZT">KZT</option>
-                                            <option value="EUR">EUR</option>
+                                            <option value="">Select currency...</option>
                                         </select>
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label fw-bold">Budget From</label>
-                                        <input type="number" class="form-control" id="priceFrom" name="priceFrom" placeholder="1000">
+                                        <input type="number" class="form-control" id="priceFrom" name="priceFrom" placeholder="">
                                     </div>
                                 </div>
 
@@ -144,30 +141,9 @@
                                     <!-- Cities Column -->
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Cities</label>
-                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_danang" name="cities[]" value="Da Nang">
-                                                <label class="form-check-label small" for="city_danang">Da Nang</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_nhatrang" name="cities[]" value="Nha Trang">
-                                                <label class="form-check-label small" for="city_nhatrang">Nha Trang</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_phuquoc" name="cities[]" value="Phu Quoc">
-                                                <label class="form-check-label small" for="city_phuquoc">Phu Quoc</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_hoian" name="cities[]" value="Hoi An">
-                                                <label class="form-check-label small" for="city_hoian">Hoi An</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_saigon" name="cities[]" value="Ho Chi Minh">
-                                                <label class="form-check-label small" for="city_saigon">Ho Chi Minh City</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="city_hanoi" name="cities[]" value="Hanoi">
-                                                <label class="form-check-label small" for="city_hanoi">Hanoi</label>
+                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;" id="citiesContainer">
+                                            <div class="text-muted text-center py-3">
+                                                <small>Loading destinations...</small>
                                             </div>
                                         </div>
                                     </div>
@@ -202,26 +178,9 @@
                                     <!-- Hotels Column -->
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Hotels</label>
-                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="hotel_7seven" name="hotels[]" value="7.Seven Sea Hotel Da Nang">
-                                                <label class="form-check-label small" for="hotel_7seven">7.Seven Sea Hotel Da Nang 4*</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="hotel_lacarte" name="hotels[]" value="A La Carte">
-                                                <label class="form-check-label small" for="hotel_lacarte">A La Carte Da Nang Beach Hotel 4*</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="hotel_adaline" name="hotels[]" value="Adaline">
-                                                <label class="form-check-label small" for="hotel_adaline">Adaline Hotel & Suite 3*</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="hotel_alan" name="hotels[]" value="Alan Sea">
-                                                <label class="form-check-label small" for="hotel_alan">Alan Sea Hotel Da Nang 5*</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="hotel_alani" name="hotels[]" value="Alani Hotel">
-                                                <label class="form-check-label small" for="hotel_alani">Alani Hotel & Spa Da Nang 4*</label>
+                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;" id="hotelsContainer">
+                                            <div class="text-muted text-center py-3">
+                                                <small>Loading hotels...</small>
                                             </div>
                                         </div>
                                     </div>
@@ -424,6 +383,7 @@ async function loadCountries() {
         if (data.success && data.data) {
             countriesData = data.data;
             populateSelect('countryTo', countriesData, 'id', 'name');
+            populateCitiesCheckboxes(countriesData);
             showSuccess(`Loaded ${countriesData.length} destinations from real SAMO data`);
         } else {
             showError(`Failed to load destinations: ${data.error || 'Unknown error'}`);
@@ -431,6 +391,25 @@ async function loadCountries() {
     } catch (error) {
         showError(`Error loading destinations: ${error.message}`);
     }
+}
+
+// Populate cities checkboxes with real destinations
+function populateCitiesCheckboxes(destinations) {
+    const container = document.getElementById('citiesContainer');
+    if (!container) return;
+    
+    let html = '';
+    destinations.forEach((dest, index) => {
+        const checkboxId = `city_${dest.id}`;
+        html += `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="${checkboxId}" name="cities[]" value="${dest.name}">
+                <label class="form-check-label small" for="${checkboxId}">${dest.name} (${dest.hotel_count} hotels)</label>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
 
 // Load all SAMO data for comprehensive view
@@ -716,11 +695,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('departDate').value = tomorrow.toISOString().split('T')[0];
     document.getElementById('untilDate').value = weekLater.toISOString().split('T')[0];
     
-    // Auto-load destinations
+    // Auto-load real SAMO data
     setTimeout(() => {
         loadCountries();
         loadTownFroms();
         loadCurrencies();
+        loadHotelsForFilter();
     }, 500);
 });
 
@@ -740,6 +720,44 @@ async function loadAllData() {
     } catch (error) {
         showError(`Error loading all data: ${error.message}`);
     }
+}
+
+// Load hotels for filter checkboxes
+async function loadHotelsForFilter() {
+    try {
+        const response = await fetch('/api/samo/search_tours_detailed', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data) {
+            populateHotelsCheckboxes(data.data.slice(0, 10)); // Show first 10 hotels
+        }
+    } catch (error) {
+        console.error('Error loading hotels for filter:', error);
+    }
+}
+
+// Populate hotels checkboxes with real hotel data
+function populateHotelsCheckboxes(hotels) {
+    const container = document.getElementById('hotelsContainer');
+    if (!container) return;
+    
+    let html = '';
+    hotels.forEach((hotel, index) => {
+        const checkboxId = `hotel_${hotel.id || index}`;
+        const stars = '★'.repeat(hotel.stars || 3);
+        html += `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="${checkboxId}" name="hotels[]" value="${hotel.hotel}">
+                <label class="form-check-label small" for="${checkboxId}">${hotel.hotel} ${stars}</label>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
 </script>
 {% endblock %}

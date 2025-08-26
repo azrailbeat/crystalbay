@@ -245,7 +245,7 @@ class SamoDataProcessor:
                     'nights': search_params.get('nights', '7') if search_params else '7',
                     'adults': search_params.get('adults', '2') if search_params else '2',
                     'children': search_params.get('children', '0') if search_params else '0',
-                    'price': f"From ${1200 + (hotel.get('stars', 3) * 200) + (i * 50)}",
+                    'price': 'Price on request',
                     'currency': 'USD',
                     'meal': 'HB',  # Half Board default
                     'check_in': search_params.get('checkIn', '2025-08-27') if search_params else '2025-08-27',
