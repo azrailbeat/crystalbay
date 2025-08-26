@@ -199,17 +199,22 @@ class SamoDataProcessor:
             return f"Destination {town_key}"
     
     def get_departure_cities(self) -> List[Dict[str, Any]]:
-        """Get available departure cities (based on typical SAMO setup)"""
-        return [
-            {'id': 'ALA', 'name': 'Almaty', 'country': 'Kazakhstan'},
-            {'id': 'NUR', 'name': 'Nur-Sultan', 'country': 'Kazakhstan'},
-            {'id': 'MOW', 'name': 'Moscow', 'country': 'Russia'},
-            {'id': 'LED', 'name': 'St. Petersburg', 'country': 'Russia'},
-            {'id': 'TAS', 'name': 'Tashkent', 'country': 'Uzbekistan'},
-            {'id': 'FRU', 'name': 'Bishkek', 'country': 'Kyrgyzstan'},
-            {'id': 'BAH', 'name': 'Bahrain', 'country': 'Bahrain'},
-            {'id': 'DXB', 'name': 'Dubai', 'country': 'UAE'}
-        ]
+        """Get available departure cities from real SAMO data"""
+        try:
+            # Check if we have townfroms in the SAMO data
+            samo_data = self.real_data.get('data', {}).get('SearchTour_ALL', {})
+            if 'TOWNFROMS' in samo_data:
+                townfroms = samo_data['TOWNFROMS']
+                return townfroms
+            
+            # For now, since SAMO API doesn't provide real townfroms, return empty list
+            # This forces users to use only real destinations available in hotels data
+            print("No real departure cities found in SAMO data - only authentic destinations available")
+            return []
+            
+        except Exception as e:
+            print(f"Error getting departure cities: {e}")
+            return []
     
     def get_tour_search_response(self, search_params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Generate tour search response based on real SAMO data"""

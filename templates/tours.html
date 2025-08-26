@@ -65,11 +65,12 @@
                                 
                                 <!-- Location and Dates Row -->
                                 <div class="row mb-3">
-                                    <div class="col-md-3">
+                                    <div class="col-md-3" id="departureCitySection" style="display: none;">
                                         <label class="form-label fw-bold">Departure City</label>
                                         <select class="form-select form-select-lg" id="townFrom" name="townFrom">
                                             <option value="">Select departure city...</option>
                                         </select>
+                                        <small class="text-muted">Available in production with API access</small>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Destination</label>
@@ -361,6 +362,18 @@ async function validateAndSearchTours() {
             return;
         }
         
+        // Validate destination is selected
+        if (!searchParams.countryTo) {
+            showError('Please select a destination');
+            return;
+        }
+        
+        // Validate destination is selected
+        if (!searchParams.countryTo) {
+            showError('Please select a destination');
+            return;
+        }
+        
         // Validate dates
         const checkInDate = new Date(searchParams.checkIn);
         const checkOutDate = new Date(searchParams.checkOut);
@@ -417,22 +430,25 @@ function clearFilters() {
 // Load departure cities from SAMO API
 async function loadTownFroms() {
     try {
-        showLoading('Loading cities...');
+        console.log('Loading:', 'Loading cities...');
         const response = await fetch('/api/samo/get_townfroms', {
             method: 'GET',
             headers: {'Content-Type': 'application/json'}
         });
         
         const data = await response.json();
-        if (data.success && data.data && data.data.townfroms) {
+        if (data.success && data.data && data.data.townfroms && data.data.townfroms.length > 0) {
             townFromsData = data.data.townfroms;
             populateSelect('townFrom', townFromsData, 'id', 'name');
-            showSuccess(`Loaded ${townFromsData.length} cities`);
+            document.getElementById('departureCitySection').style.display = 'block';
+            console.log('Success:', `Loaded ${townFromsData.length} real departure cities`);
         } else {
-            showError(`Failed to load cities: ${data.error || 'Unknown error'}`);
+            // Hide departure city field if no real data available
+            document.getElementById('departureCitySection').style.display = 'none';
+            console.log('Info:', 'No real departure cities available - field hidden');
         }
     } catch (error) {
-        showError(`Error loading cities: ${error.message}`);
+        console.log('Error:', `Error loading cities: ${error.message}`);
     }
 }
 
