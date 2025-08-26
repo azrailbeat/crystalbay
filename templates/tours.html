@@ -240,8 +240,14 @@
                                             <input class="form-check-input" type="checkbox" id="groupResults" name="groupResults" value="1">
                                             <label class="form-check-label" for="groupResults">Group results</label>
                                         </div>
-                                        <button type="button" class="btn btn-primary btn-lg px-5 ms-3" onclick="searchTours()">
-                                            Search
+                                        <button type="button" class="btn btn-primary btn-lg px-5 ms-3" onclick="validateAndSearchTours()">
+                                            Search Tours
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="clearFilters()">
+                                            Clear
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-lg ms-2" onclick="loadAllData()">
+                                            Refresh Data
                                         </button>
                                     </div>
                                 </div>
@@ -325,6 +331,88 @@
 let townFromsData = [];
 let currenciesData = [];
 let countriesData = [];
+
+// Validate data and search tours
+async function validateAndSearchTours() {
+    try {
+        // First validate that we have required data loaded
+        if (!countriesData || countriesData.length === 0) {
+            showError('Please wait for destinations to load, then try searching again');
+            return;
+        }
+        
+        if (!currenciesData || currenciesData.length === 0) {
+            showError('Please wait for currencies to load, then try searching again');
+            return;
+        }
+        
+        // Get form data
+        const formData = new FormData(document.getElementById('tourSearchForm'));
+        const searchParams = Object.fromEntries(formData.entries());
+        
+        // Validate required fields
+        if (!searchParams.checkIn || !searchParams.checkOut) {
+            showError('Please select check-in and check-out dates');
+            return;
+        }
+        
+        if (!searchParams.currency) {
+            showError('Please select a currency');
+            return;
+        }
+        
+        // Validate dates
+        const checkInDate = new Date(searchParams.checkIn);
+        const checkOutDate = new Date(searchParams.checkOut);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (checkInDate < today) {
+            showError('Check-in date cannot be in the past');
+            return;
+        }
+        
+        if (checkOutDate <= checkInDate) {
+            showError('Check-out date must be after check-in date');
+            return;
+        }
+        
+        // Proceed with search
+        showLoading('Validating parameters...');
+        setTimeout(() => searchTours(), 300);
+        
+    } catch (error) {
+        showError(`Validation error: ${error.message}`);
+    }
+}
+
+// Clear all filters and reset form
+function clearFilters() {
+    document.getElementById('tourSearchForm').reset();
+    
+    // Reset to default dates
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekLater = new Date(today);
+    weekLater.setDate(weekLater.getDate() + 8);
+    
+    document.getElementById('checkIn').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('checkOut').value = weekLater.toISOString().split('T')[0];
+    document.getElementById('departDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('untilDate').value = weekLater.toISOString().split('T')[0];
+    
+    // Clear results
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-muted py-5">
+            <p class="mb-0">Use search parameters above to find tours</p>
+            <small class="text-muted">Crystal Bay Travel - Premium tour experiences</small>
+        </div>
+    `;
+    document.getElementById('resultCount').textContent = '0 tours found';
+    
+    showSuccess('Search form cleared');
+}
 
 // Load departure cities from SAMO API
 async function loadTownFroms() {
