@@ -167,6 +167,7 @@ def unified_settings():
     return render_template('unified_settings.html')
 
 @app.route('/samo-testing')
+@app.route('/samo_testing')
 def samo_testing():
     """SAMO API testing page"""
     return render_template('samo_testing.html')
