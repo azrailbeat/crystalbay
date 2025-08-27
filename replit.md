@@ -8,19 +8,21 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ### Complete SAMO API Testing Suite & All Commands Integration (August 27, 2025)
 - **Comprehensive Test Suite**: Full automated testing for tour search, SAMO integration, and production readiness (100% pass rate)
-- **All SAMO API Commands**: Advanced testing interface now includes 30+ SAMO API commands organized by category:
-  - ✅ Working Commands: SearchTour_ALL (proven working)
-  - 🔍 Data Retrieval: Currencies, States, Hotels, Stars, Meals, Tours, Programs
-  - 🏨 Booking Management: Get/Create/Update/Cancel bookings
-  - 👤 Person Management: Create/Update/Get person data
-  - 📊 Reports & Analytics: Sales and financial reports
-  - 🎯 Services & Insurance: Service booking and insurance management
-  - 💳 Payment Processing: Payment methods and transaction handling
-  - 🔔 Notifications: Get and manage notifications
-  - 🧪 Testing & Connection: API connection and price search testing
+- **Full SAMO API Integration**: Advanced testing interface now includes 60+ official SAMO API commands organized by category:
+  - ✅ Working Commands: SearchTour_ALL (proven working with production data)
+  - 🔍 Tour Search API: 19 official SearchTour commands (CURRENCIES, STATES, TOWNFROMS, HOTELS, STARS, MEALS, TOURS, PROGRAMS, etc.)
+  - 🏨 Booking API (2024.11): 8 new booking methods (Init, GetClaimInfo, UpdatePeople, CalcClaim, SaveClaim, etc.)
+  - 👤 Person Management (2024.06): Person_Create, Person_Update with full validation
+  - ✈️ Tickets API: 8 flight booking commands (ALL, SOURCES, TARGETS, AIRLINES, CALC, BRON, etc.)
+  - 🎯 Services API (2019.06): 7 service booking methods (TYPES, ALL, STATES, TOWNS, PRICES, CALC, BRON)
+  - 🛡️ Insurance API (2019.02): 7 insurance methods (ALL, STATES, INSURETYPES, PRICES, CALC, BRON, etc.)
+  - 💳 Payment API (2024.04): 7 payment processing methods (PayVariant, Deposit, PayCertificate, Alfabank, etc.)
+  - 🔔 Messages API (2024.08): 5 messaging methods (CreateMessage, GetTopics, GetTypes, etc.)
+  - 🏆 Best Offers API: TheBest_ALL, TheBest_PACKET, TheBest_PRICES
+  - 💱 Currency API: Currency rates and exchange methods
+- **Official Documentation Verified**: All commands match official SAMO API documentation with version info
 - **Enhanced Testing Interface**: Real-time logging, detailed response analysis, and advanced parameter testing
 - **Production Testing Validated**: 92.9% SAMO integration success rate, 91.7% parser validation success
-- **Complete API Documentation**: All known SAMO endpoints categorized and ready for testing
 
 ### Unified Tour Search with Full SAMO Integration (August 27, 2025)  
 - **Single Page Interface**: Complete tour search and results unified on one page /tours

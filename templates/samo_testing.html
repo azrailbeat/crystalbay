@@ -237,51 +237,101 @@
                                         <optgroup label="✅ Working Commands">
                                             <option value="SearchTour_ALL">Get All Data (SearchTour_ALL)</option>
                                         </optgroup>
-                                        <optgroup label="🔍 Data Retrieval Commands">
+                                        <optgroup label="🔍 Tour Search Commands (Official SAMO API)">
                                             <option value="SearchTour_CURRENCIES">Get Currencies</option>
                                             <option value="SearchTour_STATES">Get States/Countries</option>
                                             <option value="SearchTour_TOWNFROMS">Get Departure Cities</option>
+                                            <option value="SearchTour_TOWNS">Get Towns/Cities</option>
                                             <option value="SearchTour_HOTELS">Get Hotels</option>
                                             <option value="SearchTour_STARS">Get Star Ratings</option>
                                             <option value="SearchTour_MEALS">Get Meal Types</option>
                                             <option value="SearchTour_TOURS">Get Tours</option>
                                             <option value="SearchTour_PROGRAMS">Get Programs</option>
+                                            <option value="SearchTour_PROGRAM_GROUPS">Get Program Groups</option>
+                                            <option value="SearchTour_TOUR_TYPES">Get Tour Types</option>
+                                            <option value="SearchTour_TOUR_GROUPS">Get Tour Groups</option>
+                                            <option value="SearchTour_PRODUCT_TYPES">Get Product Types</option>
+                                            <option value="SearchTour_HOTEL_TYPES">Get Hotel Types</option>
+                                            <option value="SearchTour_NIGHTS">Get Nights</option>
+                                            <option value="SearchTour_ADULT">Get Adult Options</option>
+                                            <option value="SearchTour_CHILD">Get Child Options</option>
+                                            <option value="SearchTour_CHECKIN">Get Check-in Dates</option>
+                                            <option value="SearchTour_PRICES">Search Tour Prices</option>
                                         </optgroup>
-                                        <optgroup label="🏨 Booking Commands">
-                                            <option value="GetBookings">Get Bookings</option>
-                                            <option value="GetBookingDetails">Get Booking Details</option>
-                                            <option value="CreateBooking">Create Booking</option>
-                                            <option value="UpdateBooking">Update Booking</option>
-                                            <option value="CancelBooking">Cancel Booking</option>
+                                        <optgroup label="🏨 Booking Commands (New 2024.11 API)">
+                                            <option value="Booking_Init">Initialize Booking</option>
+                                            <option value="Booking_GetClaimInfo">Get Claim Info</option>
+                                            <option value="Booking_UpdatePeople">Update People</option>
+                                            <option value="Booking_CalcClaim">Calculate Claim</option>
+                                            <option value="Booking_SaveClaim">Save Claim</option>
+                                            <option value="Booking_CheckClaim">Check Claim</option>
+                                            <option value="Booking_GetStates">Get States</option>
+                                            <option value="Booking_GetPeopleDocuments">Get People Documents</option>
                                         </optgroup>
-                                        <optgroup label="👤 Person Management">
-                                            <option value="CreatePerson">Create Person</option>
-                                            <option value="UpdatePerson">Update Person</option>
-                                            <option value="GetPerson">Get Person</option>
+                                        <optgroup label="👤 Person Management (2024.06+)">
+                                            <option value="Person_Create">Create Person</option>
+                                            <option value="Person_Update">Update Person</option>
                                         </optgroup>
                                         <optgroup label="📊 Reports & Analytics">
                                             <option value="GetSalesReport">Get Sales Report</option>
                                             <option value="GetFinancialReport">Get Financial Report</option>
                                         </optgroup>
-                                        <optgroup label="🎯 Services & Insurance">
-                                            <option value="GetServices">Get Services</option>
-                                            <option value="BookService">Book Service</option>
-                                            <option value="GetInsuranceTypes">Get Insurance Types</option>
-                                            <option value="CalculateInsurance">Calculate Insurance</option>
-                                            <option value="BookInsurance">Book Insurance</option>
+                                        <optgroup label="🎯 Services API (2019.06+)">
+                                            <option value="Services_TYPES">Get Service Types</option>
+                                            <option value="Services_ALL">Get All Services</option>
+                                            <option value="Services_STATES">Get Service States</option>
+                                            <option value="Services_TOWNS">Get Service Towns</option>
+                                            <option value="Services_PRICES">Get Service Prices</option>
+                                            <option value="Services_CALC">Calculate Service</option>
+                                            <option value="Services_BRON">Book Service</option>
                                         </optgroup>
-                                        <optgroup label="💳 Payment Commands">
-                                            <option value="GetPaymentMethods">Get Payment Methods</option>
-                                            <option value="CreatePayment">Create Payment</option>
-                                            <option value="GetPaymentStatus">Get Payment Status</option>
+                                        <optgroup label="🛡️ Insurance API (2019.02+)">
+                                            <option value="Insures_ALL">Get All Insurance</option>
+                                            <option value="Insures_STATES">Get Insurance States</option>
+                                            <option value="Insures_INSURETYPES">Get Insurance Types</option>
+                                            <option value="Insures_CURRENCIES">Get Insurance Currencies</option>
+                                            <option value="Insures_PRICES">Get Insurance Prices</option>
+                                            <option value="Insures_CALC">Calculate Insurance</option>
+                                            <option value="Insures_BRON">Book Insurance</option>
                                         </optgroup>
-                                        <optgroup label="🔔 Notifications">
-                                            <option value="GetNotifications">Get Notifications</option>
-                                            <option value="MarkNotificationRead">Mark Notification Read</option>
+                                        <optgroup label="💳 Payment API (2024.04+)">
+                                            <option value="PayVariant_List">Payment Methods List</option>
+                                            <option value="Deposit_List">Deposit List</option>
+                                            <option value="Deposit_Use">Use Deposit</option>
+                                            <option value="PayCertificate_Use">Use Certificate</option>
+                                            <option value="Alfabank_PayData">Alfabank Payment Data</option>
+                                            <option value="Alfabank_NewPayment">Alfabank New Payment</option>
+                                            <option value="Alfabank_SBPQR">Alfabank SBP QR</option>
                                         </optgroup>
-                                        <optgroup label="🧪 Testing & Connection">
+                                        <optgroup label="🔔 Messages API (2024.08+)">
+                                            <option value="Messages_CreateMessage">Create Message</option>
+                                            <option value="Messages_GetMessageTopics">Get Message Topics</option>
+                                            <option value="Messages_GetMessageTypes">Get Message Types</option>
+                                            <option value="Messages_GetTopicMessages">Get Topic Messages</option>
+                                            <option value="Messages_SetMessageRating">Set Message Rating</option>
+                                        </optgroup>
+                                        <optgroup label="✈️ Flight Booking (Tickets API)">
+                                            <option value="Tickets_ALL">Get All Tickets</option>
+                                            <option value="Tickets_SOURCES">Get Ticket Sources</option>
+                                            <option value="Tickets_TARGETS">Get Ticket Targets</option>
+                                            <option value="Tickets_AIRLINES">Get Airlines</option>
+                                            <option value="Tickets_CLASSES">Get Ticket Classes</option>
+                                            <option value="Tickets_PRICES">Get Ticket Prices</option>
+                                            <option value="Tickets_CALC">Calculate Ticket</option>
+                                            <option value="Tickets_BRON">Book Ticket</option>
+                                        </optgroup>
+                                        <optgroup label="🏆 Best Offers API (TheBest)">
+                                            <option value="TheBest_ALL">Get All Best Offers</option>
+                                            <option value="TheBest_PACKET">Get Best Packet</option>
+                                            <option value="TheBest_PRICES">Get Best Prices</option>
+                                        </optgroup>
+                                        <optgroup label="💱 Currency API">
+                                            <option value="Currency_CURRENCIES">Get Currencies</option>
+                                            <option value="Currency_RATES">Get Currency Rates</option>
+                                            <option value="Currency_TodayRates">Get Today Rates</option>
+                                        </optgroup>
+                                        <optgroup label="🧪 Connection & Testing">
                                             <option value="TestConnection">Test API Connection</option>
-                                            <option value="SearchTour_PRICES">Search Tour Prices</option>
                                         </optgroup>
                                     </select>
                                 </div>
