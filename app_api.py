@@ -1258,4 +1258,106 @@ def register_api_routes(app):
                 "error": str(e)
             }), 500
 
+    # === ENHANCED SAMO API ENDPOINTS ===
+    
+    @app.route('/api/samo/execute', methods=['POST'])
+    def execute_samo_api():
+        """Execute SAMO API commands with enhanced functionality"""
+        try:
+            data = request.get_json()
+            action = data.get('action', 'SearchTour_ALL')
+            parameters = data.get('parameters', {})
+            source = data.get('source', 'api_manager')
+            
+            logger.info(f"=== SAMO API EXECUTION START ===")
+            logger.info(f"Action: {action}")
+            logger.info(f"Source: {source}")
+            logger.info(f"Parameters: {parameters}")
+            
+            # Initialize SAMO API
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            samo_api = CrystalBaySamoAPI()
+            
+            # Merge action with parameters for the request
+            request_data = {'action': action, **parameters}
+            
+            # Execute the command
+            if action == 'SearchTour_ALL':
+                result = samo_api.search_tour_all()
+            else:
+                result = samo_api._make_request(action, request_data)
+            
+            # Enhance result with execution metadata
+            enhanced_result = {
+                **result,
+                'execution_info': {
+                    'action': action,
+                    'source': source,
+                    'timestamp': datetime.now().isoformat(),
+                    'parameters_count': len(parameters)
+                }
+            }
+            
+            logger.info(f"=== SAMO API EXECUTION COMPLETE ===")
+            logger.info(f"Success: {result.get('success', False)}")
+            
+            return jsonify(enhanced_result)
+            
+        except Exception as e:
+            logger.error(f"SAMO API execution error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Execution error: {str(e)}',
+                'action': data.get('action', 'unknown'),
+                'execution_info': {
+                    'timestamp': datetime.now().isoformat(),
+                    'source': data.get('source', 'unknown')
+                }
+            }), 500
+
+    @app.route('/api/samo/health', methods=['GET'])
+    def samo_api_health():
+        """Get SAMO API health metrics"""
+        try:
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            samo_api = CrystalBaySamoAPI()
+            
+            # Test basic connectivity
+            import time
+            start_time = time.time()
+            health_result = samo_api._make_request('SearchTour_CURRENCIES', {'action': 'SearchTour_CURRENCIES'})
+            response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            
+            # Calculate metrics
+            api_status = 'Online' if health_result.get('success') else 'IP Blocked'
+            success_rate = 100 if health_result.get('success') else 0
+            
+            metrics = {
+                'avg_response_time': int(response_time),
+                'success_rate': success_rate,
+                'api_status': api_status,
+                'last_check': datetime.now().isoformat(),
+                'endpoint': 'booking.crystalbay.com',
+                'oauth_configured': bool(os.environ.get('SAMO_OAUTH_TOKEN'))
+            }
+            
+            return jsonify({
+                'success': True,
+                'metrics': metrics,
+                'message': 'Health check completed'
+            })
+            
+        except Exception as e:
+            logger.error(f"SAMO API health check error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'metrics': {
+                    'avg_response_time': 0,
+                    'success_rate': 0,
+                    'api_status': 'Error',
+                    'last_check': datetime.now().isoformat()
+                }
+            }), 500
+
     logger.info("API routes registered successfully")

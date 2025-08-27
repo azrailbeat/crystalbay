@@ -581,7 +581,7 @@ const samoApiManager = {
     }
 };
 
-// Command execution
+// Command execution with full SAMO API integration
 document.getElementById('commandExecutionForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -598,19 +598,39 @@ document.getElementById('commandExecutionForm').addEventListener('submit', async
         }
     }
     
-    showExecutionResult('info', 'Executing command...');
+    showExecutionResult('info', `Executing ${command}...`);
     
     try {
-        const response = await fetch('/api/samo/test', {
+        const startTime = Date.now();
+        const response = await fetch('/api/samo/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: command, ...params })
+            body: JSON.stringify({ 
+                action: command, 
+                parameters: params,
+                source: 'api_manager'
+            })
         });
         
         const result = await response.json();
-        showExecutionResult(result.success ? 'success' : 'error', result);
+        const duration = Date.now() - startTime;
+        
+        // Log to error table if failed
+        if (!result.success) {
+            logError(command, result.error || 'Unknown error', result.status_code || 500);
+        }
+        
+        // Enhanced result display
+        const resultData = {
+            ...result,
+            execution_time: duration + 'ms',
+            timestamp: new Date().toISOString()
+        };
+        
+        showExecutionResult(result.success ? 'success' : 'error', resultData);
         
     } catch (error) {
+        logError(command, 'Network error: ' + error.message, 0);
         showExecutionResult('error', 'Network error: ' + error.message);
     }
 });
@@ -636,24 +656,403 @@ function clearExecution() {
     document.getElementById('executionResults').innerHTML = '';
 }
 
-// Automation functions
-let automationRunning = false;
+// Error logging functionality
+function logError(command, error, statusCode) {
+    const errorTable = document.getElementById('errorLogTable');
+    
+    // Remove "no errors" placeholder if exists
+    if (errorTable.querySelector('td[colspan="4"]')) {
+        errorTable.innerHTML = '';
+    }
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td class="small">${new Date().toLocaleTimeString()}</td>
+        <td><code class="small">${command}</code></td>
+        <td class="small text-danger">${error}</td>
+        <td><span class="badge bg-danger">${statusCode}</span></td>
+    `;
+    
+    // Add to top of table
+    errorTable.insertBefore(row, errorTable.firstChild);
+    
+    // Keep only last 20 errors
+    while (errorTable.children.length > 20) {
+        errorTable.removeChild(errorTable.lastChild);
+    }
+}
 
-function startAutomatedTest() {
+// Real-time API health monitoring
+function updateApiHealth() {
+    // This would normally pull from server-side metrics
+    fetch('/api/samo/health', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update health metrics from real data
+            updateHealthMetrics(data.metrics);
+        }
+    })
+    .catch(error => {
+        console.error('Failed to fetch health metrics:', error);
+    });
+}
+
+function updateHealthMetrics(metrics) {
+    // Update response time
+    const responseTime = metrics.avg_response_time || 550;
+    const responsePercent = Math.min((responseTime / 1000) * 100, 100);
+    document.querySelector('[data-metric="response-time"] .progress-bar').style.width = responsePercent + '%';
+    document.querySelector('[data-metric="response-time"] .text-info').textContent = `~${responseTime}ms`;
+    
+    // Update success rate
+    const successRate = metrics.success_rate || 0;
+    const successClass = successRate > 80 ? 'bg-success' : successRate > 50 ? 'bg-warning' : 'bg-danger';
+    const successBar = document.querySelector('[data-metric="success-rate"] .progress-bar');
+    successBar.className = `progress-bar ${successClass}`;
+    successBar.style.width = successRate + '%';
+    document.querySelector('[data-metric="success-rate"] .text-danger').textContent = successRate + '%';
+    
+    // Update API status
+    const status = metrics.api_status || 'IP Blocked';
+    const statusClass = status === 'Online' ? 'bg-success' : status === 'Degraded' ? 'bg-warning' : 'bg-warning';
+    const statusBadge = document.querySelector('[data-metric="api-status"] .badge');
+    statusBadge.className = `badge ${statusClass}`;
+    statusBadge.textContent = status;
+}
+
+// Performance chart (placeholder for Chart.js integration)
+function initializePerformanceChart() {
+    const ctx = document.getElementById('performanceChart');
+    if (ctx) {
+        // This would integrate with Chart.js to show real performance data
+        ctx.getContext('2d').fillText('Performance chart would be rendered here with Chart.js', 10, 50);
+    }
+}
+
+// Enhanced documentation with real API versions
+function showDocumentation(version) {
+    const content = document.getElementById('documentationContent');
+    
+    const docs = {
+        '2024.11': {
+            title: 'Booking API (2024.11) - Latest Version',
+            description: 'The newest booking system with enhanced claim management and real-time processing',
+            commands: [
+                { name: 'Booking_Init', desc: 'Initialize new booking session', params: 'tour_id, user_id' },
+                { name: 'Booking_GetClaimInfo', desc: 'Retrieve detailed claim information', params: 'claim_id' },
+                { name: 'Booking_UpdatePeople', desc: 'Update traveler details and documents', params: 'people_data[]' },
+                { name: 'Booking_CalcClaim', desc: 'Calculate total claim amount with taxes', params: 'services[], discounts[]' },
+                { name: 'Booking_SaveClaim', desc: 'Save claim data to SAMO system', params: 'claim_data' },
+                { name: 'Booking_CheckClaim', desc: 'Validate claim status and requirements', params: 'claim_id' },
+                { name: 'Booking_GetStates', desc: 'Get available booking states', params: 'none' },
+                { name: 'Booking_GetPeopleDocuments', desc: 'Retrieve required document types', params: 'country_code' }
+            ]
+        },
+        '2024.08': {
+            title: 'Messages API (2024.08)',
+            description: 'Comprehensive messaging and communication system for customer support',
+            commands: [
+                { name: 'Messages_CreateMessage', desc: 'Create new support message', params: 'user_id, subject, content' },
+                { name: 'Messages_GetMessageTopics', desc: 'Get available message categories', params: 'none' },
+                { name: 'Messages_GetMessageTypes', desc: 'Get message type classifications', params: 'none' },
+                { name: 'Messages_GetTopicMessages', desc: 'Retrieve messages by topic', params: 'topic_id, limit' },
+                { name: 'Messages_SetMessageRating', desc: 'Rate message quality and response', params: 'message_id, rating' }
+            ]
+        },
+        '2024.06': {
+            title: 'Person Management (2024.06)',
+            description: 'Advanced person and traveler data management with document validation',
+            commands: [
+                { name: 'Person_Create', desc: 'Create new person record with validation', params: 'personal_data, documents[]' },
+                { name: 'Person_Update', desc: 'Update existing person information', params: 'person_id, updated_data' }
+            ]
+        },
+        '2024.04': {
+            title: 'Payment API (2024.04)',
+            description: 'Secure payment processing with multiple payment methods and currency support',
+            commands: [
+                { name: 'PayVariant_List', desc: 'Get available payment methods', params: 'currency, amount' },
+                { name: 'Deposit_List', desc: 'List user deposit accounts', params: 'user_id' },
+                { name: 'Deposit_Use', desc: 'Process payment from deposit', params: 'deposit_id, amount' },
+                { name: 'PayCertificate_Use', desc: 'Apply gift certificate payment', params: 'certificate_code, amount' },
+                { name: 'Alfabank_PayData', desc: 'Get Alfabank payment form data', params: 'order_id, amount' },
+                { name: 'Alfabank_NewPayment', desc: 'Initialize Alfabank payment', params: 'payment_data' },
+                { name: 'Alfabank_SBPQR', desc: 'Generate SBP QR code for payment', params: 'amount, order_id' }
+            ]
+        },
+        '2019.06': {
+            title: 'Services API (2019.06)',
+            description: 'Additional travel services booking and management',
+            commands: [
+                { name: 'Services_TYPES', desc: 'Get available service types', params: 'none' },
+                { name: 'Services_ALL', desc: 'List all available services', params: 'filters[]' },
+                { name: 'Services_STATES', desc: 'Get service availability by location', params: 'location_id' },
+                { name: 'Services_TOWNS', desc: 'Get services by city/town', params: 'town_id' },
+                { name: 'Services_PRICES', desc: 'Get service pricing information', params: 'service_id, dates' },
+                { name: 'Services_CALC', desc: 'Calculate service total cost', params: 'service_id, options[]' },
+                { name: 'Services_BRON', desc: 'Book additional service', params: 'service_data, payment_info' }
+            ]
+        },
+        '2019.02': {
+            title: 'Insurance API (2019.02)',
+            description: 'Travel insurance options and booking system',
+            commands: [
+                { name: 'Insures_ALL', desc: 'Get all insurance options', params: 'none' },
+                { name: 'Insures_STATES', desc: 'Get insurance by destination', params: 'country_code' },
+                { name: 'Insures_INSURETYPES', desc: 'Get available insurance types', params: 'none' },
+                { name: 'Insures_CURRENCIES', desc: 'Get supported currencies for insurance', params: 'none' },
+                { name: 'Insures_PRICES', desc: 'Calculate insurance premiums', params: 'coverage_type, amount' },
+                { name: 'Insures_CALC', desc: 'Calculate total insurance cost', params: 'insurance_data' },
+                { name: 'Insures_BRON', desc: 'Purchase travel insurance', params: 'policy_data, payment_info' }
+            ]
+        }
+    };
+    
+    const doc = docs[version] || docs['2024.11'];
+    
+    content.innerHTML = `
+        <h5>${doc.title}</h5>
+        <p class="text-muted">${doc.description}</p>
+        
+        <h6>Available Commands:</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                        <th>Parameters</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${doc.commands.map(cmd => `
+                        <tr>
+                            <td><code>${cmd.name}</code></td>
+                            <td>${cmd.desc}</td>
+                            <td class="small text-muted">${cmd.params}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="samoApiManager.selectCommand('${cmd.name}')">
+                                    <i class="bi bi-play"></i> Test
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <h6>Integration Notes:</h6>
+            <ul class="mb-0">
+                <li>All commands require valid OAuth token authentication</li>
+                <li>Rate limiting: Maximum 100 requests per minute</li>
+                <li>Response format: JSON with standard success/error structure</li>
+                <li>Production environment: booking.crystalbay.com</li>
+            </ul>
+        </div>
+    `;
+    
+    // Update active documentation tab
+    document.querySelectorAll('[onclick^="showDocumentation"]').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// Automation functions with real SAMO API testing
+let automationRunning = false;
+let currentAutomationIndex = 0;
+let automationCommands = [];
+let automationResults = [];
+
+async function startAutomatedTest() {
     if (automationRunning) return;
     
     automationRunning = true;
+    currentAutomationIndex = 0;
+    automationResults = [];
+    
     document.getElementById('stopTestBtn').disabled = false;
     
     const scope = document.getElementById('testScope').value;
     const interval = parseInt(document.getElementById('testInterval').value);
     
+    // Determine commands to test based on scope
+    switch(scope) {
+        case 'all':
+            automationCommands = getAllCommands();
+            break;
+        case 'working':
+            automationCommands = samoApiManager.categories.working.commands;
+            break;
+        case 'category':
+            automationCommands = getCurrentCategoryCommands();
+            break;
+        case 'custom':
+            automationCommands = getCustomSelection();
+            break;
+        default:
+            automationCommands = getAllCommands();
+    }
+    
     document.getElementById('liveAutomationResults').innerHTML = `
         <div class="alert alert-info">
             <h6>Automation Started</h6>
-            <p>Testing scope: ${scope} with ${interval}ms interval</p>
+            <p>Testing ${automationCommands.length} commands with ${interval}ms interval</p>
+            <div class="progress mt-2">
+                <div class="progress-bar" id="automationProgressBar" style="width: 0%"></div>
+            </div>
+            <div id="automationLiveLog" class="mt-2"></div>
         </div>
     `;
+    
+    // Start automated testing
+    runAutomationSequence(interval);
+}
+
+async function runAutomationSequence(interval) {
+    if (!automationRunning || currentAutomationIndex >= automationCommands.length) {
+        completeAutomation();
+        return;
+    }
+    
+    const command = automationCommands[currentAutomationIndex];
+    const progress = ((currentAutomationIndex + 1) / automationCommands.length) * 100;
+    
+    // Update progress
+    document.getElementById('automationProgressBar').style.width = progress + '%';
+    document.getElementById('automationProgress').style.width = progress + '%';
+    document.getElementById('automationProgressText').textContent = 
+        `Testing ${currentAutomationIndex + 1}/${automationCommands.length}: ${command}`;
+    
+    try {
+        const startTime = Date.now();
+        const response = await fetch('/api/samo/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: command,
+                source: 'automation',
+                automation_index: currentAutomationIndex
+            })
+        });
+        
+        const result = await response.json();
+        const duration = Date.now() - startTime;
+        
+        automationResults.push({
+            command,
+            success: result.success,
+            error: result.error,
+            duration,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Update live log
+        updateAutomationLiveLog(command, result.success, duration);
+        
+        if (!result.success) {
+            logError(command, result.error, result.status_code || 500);
+        }
+        
+    } catch (error) {
+        automationResults.push({
+            command,
+            success: false,
+            error: error.message,
+            duration: 0,
+            timestamp: new Date().toISOString()
+        });
+        
+        updateAutomationLiveLog(command, false, 0, error.message);
+        logError(command, 'Network error: ' + error.message, 0);
+    }
+    
+    currentAutomationIndex++;
+    
+    // Continue with next command
+    setTimeout(() => runAutomationSequence(interval), interval);
+}
+
+function updateAutomationLiveLog(command, success, duration, error = null) {
+    const logContainer = document.getElementById('automationLiveLog');
+    const statusIcon = success ? '✅' : '❌';
+    const statusText = success ? 'PASS' : 'FAIL';
+    const errorText = error ? ` - ${error}` : '';
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `small mb-1 text-${success ? 'success' : 'danger'}`;
+    logEntry.innerHTML = `${statusIcon} ${command}: ${statusText} (${duration}ms)${errorText}`;
+    
+    logContainer.appendChild(logEntry);
+    
+    // Keep only last 10 entries visible
+    while (logContainer.children.length > 10) {
+        logContainer.removeChild(logContainer.firstChild);
+    }
+    
+    // Scroll to bottom
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function completeAutomation() {
+    automationRunning = false;
+    document.getElementById('stopTestBtn').disabled = true;
+    
+    const passed = automationResults.filter(r => r.success).length;
+    const failed = automationResults.filter(r => !r.success).length;
+    const avgDuration = automationResults.reduce((sum, r) => sum + r.duration, 0) / automationResults.length;
+    
+    document.getElementById('automationProgressText').textContent = 'Automation Complete';
+    
+    // Show final results
+    document.getElementById('liveAutomationResults').innerHTML = `
+        <div class="alert alert-${passed > failed ? 'success' : 'danger'}">
+            <h6>Automation Complete</h6>
+            <div class="row text-center">
+                <div class="col-3">
+                    <h5 class="text-success">${passed}</h5>
+                    <small>Passed</small>
+                </div>
+                <div class="col-3">
+                    <h5 class="text-danger">${failed}</h5>
+                    <small>Failed</small>
+                </div>
+                <div class="col-3">
+                    <h5 class="text-info">${automationResults.length}</h5>
+                    <small>Total</small>
+                </div>
+                <div class="col-3">
+                    <h5 class="text-muted">${avgDuration.toFixed(0)}ms</h5>
+                    <small>Avg Time</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getAllCommands() {
+    return Object.values(samoApiManager.categories).flatMap(cat => cat.commands);
+}
+
+function getCurrentCategoryCommands() {
+    // Return commands from currently selected category
+    const activeCategory = document.querySelector('#apiCategories .list-group-item.active');
+    if (activeCategory) {
+        const categoryKey = Object.keys(samoApiManager.categories).find(key => 
+            samoApiManager.categories[key].name === activeCategory.textContent.trim().split('(')[0].trim()
+        );
+        return categoryKey ? samoApiManager.categories[categoryKey].commands : [];
+    }
+    return [];
+}
+
+function getCustomSelection() {
+    // For now, return working commands - could be extended with UI for custom selection
+    return samoApiManager.categories.working.commands;
 }
 
 function stopAutomatedTest() {
@@ -716,6 +1115,18 @@ function showDocumentation(version) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     samoApiManager.init();
+    
+    // Add health metrics data attributes for easier updates
+    document.querySelector('.text-info').parentElement.setAttribute('data-metric', 'response-time');
+    document.querySelector('.text-danger').parentElement.setAttribute('data-metric', 'success-rate');
+    document.querySelector('.badge').parentElement.setAttribute('data-metric', 'api-status');
+    
+    // Start health monitoring
+    updateApiHealth();
+    setInterval(updateApiHealth, 30000); // Update every 30 seconds
+    
+    // Initialize performance chart
+    initializePerformanceChart();
 });
 </script>
 {% endblock %}

@@ -572,10 +572,14 @@ async function searchTours() {
         
         showLoading('Searching tours...');
         
-        const response = await fetch('/api/samo/search_tours_detailed', {
+        const response = await fetch('/api/samo/execute', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(searchParams)
+            body: JSON.stringify({
+                action: 'SearchTour_TOURS',
+                parameters: searchParams,
+                source: 'tours_search'
+            })
         });
         
         const data = await response.json();
@@ -863,10 +867,13 @@ async function loadAllData() {
 // Load hotels for filter checkboxes
 async function loadHotelsForFilter() {
     try {
-        const response = await fetch('/api/samo/search_tours_detailed', {
+        const response = await fetch('/api/samo/execute', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({})
+            body: JSON.stringify({
+                action: 'SearchTour_HOTELS',
+                source: 'tours_page'
+            })
         });
         
         const data = await response.json();
