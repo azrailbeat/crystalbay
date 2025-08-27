@@ -204,6 +204,15 @@
                         <button class="btn btn-success" onclick="testSingleAction('SearchTour_ALL')">
                             <i class="bi bi-database"></i> Test SearchTour_ALL
                         </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="testSingleAction('SearchTour_CURRENCIES')">
+                            <i class="bi bi-currency-exchange"></i> Test Currencies
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="testSingleAction('SearchTour_HOTELS')">
+                            <i class="bi bi-building"></i> Test Hotels
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="testSingleAction('SearchTour_TOWNFROMS')">
+                            <i class="bi bi-geo-alt"></i> Test Departure Cities
+                        </button>
                         <button class="btn btn-outline-secondary btn-sm" onclick="testConnection()">
                             <i class="bi bi-wifi"></i> Test Connection
                         </button>
@@ -225,7 +234,55 @@
                                 <div class="mb-2">
                                     <label for="testAction" class="form-label small">API Action</label>
                                     <select class="form-select form-select-sm" id="testAction" name="action">
-                                        <option value="SearchTour_ALL">Get All Data (Working)</option>
+                                        <optgroup label="✅ Working Commands">
+                                            <option value="SearchTour_ALL">Get All Data (SearchTour_ALL)</option>
+                                        </optgroup>
+                                        <optgroup label="🔍 Data Retrieval Commands">
+                                            <option value="SearchTour_CURRENCIES">Get Currencies</option>
+                                            <option value="SearchTour_STATES">Get States/Countries</option>
+                                            <option value="SearchTour_TOWNFROMS">Get Departure Cities</option>
+                                            <option value="SearchTour_HOTELS">Get Hotels</option>
+                                            <option value="SearchTour_STARS">Get Star Ratings</option>
+                                            <option value="SearchTour_MEALS">Get Meal Types</option>
+                                            <option value="SearchTour_TOURS">Get Tours</option>
+                                            <option value="SearchTour_PROGRAMS">Get Programs</option>
+                                        </optgroup>
+                                        <optgroup label="🏨 Booking Commands">
+                                            <option value="GetBookings">Get Bookings</option>
+                                            <option value="GetBookingDetails">Get Booking Details</option>
+                                            <option value="CreateBooking">Create Booking</option>
+                                            <option value="UpdateBooking">Update Booking</option>
+                                            <option value="CancelBooking">Cancel Booking</option>
+                                        </optgroup>
+                                        <optgroup label="👤 Person Management">
+                                            <option value="CreatePerson">Create Person</option>
+                                            <option value="UpdatePerson">Update Person</option>
+                                            <option value="GetPerson">Get Person</option>
+                                        </optgroup>
+                                        <optgroup label="📊 Reports & Analytics">
+                                            <option value="GetSalesReport">Get Sales Report</option>
+                                            <option value="GetFinancialReport">Get Financial Report</option>
+                                        </optgroup>
+                                        <optgroup label="🎯 Services & Insurance">
+                                            <option value="GetServices">Get Services</option>
+                                            <option value="BookService">Book Service</option>
+                                            <option value="GetInsuranceTypes">Get Insurance Types</option>
+                                            <option value="CalculateInsurance">Calculate Insurance</option>
+                                            <option value="BookInsurance">Book Insurance</option>
+                                        </optgroup>
+                                        <optgroup label="💳 Payment Commands">
+                                            <option value="GetPaymentMethods">Get Payment Methods</option>
+                                            <option value="CreatePayment">Create Payment</option>
+                                            <option value="GetPaymentStatus">Get Payment Status</option>
+                                        </optgroup>
+                                        <optgroup label="🔔 Notifications">
+                                            <option value="GetNotifications">Get Notifications</option>
+                                            <option value="MarkNotificationRead">Mark Notification Read</option>
+                                        </optgroup>
+                                        <optgroup label="🧪 Testing & Connection">
+                                            <option value="TestConnection">Test API Connection</option>
+                                            <option value="SearchTour_PRICES">Search Tour Prices</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>
@@ -479,18 +536,7 @@ async function runAdvancedTest(event) {
         
         const result = await response.json();
         
-        document.getElementById('advancedResults').innerHTML = `
-            <div class="alert alert-${result.success ? 'success' : 'danger'}">
-                <h6>Advanced Test Result</h6>
-                <p><strong>Action:</strong> ${action}</p>
-                <p><strong>Status:</strong> ${result.success ? 'Success' : 'Failed'}</p>
-                ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
-                <details class="mt-2">
-                    <summary>Full Response</summary>
-                    <pre class="mt-2"><code>${JSON.stringify(result, null, 2)}</code></pre>
-                </details>
-            </div>
-        `;
+        renderAdvancedTestResult(result, action);
     } catch (error) {
         showToast('error', 'Advanced test failed: ' + error.message);
     }
@@ -540,6 +586,52 @@ function clearLogs() {
     logEntries = [];
     updateLogDisplay();
     addLogEntry('INFO', 'Logs cleared');
+}
+
+function renderAdvancedTestResult(result, action) {
+    const resultDiv = document.getElementById('advancedResults');
+    
+    let dataInfo = '';
+    if (result.success && result.data) {
+        if (Array.isArray(result.data)) {
+            dataInfo = `<p><strong>Data:</strong> Array with ${result.data.length} items</p>`;
+        } else if (typeof result.data === 'object') {
+            const keys = Object.keys(result.data);
+            dataInfo = `<p><strong>Data Keys:</strong> ${keys.join(', ')}</p>`;
+            
+            // Special handling for SAMO data structure
+            if (result.data.SearchTour_ALL) {
+                const samoData = result.data.SearchTour_ALL;
+                const stats = [];
+                if (samoData.HOTELS) stats.push(`${samoData.HOTELS.length} hotels`);
+                if (samoData.CURRENCIES) stats.push(`${samoData.CURRENCIES.length} currencies`);
+                if (samoData.TOWNS) stats.push(`${samoData.TOWNS.length} towns`);
+                if (samoData.TOURS) stats.push(`${samoData.TOURS.length} tours`);
+                
+                if (stats.length > 0) {
+                    dataInfo += `<p><strong>SAMO Data:</strong> ${stats.join(', ')}</p>`;
+                }
+            }
+        }
+    }
+    
+    resultDiv.innerHTML = `
+        <div class="alert alert-${result.success ? 'success' : 'danger'}">
+            <h6>Advanced Test Result</h6>
+            <p><strong>Action:</strong> <code>${action}</code></p>
+            <p><strong>Status:</strong> ${result.success ? '✅ Success' : '❌ Failed'}</p>
+            ${result.error ? `<p><strong>Error:</strong> <code>${result.error}</code></p>` : ''}
+            ${dataInfo}
+            ${result.request_details ? `
+                <p><strong>Response Time:</strong> ${result.request_details.response_time || 'Unknown'}</p>
+                <p><strong>Response Size:</strong> ${result.request_details.response_size || 'Unknown'} bytes</p>
+            ` : ''}
+            <details class="mt-2">
+                <summary>Full Response Details</summary>
+                <pre class="mt-2 bg-dark text-light p-2 rounded" style="font-size: 10px; max-height: 300px; overflow-y: auto;"><code>${JSON.stringify(result, null, 2)}</code></pre>
+            </details>
+        </div>
+    `;
 }
 
 function showToast(type, message) {
