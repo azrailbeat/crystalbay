@@ -192,6 +192,11 @@ def messages():
     """Messages page"""
     return render_template('messages.html')
 
+@app.route('/customer-journey')
+def customer_journey():
+    """Customer Journey Map with CRM integration"""
+    return render_template('customer_journey.html')
+
 @app.route('/settings')
 def settings():
     """Settings page (redirect to unified)"""

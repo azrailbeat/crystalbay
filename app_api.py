@@ -1360,4 +1360,322 @@ def register_api_routes(app):
                 }
             }), 500
 
+    # === CUSTOMER JOURNEY & INQUIRIES API ===
+    
+    @app.route('/api/customer-journey/inquiries', methods=['GET'])
+    def get_customer_inquiries():
+        """Get customer inquiries for journey map"""
+        try:
+            # Get filter parameters
+            stage = request.args.get('stage')
+            status = request.args.get('status')
+            role = request.args.get('role', 'operator')
+            
+            # Mock inquiries data integrated with CRM
+            mock_inquiries = [
+                {
+                    'id': 1,
+                    'timestamp': '2025-08-27 10:30:00',
+                    'client_name': 'Иванов Иван Иванович',
+                    'client_phone': '+7-777-123-4567',
+                    'client_email': 'ivanov@example.kz',
+                    'stage': 'initial_contact',
+                    'stage_name': 'Первичный контакт',
+                    'status': 'В работе',
+                    'priority': 'high',
+                    'source': 'Телефонный звонок',
+                    'operator': 'Анна Петрова',
+                    'agent': None,
+                    'description': 'Клиент интересуется турами в Турцию на семью из 4 человек',
+                    'notes': 'Предпочитает отели 4-5*, готов потратить до 500,000 тенге',
+                    'next_action': 'Подготовить предложения по Анталии и Стамбулу',
+                    'journey_data': {
+                        'entry_point': 'Реклама в Instagram',
+                        'duration_in_stage': '15 минут',
+                        'touchpoints': ['Звонок', 'CRM запись', 'Email уведомление'],
+                        'pain_points': ['Долгое ожидание ответа'],
+                        'opportunities': ['Персональное предложение']
+                    }
+                },
+                {
+                    'id': 2,
+                    'timestamp': '2025-08-27 11:15:00',
+                    'client_name': 'Петрова Анна Владимировна',
+                    'client_phone': '+7-777-234-5678',
+                    'client_email': 'petrova@example.kz',
+                    'stage': 'inquiry_processing',
+                    'stage_name': 'Обработка запроса',
+                    'status': 'Ожидание',
+                    'priority': 'medium',
+                    'source': 'Веб-сайт',
+                    'operator': 'Михаил Сидоров',
+                    'agent': None,
+                    'description': 'Запрос на корпоративный тур для 20 человек в ОАЭ',
+                    'notes': 'Требуется детальная программа и расчет стоимости',
+                    'next_action': 'Связаться с корпоративным отделом SAMO',
+                    'journey_data': {
+                        'entry_point': 'Поиск в Google',
+                        'duration_in_stage': '45 минут',
+                        'touchpoints': ['Форма на сайте', 'SAMO API', 'CRM'],
+                        'pain_points': ['Сложные требования к размещению'],
+                        'opportunities': ['Крупная корпоративная сделка']
+                    }
+                },
+                {
+                    'id': 3,
+                    'timestamp': '2025-08-27 12:00:00',
+                    'client_name': 'Сидоров Максим Петрович',
+                    'client_phone': '+7-777-345-6789',
+                    'client_email': 'sidorov@example.kz',
+                    'stage': 'quote_preparation',
+                    'stage_name': 'Подготовка предложения',
+                    'status': 'Готово',
+                    'priority': 'low',
+                    'source': 'Повторный клиент',
+                    'operator': 'Елена Козлова',
+                    'agent': 'Дмитрий Морозов',
+                    'description': 'Семейный отдых в Египте, Хургада, 10 дней',
+                    'notes': 'Клиент уже ездил с нами в прошлом году, доверяет компании',
+                    'next_action': 'Отправить КП на email и позвонить для обсуждения',
+                    'journey_data': {
+                        'entry_point': 'Рекомендация знакомых',
+                        'duration_in_stage': '30 минут',
+                        'touchpoints': ['Личный звонок', 'Email с КП', 'WhatsApp'],
+                        'pain_points': ['Выбор между двумя отелями'],
+                        'opportunities': ['Лояльный клиент, возможна скидка']
+                    }
+                },
+                {
+                    'id': 4,
+                    'timestamp': '2025-08-27 14:30:00',
+                    'client_name': 'Козлова Екатерина Александровна',
+                    'client_phone': '+7-777-456-7890',
+                    'client_email': 'kozlova@example.kz',
+                    'stage': 'client_communication',
+                    'stage_name': 'Коммуникация с клиентом',
+                    'status': 'В работе',
+                    'priority': 'high',
+                    'source': 'Социальные сети',
+                    'operator': 'Анна Петрова',
+                    'agent': 'Ольга Волкова',
+                    'description': 'Медовый месяц на Мальдивах, ищет эксклюзивный отдых',
+                    'notes': 'Высокий бюджет, важны детали сервиса и уединенность',
+                    'next_action': 'Согласовать финальные детали и перейти к бронированию',
+                    'journey_data': {
+                        'entry_point': 'Instagram реклама',
+                        'duration_in_stage': '2 часа',
+                        'touchpoints': ['Видеозвонок', 'Презентация отелей', 'Telegram чат'],
+                        'pain_points': ['Высокие ожидания', 'Сложность выбора'],
+                        'opportunities': ['Премиум сегмент', 'Возможность upsell']
+                    }
+                },
+                {
+                    'id': 5,
+                    'timestamp': '2025-08-27 15:45:00',
+                    'client_name': 'Морозов Дмитрий Викторович',
+                    'client_phone': '+7-777-567-8901',
+                    'client_email': 'morozov@example.kz',
+                    'stage': 'handover_to_agent',
+                    'stage_name': 'Передача агенту',
+                    'status': 'Передано',
+                    'priority': 'medium',
+                    'source': 'Рекомендация',
+                    'operator': 'Михаил Сидоров',
+                    'agent': 'Игорь Соколов',
+                    'description': 'Горнолыжный тур в Австрию для группы из 8 человек',
+                    'notes': 'Опытные лыжники, нужен качественный сервис и близость к склонам',
+                    'next_action': 'Агент проведет детальную консультацию по курортам',
+                    'journey_data': {
+                        'entry_point': 'Сарафанное радио',
+                        'duration_in_stage': '20 минут',
+                        'touchpoints': ['Handover meeting', 'CRM transfer', 'Client notification'],
+                        'pain_points': ['Потеря контекста при передаче'],
+                        'opportunities': ['Специализированный агент по горнолыжным турам']
+                    }
+                }
+            ]
+            
+            # Filter by parameters
+            filtered_inquiries = mock_inquiries
+            if stage:
+                filtered_inquiries = [i for i in filtered_inquiries if i['stage'] == stage]
+            if status:
+                filtered_inquiries = [i for i in filtered_inquiries if i['status'] == status]
+            
+            # Calculate stage statistics
+            stage_stats = {}
+            for inquiry in mock_inquiries:
+                stage_key = inquiry['stage']
+                if stage_key not in stage_stats:
+                    stage_stats[stage_key] = {'count': 0, 'avg_duration': 0, 'success_rate': 0}
+                stage_stats[stage_key]['count'] += 1
+            
+            # Mock success rates and durations
+            for stage_key in stage_stats:
+                stage_stats[stage_key]['success_rate'] = 85 + (hash(stage_key) % 15)  # 85-100%
+                stage_stats[stage_key]['avg_duration'] = 15 + (hash(stage_key) % 30)  # 15-45 min
+            
+            return jsonify({
+                'success': True,
+                'inquiries': filtered_inquiries,
+                'total_count': len(filtered_inquiries),
+                'stage_stats': stage_stats,
+                'role': role,
+                'filters': {
+                    'stage': stage,
+                    'status': status
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error loading customer inquiries: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'inquiries': [],
+                'total_count': 0
+            }), 500
+
+    @app.route('/api/customer-journey/stages', methods=['GET'])
+    def get_journey_stages():
+        """Get journey stages with metrics"""
+        try:
+            role = request.args.get('role', 'operator')
+            
+            # Stage metrics based on role
+            stage_metrics = {
+                'operator': {
+                    'initial_contact': {
+                        'total_inquiries': 156,
+                        'avg_response_time': '2.3 мин',
+                        'success_rate': 94,
+                        'satisfaction_score': 4.2,
+                        'common_issues': ['Долгое ожидание', 'Неполная информация'],
+                        'improvements': ['Автоответчик', 'Быстрые шаблоны']
+                    },
+                    'inquiry_processing': {
+                        'total_inquiries': 142,
+                        'avg_response_time': '12.5 мин',
+                        'success_rate': 87,
+                        'satisfaction_score': 4.0,
+                        'common_issues': ['Неполные требования', 'Сложные запросы'],
+                        'improvements': ['SAMO API оптимизация', 'Чек-листы']
+                    },
+                    'quote_preparation': {
+                        'total_inquiries': 118,
+                        'avg_response_time': '22.8 мин',
+                        'success_rate': 82,
+                        'satisfaction_score': 3.8,
+                        'common_issues': ['Сложные тарифы', 'Много вариантов'],
+                        'improvements': ['Автоматизация расчетов', 'Типовые пакеты']
+                    },
+                    'client_communication': {
+                        'total_inquiries': 95,
+                        'avg_response_time': '32.1 мин',
+                        'success_rate': 76,
+                        'satisfaction_score': 4.1,
+                        'common_issues': ['Много уточнений', 'Нерешительность'],
+                        'improvements': ['FAQ база', 'Видео-презентации']
+                    },
+                    'handover_to_agent': {
+                        'total_inquiries': 71,
+                        'avg_response_time': '7.2 мин',
+                        'success_rate': 91,
+                        'satisfaction_score': 3.9,
+                        'common_issues': ['Потеря контекста', 'Дублирование информации'],
+                        'improvements': ['CRM интеграция', 'Стандартные брифинги']
+                    }
+                },
+                'agent': {
+                    'lead_reception': {
+                        'total_inquiries': 71,
+                        'avg_response_time': '3.1 мин',
+                        'success_rate': 96,
+                        'satisfaction_score': 4.3,
+                        'common_issues': ['Неполные данные от оператора'],
+                        'improvements': ['Стандартизация передачи данных']
+                    },
+                    'detailed_consultation': {
+                        'total_inquiries': 68,
+                        'avg_response_time': '45.2 мин',
+                        'success_rate': 84,
+                        'satisfaction_score': 4.5,
+                        'common_issues': ['Высокие ожидания', 'Сложные требования'],
+                        'improvements': ['Экспертные знания', 'Персонализация']
+                    },
+                    'booking_process': {
+                        'total_inquiries': 57,
+                        'avg_response_time': '67.5 мин',
+                        'success_rate': 78,
+                        'satisfaction_score': 4.0,
+                        'common_issues': ['Сложная система бронирования'],
+                        'improvements': ['SAMO автоматизация', 'Упрощение процессов']
+                    },
+                    'documentation': {
+                        'total_inquiries': 44,
+                        'avg_response_time': '28.3 мин',
+                        'success_rate': 89,
+                        'satisfaction_score': 3.7,
+                        'common_issues': ['Много документов', 'Сложные формы'],
+                        'improvements': ['Электронный документооборот']
+                    },
+                    'follow_up': {
+                        'total_inquiries': 39,
+                        'avg_response_time': 'Постоянно',
+                        'success_rate': 92,
+                        'satisfaction_score': 4.6,
+                        'common_issues': ['Забывают об обратной связи'],
+                        'improvements': ['Автоматические напоминания']
+                    }
+                }
+            }
+            
+            return jsonify({
+                'success': True,
+                'role': role,
+                'stage_metrics': stage_metrics.get(role, {}),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error loading journey stages: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route('/api/customer-journey/update-stage', methods=['POST'])
+    def update_inquiry_stage():
+        """Update inquiry stage in journey"""
+        try:
+            data = request.get_json()
+            inquiry_id = data.get('inquiry_id')
+            new_stage = data.get('new_stage')
+            notes = data.get('notes', '')
+            
+            if not inquiry_id or not new_stage:
+                return jsonify({
+                    'success': False,
+                    'error': 'inquiry_id and new_stage are required'
+                }), 400
+            
+            # In real implementation, update database
+            # For now, return success
+            
+            return jsonify({
+                'success': True,
+                'message': f'Inquiry {inquiry_id} moved to stage {new_stage}',
+                'inquiry_id': inquiry_id,
+                'new_stage': new_stage,
+                'notes': notes,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error updating inquiry stage: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     logger.info("API routes registered successfully")

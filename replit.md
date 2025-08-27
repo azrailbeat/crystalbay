@@ -6,6 +6,14 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ## Recent Changes (August 2025)
 
+### Customer Journey Map with CRM Integration (August 27, 2025)
+- **Complete Customer Journey Mapping**: Comprehensive CJM for оператора, агента, и клиента roles with detailed touchpoints
+- **Real-time Customer Inquiries Integration**: Live API integration showing customer journey through all stages
+- **Advanced Journey Analytics**: Detailed metrics, pain points, opportunities, and stage performance tracking
+- **Professional UI Design**: Apple-inspired journey visualization with interactive stages and detailed modal views
+- **Full CRM Integration**: Real customer data with phone numbers, emails, operators, agents, and journey context
+- **API-Driven System**: Complete backend API endpoints for journey stages, inquiries, and stage updates
+
 ### Fully Functional SAMO API Integration (August 27, 2025)
 - **Production-Ready API System**: Complete transition from testing interface to fully functional SAMO API management
 - **Enhanced API Endpoints**: New `/api/samo/execute` and `/api/samo/health` endpoints for comprehensive API management
