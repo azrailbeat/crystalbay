@@ -354,6 +354,44 @@
                     <div id="advancedResults" class="mt-3"></div>
                 </div>
             </div>
+
+            <!-- Automated Full Test Suite -->
+            <div class="card mt-3">
+                <div class="card-header py-2">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-play-circle"></i> Automated Full API Testing
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="alert alert-warning py-2 mb-3">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Note:</strong> This will test all 60+ SAMO API commands sequentially. Expected IP blocking on development server.
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <button id="fullTestBtn" class="btn btn-primary w-100" onclick="runFullApiTest()">
+                                <i class="bi bi-play-fill"></i> Start Full API Test
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="stopTestBtn" class="btn btn-outline-danger w-100" onclick="stopFullApiTest()" disabled>
+                                <i class="bi bi-stop-fill"></i> Stop Testing
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="testProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">
+                            <span id="progressText">Ready to start</span>
+                        </div>
+                    </div>
+
+                    <!-- Test Results Summary -->
+                    <div id="fullTestResults" class="mt-3"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -682,6 +720,367 @@ function renderAdvancedTestResult(result, action) {
             </details>
         </div>
     `;
+}
+
+// Full API Test Variables
+let fullTestRunning = false;
+let fullTestCommands = [];
+let currentTestIndex = 0;
+let testResults = [];
+
+// Define all SAMO API commands for testing
+const allSamoCommands = [
+    // Working Commands
+    { action: 'SearchTour_ALL', category: '✅ Working Commands' },
+    
+    // Tour Search Commands
+    { action: 'SearchTour_CURRENCIES', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_STATES', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_TOWNFROMS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_TOWNS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_HOTELS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_STARS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_MEALS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_TOURS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_PROGRAMS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_PROGRAM_GROUPS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_TOUR_TYPES', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_TOUR_GROUPS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_PRODUCT_TYPES', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_HOTEL_TYPES', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_NIGHTS', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_ADULT', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_CHILD', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_CHECKIN', category: '🔍 Tour Search API' },
+    { action: 'SearchTour_PRICES', category: '🔍 Tour Search API' },
+    
+    // Booking Commands
+    { action: 'Booking_Init', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_GetClaimInfo', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_UpdatePeople', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_CalcClaim', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_SaveClaim', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_CheckClaim', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_GetStates', category: '🏨 Booking API (2024.11)' },
+    { action: 'Booking_GetPeopleDocuments', category: '🏨 Booking API (2024.11)' },
+    
+    // Person Management
+    { action: 'Person_Create', category: '👤 Person Management (2024.06+)' },
+    { action: 'Person_Update', category: '👤 Person Management (2024.06+)' },
+    
+    // Services API
+    { action: 'Services_TYPES', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_ALL', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_STATES', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_TOWNS', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_PRICES', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_CALC', category: '🎯 Services API (2019.06+)' },
+    { action: 'Services_BRON', category: '🎯 Services API (2019.06+)' },
+    
+    // Insurance API
+    { action: 'Insures_ALL', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_STATES', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_INSURETYPES', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_CURRENCIES', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_PRICES', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_CALC', category: '🛡️ Insurance API (2019.02+)' },
+    { action: 'Insures_BRON', category: '🛡️ Insurance API (2019.02+)' },
+    
+    // Payment API
+    { action: 'PayVariant_List', category: '💳 Payment API (2024.04+)' },
+    { action: 'Deposit_List', category: '💳 Payment API (2024.04+)' },
+    { action: 'Deposit_Use', category: '💳 Payment API (2024.04+)' },
+    { action: 'PayCertificate_Use', category: '💳 Payment API (2024.04+)' },
+    { action: 'Alfabank_PayData', category: '💳 Payment API (2024.04+)' },
+    { action: 'Alfabank_NewPayment', category: '💳 Payment API (2024.04+)' },
+    { action: 'Alfabank_SBPQR', category: '💳 Payment API (2024.04+)' },
+    
+    // Messages API
+    { action: 'Messages_CreateMessage', category: '🔔 Messages API (2024.08+)' },
+    { action: 'Messages_GetMessageTopics', category: '🔔 Messages API (2024.08+)' },
+    { action: 'Messages_GetMessageTypes', category: '🔔 Messages API (2024.08+)' },
+    { action: 'Messages_GetTopicMessages', category: '🔔 Messages API (2024.08+)' },
+    { action: 'Messages_SetMessageRating', category: '🔔 Messages API (2024.08+)' },
+    
+    // Flight Booking
+    { action: 'Tickets_ALL', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_SOURCES', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_TARGETS', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_AIRLINES', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_CLASSES', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_PRICES', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_CALC', category: '✈️ Flight Booking (Tickets API)' },
+    { action: 'Tickets_BRON', category: '✈️ Flight Booking (Tickets API)' },
+    
+    // Best Offers
+    { action: 'TheBest_ALL', category: '🏆 Best Offers API (TheBest)' },
+    { action: 'TheBest_PACKET', category: '🏆 Best Offers API (TheBest)' },
+    { action: 'TheBest_PRICES', category: '🏆 Best Offers API (TheBest)' },
+    
+    // Currency API
+    { action: 'Currency_CURRENCIES', category: '💱 Currency API' },
+    { action: 'Currency_RATES', category: '💱 Currency API' },
+    { action: 'Currency_TodayRates', category: '💱 Currency API' }
+];
+
+async function runFullApiTest() {
+    if (fullTestRunning) return;
+    
+    fullTestRunning = true;
+    fullTestCommands = [...allSamoCommands];
+    currentTestIndex = 0;
+    testResults = [];
+    
+    // Update UI
+    document.getElementById('fullTestBtn').disabled = true;
+    document.getElementById('stopTestBtn').disabled = false;
+    document.getElementById('testProgress').style.width = '0%';
+    document.getElementById('progressText').textContent = 'Starting...';
+    
+    addLogEntry('INFO', `🚀 Starting full SAMO API test - ${allSamoCommands.length} commands`);
+    
+    // Clear previous results
+    document.getElementById('fullTestResults').innerHTML = `
+        <div class="alert alert-info">
+            <h6>Full API Test In Progress</h6>
+            <p>Testing ${allSamoCommands.length} SAMO API commands...</p>
+            <div id="liveTestResults"></div>
+        </div>
+    `;
+    
+    // Start testing
+    await processNextCommand();
+}
+
+async function processNextCommand() {
+    if (!fullTestRunning || currentTestIndex >= fullTestCommands.length) {
+        await completeFullTest();
+        return;
+    }
+    
+    const command = fullTestCommands[currentTestIndex];
+    const progress = ((currentTestIndex + 1) / fullTestCommands.length) * 100;
+    
+    // Update progress
+    document.getElementById('testProgress').style.width = `${progress}%`;
+    document.getElementById('progressText').textContent = `Testing ${currentTestIndex + 1}/${fullTestCommands.length}: ${command.action}`;
+    
+    addLogEntry('INFO', `🧪 Testing: ${command.action} (${command.category})`);
+    
+    try {
+        const startTime = Date.now();
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: command.action })
+        });
+        
+        const result = await response.json();
+        const duration = Date.now() - startTime;
+        
+        const testResult = {
+            action: command.action,
+            category: command.category,
+            success: result.success,
+            error: result.error,
+            duration: duration,
+            status_code: result.status_code || response.status,
+            index: currentTestIndex + 1
+        };
+        
+        testResults.push(testResult);
+        
+        // Log result
+        const statusIcon = result.success ? '✅' : '❌';
+        addLogEntry(result.success ? 'SUCCESS' : 'ERROR', 
+                   `${statusIcon} ${command.action}: ${result.success ? 'OK' : result.error} (${duration}ms)`);
+        
+        // Update live results
+        updateLiveTestResults();
+        
+    } catch (error) {
+        const testResult = {
+            action: command.action,
+            category: command.category,
+            success: false,
+            error: error.message,
+            duration: 0,
+            status_code: 0,
+            index: currentTestIndex + 1
+        };
+        
+        testResults.push(testResult);
+        addLogEntry('ERROR', `❌ ${command.action}: Network error - ${error.message}`);
+        updateLiveTestResults();
+    }
+    
+    currentTestIndex++;
+    
+    // Continue with next command after short delay
+    setTimeout(processNextCommand, 100);
+}
+
+function updateLiveTestResults() {
+    const liveResults = document.getElementById('liveTestResults');
+    if (!liveResults) return;
+    
+    const passed = testResults.filter(r => r.success).length;
+    const failed = testResults.filter(r => !r.success).length;
+    const total = testResults.length;
+    
+    liveResults.innerHTML = `
+        <div class="row text-center mb-2">
+            <div class="col-4">
+                <div class="badge bg-success fs-6">${passed} Passed</div>
+            </div>
+            <div class="col-4">
+                <div class="badge bg-danger fs-6">${failed} Failed</div>
+            </div>
+            <div class="col-4">
+                <div class="badge bg-info fs-6">${total} Total</div>
+            </div>
+        </div>
+        <div class="small">
+            Last: ${testResults[testResults.length - 1]?.action || 'None'} - 
+            ${testResults[testResults.length - 1]?.success ? '✅' : '❌'}
+        </div>
+    `;
+}
+
+async function completeFullTest() {
+    fullTestRunning = false;
+    
+    // Update UI
+    document.getElementById('fullTestBtn').disabled = false;
+    document.getElementById('stopTestBtn').disabled = true;
+    document.getElementById('testProgress').style.width = '100%';
+    document.getElementById('progressText').textContent = 'Test Complete';
+    
+    const passed = testResults.filter(r => r.success).length;
+    const failed = testResults.filter(r => !r.success).length;
+    const total = testResults.length;
+    const avgDuration = testResults.reduce((sum, r) => sum + r.duration, 0) / total;
+    
+    addLogEntry('INFO', `🏁 Full API test completed: ${passed}/${total} passed (${((passed/total)*100).toFixed(1)}%)`);
+    
+    // Generate detailed results
+    renderFullTestResults(passed, failed, total, avgDuration);
+}
+
+function renderFullTestResults(passed, failed, total, avgDuration) {
+    const resultsByCategory = {};
+    testResults.forEach(result => {
+        if (!resultsByCategory[result.category]) {
+            resultsByCategory[result.category] = [];
+        }
+        resultsByCategory[result.category].push(result);
+    });
+    
+    let html = `
+        <div class="alert alert-${passed === total ? 'success' : passed > failed ? 'warning' : 'danger'}">
+            <h5>Full SAMO API Test Results</h5>
+            <div class="row text-center mb-3">
+                <div class="col-3">
+                    <h6 class="text-success">${passed}</h6>
+                    <small>Passed</small>
+                </div>
+                <div class="col-3">
+                    <h6 class="text-danger">${failed}</h6>
+                    <small>Failed</small>
+                </div>
+                <div class="col-3">
+                    <h6 class="text-info">${total}</h6>
+                    <small>Total</small>
+                </div>
+                <div class="col-3">
+                    <h6 class="text-muted">${avgDuration.toFixed(0)}ms</h6>
+                    <small>Avg Time</small>
+                </div>
+            </div>
+            <div class="progress mb-3">
+                <div class="progress-bar bg-success" style="width: ${(passed/total)*100}%"></div>
+                <div class="progress-bar bg-danger" style="width: ${(failed/total)*100}%"></div>
+            </div>
+        </div>
+        
+        <div class="accordion" id="testResultsAccordion">
+    `;
+    
+    Object.keys(resultsByCategory).forEach((category, index) => {
+        const categoryResults = resultsByCategory[category];
+        const categoryPassed = categoryResults.filter(r => r.success).length;
+        const categoryTotal = categoryResults.length;
+        
+        html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                        ${category} (${categoryPassed}/${categoryTotal})
+                    </button>
+                </h2>
+                <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#testResultsAccordion">
+                    <div class="accordion-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Command</th>
+                                        <th>Status</th>
+                                        <th>Duration</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+        `;
+        
+        categoryResults.forEach(result => {
+            const statusBadge = result.success ? 
+                '<span class="badge bg-success">PASS</span>' :
+                '<span class="badge bg-danger">FAIL</span>';
+            
+            html += `
+                <tr>
+                    <td><code>${result.action}</code></td>
+                    <td>${statusBadge}</td>
+                    <td class="text-muted">${result.duration}ms</td>
+                    <td class="text-danger small">${result.error || ''}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    document.getElementById('fullTestResults').innerHTML = html;
+}
+
+function stopFullApiTest() {
+    if (!fullTestRunning) return;
+    
+    fullTestRunning = false;
+    addLogEntry('WARN', '⏹️ Full API test stopped by user');
+    
+    document.getElementById('fullTestBtn').disabled = false;
+    document.getElementById('stopTestBtn').disabled = true;
+    document.getElementById('progressText').textContent = 'Test Stopped';
+    
+    if (testResults.length > 0) {
+        const passed = testResults.filter(r => r.success).length;
+        const failed = testResults.filter(r => !r.success).length;
+        const total = testResults.length;
+        const avgDuration = testResults.reduce((sum, r) => sum + r.duration, 0) / total;
+        
+        renderFullTestResults(passed, failed, total, avgDuration);
+    }
 }
 
 function showToast(type, message) {
