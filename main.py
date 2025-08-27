@@ -172,6 +172,11 @@ def samo_testing():
     """SAMO API testing page"""
     return render_template('samo_testing.html')
 
+@app.route('/samo-manager')
+def samo_manager():
+    """SAMO API Manager - Advanced Management Interface"""
+    return render_template('samo_api_manager.html')
+
 @app.route('/samo-logs')
 def samo_logs():
     """SAMO API detailed logging and monitoring page"""

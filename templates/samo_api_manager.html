@@ -1,0 +1,721 @@
+{% extends "layout.html" %}
+
+{% block title %}SAMO API Manager - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">SAMO API Manager</h1>
+            <p class="text-muted mb-0">Complete SAMO API management and testing system</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="loadApiDocumentation()">
+                <i class="bi bi-book"></i> API Docs
+            </button>
+            <button class="btn btn-outline-success" onclick="exportTestResults()">
+                <i class="bi bi-download"></i> Export Results
+            </button>
+        </div>
+    </div>
+
+    <!-- API Status Dashboard -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Commands</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCommands">67</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-list-task fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Working Commands</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="workingCommands">1</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">API Categories</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">11</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-folder fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Last Test</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800" id="lastTestTime">Never</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="apiTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="explorer-tab" data-bs-toggle="tab" data-bs-target="#explorer" type="button" role="tab">
+                        <i class="bi bi-search"></i> API Explorer
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="automation-tab" data-bs-toggle="tab" data-bs-target="#automation" type="button" role="tab">
+                        <i class="bi bi-robot"></i> Automation
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab">
+                        <i class="bi bi-graph-up"></i> Monitoring
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="documentation-tab" data-bs-toggle="tab" data-bs-target="#documentation" type="button" role="tab">
+                        <i class="bi bi-book"></i> Documentation
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="tab-content" id="apiTabsContent">
+                <!-- API Explorer Tab -->
+                <div class="tab-pane fade show active" id="explorer" role="tabpanel">
+                    <div class="row">
+                        <!-- Command Categories -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">API Categories</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="list-group list-group-flush" id="apiCategories">
+                                        <!-- Categories will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Command Details -->
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">
+                                        <span id="selectedCategory">Select a category</span>
+                                        <span class="badge bg-secondary ms-2" id="categoryCount">0 commands</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div id="commandsList">
+                                        <div class="text-center text-muted py-5">
+                                            <i class="bi bi-arrow-left fa-3x mb-3"></i>
+                                            <p>Select a category to view available commands</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Command Execution Panel -->
+                            <div class="card mt-3" id="executionPanel" style="display: none;">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-play"></i> Execute Command: <span id="selectedCommand"></span>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="commandExecutionForm">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Command</label>
+                                                <input type="text" class="form-control" id="execCommand" readonly>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Parameters (JSON)</label>
+                                                <textarea class="form-control" id="execParams" rows="3" placeholder='{"param1": "value1"}'></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-play-fill"></i> Execute
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" onclick="clearExecution()">
+                                                <i class="bi bi-x"></i> Clear
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <!-- Execution Results -->
+                                    <div id="executionResults" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Automation Tab -->
+                <div class="tab-pane fade" id="automation" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">Automated Testing</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Test Scope</label>
+                                        <select class="form-select" id="testScope">
+                                            <option value="all">All Commands (67)</option>
+                                            <option value="working">Working Commands Only</option>
+                                            <option value="category">Selected Category</option>
+                                            <option value="custom">Custom Selection</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Test Interval (ms)</label>
+                                        <input type="number" class="form-control" id="testInterval" value="100" min="50" max="5000">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success" onclick="startAutomatedTest()">
+                                            <i class="bi bi-play-fill"></i> Start Test
+                                        </button>
+                                        <button class="btn btn-danger" onclick="stopAutomatedTest()" disabled id="stopTestBtn">
+                                            <i class="bi bi-stop-fill"></i> Stop Test
+                                        </button>
+                                    </div>
+
+                                    <!-- Test Progress -->
+                                    <div class="mt-3">
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="automationProgress" style="width: 0%">
+                                                <span id="automationProgressText">Ready</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">Scheduled Tasks</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Task Type</label>
+                                        <select class="form-select" id="taskType">
+                                            <option value="health_check">API Health Check</option>
+                                            <option value="data_sync">Data Synchronization</option>
+                                            <option value="full_test">Full API Test</option>
+                                            <option value="monitoring">Performance Monitoring</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Schedule (Cron)</label>
+                                        <input type="text" class="form-control" id="taskSchedule" placeholder="0 0 * * *" value="0 */6 * * *">
+                                        <div class="form-text">Every 6 hours by default</div>
+                                    </div>
+                                    <button class="btn btn-outline-primary">
+                                        <i class="bi bi-plus"></i> Add Task
+                                    </button>
+
+                                    <!-- Active Tasks -->
+                                    <div class="mt-3">
+                                        <h6>Active Tasks</h6>
+                                        <div class="list-group" id="activeTasks">
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>No scheduled tasks</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Test Results -->
+                    <div class="card mt-3">
+                        <div class="card-header py-2">
+                            <h6 class="card-title mb-0">Live Test Results</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="liveAutomationResults">
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-clock fa-2x mb-2"></i>
+                                    <p>Start automation to see live results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monitoring Tab -->
+                <div class="tab-pane fade" id="monitoring" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">Performance Metrics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">API Health</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Response Time</span>
+                                            <span class="text-info">~550ms</span>
+                                        </div>
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-info" style="width: 60%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Success Rate</span>
+                                            <span class="text-danger">0%</span>
+                                        </div>
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>API Status</span>
+                                            <span class="badge bg-warning">IP Blocked</span>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-warning py-2">
+                                        <small><strong>Note:</strong> Development environment shows IP blocking. Production deployment will show actual metrics.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Log -->
+                    <div class="card mt-3">
+                        <div class="card-header py-2">
+                            <h6 class="card-title mb-0">Error Log</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Command</th>
+                                            <th>Error</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="errorLogTable">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No errors logged</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documentation Tab -->
+                <div class="tab-pane fade" id="documentation" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">API Versions</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="list-group list-group-flush">
+                                        <button class="list-group-item list-group-item-action active" onclick="showDocumentation('2024.11')">
+                                            Booking API (2024.11)
+                                        </button>
+                                        <button class="list-group-item list-group-item-action" onclick="showDocumentation('2024.08')">
+                                            Messages API (2024.08)
+                                        </button>
+                                        <button class="list-group-item list-group-item-action" onclick="showDocumentation('2024.06')">
+                                            Person Management (2024.06)
+                                        </button>
+                                        <button class="list-group-item list-group-item-action" onclick="showDocumentation('2024.04')">
+                                            Payment API (2024.04)
+                                        </button>
+                                        <button class="list-group-item list-group-item-action" onclick="showDocumentation('2019.06')">
+                                            Services API (2019.06)
+                                        </button>
+                                        <button class="list-group-item list-group-item-action" onclick="showDocumentation('2019.02')">
+                                            Insurance API (2019.02)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">API Documentation</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="documentationContent">
+                                        <h5>Booking API (2024.11) - Latest Version</h5>
+                                        <p class="text-muted">The newest booking system with enhanced claim management</p>
+                                        
+                                        <h6>Available Commands:</h6>
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <code>Booking_Init</code>
+                                                <span class="text-muted">Initialize new booking</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <code>Booking_GetClaimInfo</code>
+                                                <span class="text-muted">Retrieve claim information</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <code>Booking_UpdatePeople</code>
+                                                <span class="text-muted">Update person details</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <code>Booking_CalcClaim</code>
+                                                <span class="text-muted">Calculate claim amount</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <code>Booking_SaveClaim</code>
+                                                <span class="text-muted">Save claim data</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// SAMO API Manager JavaScript
+const samoApiManager = {
+    categories: {
+        'working': { name: '✅ Working Commands', commands: ['SearchTour_ALL'] },
+        'tour_search': { 
+            name: '🔍 Tour Search API (19/19)',
+            commands: [
+                'SearchTour_CURRENCIES', 'SearchTour_STATES', 'SearchTour_TOWNFROMS', 
+                'SearchTour_TOWNS', 'SearchTour_HOTELS', 'SearchTour_STARS', 
+                'SearchTour_MEALS', 'SearchTour_TOURS', 'SearchTour_PROGRAMS',
+                'SearchTour_PROGRAM_GROUPS', 'SearchTour_TOUR_TYPES', 'SearchTour_TOUR_GROUPS',
+                'SearchTour_PRODUCT_TYPES', 'SearchTour_HOTEL_TYPES', 'SearchTour_NIGHTS',
+                'SearchTour_ADULT', 'SearchTour_CHILD', 'SearchTour_CHECKIN', 'SearchTour_PRICES'
+            ]
+        },
+        'booking': {
+            name: '🏨 Booking API (2024.11)',
+            commands: [
+                'Booking_Init', 'Booking_GetClaimInfo', 'Booking_UpdatePeople',
+                'Booking_CalcClaim', 'Booking_SaveClaim', 'Booking_CheckClaim',
+                'Booking_GetStates', 'Booking_GetPeopleDocuments'
+            ]
+        },
+        'person': {
+            name: '👤 Person Management (2024.06+)',
+            commands: ['Person_Create', 'Person_Update']
+        },
+        'services': {
+            name: '🎯 Services API (2019.06+)',
+            commands: [
+                'Services_TYPES', 'Services_ALL', 'Services_STATES',
+                'Services_TOWNS', 'Services_PRICES', 'Services_CALC', 'Services_BRON'
+            ]
+        },
+        'insurance': {
+            name: '🛡️ Insurance API (2019.02+)',
+            commands: [
+                'Insures_ALL', 'Insures_STATES', 'Insures_INSURETYPES',
+                'Insures_CURRENCIES', 'Insures_PRICES', 'Insures_CALC', 'Insures_BRON'
+            ]
+        },
+        'payment': {
+            name: '💳 Payment API (2024.04+)',
+            commands: [
+                'PayVariant_List', 'Deposit_List', 'Deposit_Use',
+                'PayCertificate_Use', 'Alfabank_PayData', 'Alfabank_NewPayment', 'Alfabank_SBPQR'
+            ]
+        },
+        'messages': {
+            name: '🔔 Messages API (2024.08+)',
+            commands: [
+                'Messages_CreateMessage', 'Messages_GetMessageTopics', 'Messages_GetMessageTypes',
+                'Messages_GetTopicMessages', 'Messages_SetMessageRating'
+            ]
+        },
+        'tickets': {
+            name: '✈️ Flight Booking (Tickets API)',
+            commands: [
+                'Tickets_ALL', 'Tickets_SOURCES', 'Tickets_TARGETS',
+                'Tickets_AIRLINES', 'Tickets_CLASSES', 'Tickets_PRICES',
+                'Tickets_CALC', 'Tickets_BRON'
+            ]
+        },
+        'best_offers': {
+            name: '🏆 Best Offers API (TheBest)',
+            commands: ['TheBest_ALL', 'TheBest_PACKET', 'TheBest_PRICES']
+        },
+        'currency': {
+            name: '💱 Currency API',
+            commands: ['Currency_CURRENCIES', 'Currency_RATES', 'Currency_TodayRates']
+        }
+    },
+    
+    init() {
+        this.renderCategories();
+        this.updateStats();
+        document.getElementById('lastTestTime').textContent = new Date().toLocaleString();
+    },
+    
+    renderCategories() {
+        const container = document.getElementById('apiCategories');
+        container.innerHTML = '';
+        
+        Object.keys(this.categories).forEach(key => {
+            const category = this.categories[key];
+            const item = document.createElement('button');
+            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            item.onclick = () => this.selectCategory(key);
+            item.innerHTML = `
+                <span>${category.name}</span>
+                <span class="badge bg-primary rounded-pill">${category.commands.length}</span>
+            `;
+            container.appendChild(item);
+        });
+    },
+    
+    selectCategory(categoryKey) {
+        const category = this.categories[categoryKey];
+        document.getElementById('selectedCategory').textContent = category.name;
+        document.getElementById('categoryCount').textContent = `${category.commands.length} commands`;
+        
+        const container = document.getElementById('commandsList');
+        container.innerHTML = '';
+        
+        category.commands.forEach(command => {
+            const item = document.createElement('div');
+            item.className = 'card mb-2';
+            item.innerHTML = `
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <code class="text-primary">${command}</code>
+                            <div class="small text-muted">Click to test this command</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="samoApiManager.selectCommand('${command}')">
+                            <i class="bi bi-play"></i> Test
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+        
+        // Update active category
+        document.querySelectorAll('#apiCategories .list-group-item').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+    },
+    
+    selectCommand(command) {
+        document.getElementById('selectedCommand').textContent = command;
+        document.getElementById('execCommand').value = command;
+        document.getElementById('executionPanel').style.display = 'block';
+        document.getElementById('execParams').value = '';
+        document.getElementById('executionResults').innerHTML = '';
+    },
+    
+    updateStats() {
+        const totalCommands = Object.values(this.categories).reduce((sum, cat) => sum + cat.commands.length, 0);
+        document.getElementById('totalCommands').textContent = totalCommands;
+        document.getElementById('workingCommands').textContent = this.categories.working.commands.length;
+    }
+};
+
+// Command execution
+document.getElementById('commandExecutionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const command = document.getElementById('execCommand').value;
+    const paramsText = document.getElementById('execParams').value.trim();
+    
+    let params = {};
+    if (paramsText) {
+        try {
+            params = JSON.parse(paramsText);
+        } catch (e) {
+            showExecutionResult('error', 'Invalid JSON parameters');
+            return;
+        }
+    }
+    
+    showExecutionResult('info', 'Executing command...');
+    
+    try {
+        const response = await fetch('/api/samo/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: command, ...params })
+        });
+        
+        const result = await response.json();
+        showExecutionResult(result.success ? 'success' : 'error', result);
+        
+    } catch (error) {
+        showExecutionResult('error', 'Network error: ' + error.message);
+    }
+});
+
+function showExecutionResult(type, data) {
+    const container = document.getElementById('executionResults');
+    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+    
+    if (typeof data === 'object') {
+        container.innerHTML = `
+            <div class="alert ${alertClass}">
+                <h6>Execution Result</h6>
+                <pre class="mb-0"><code>${JSON.stringify(data, null, 2)}</code></pre>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `<div class="alert ${alertClass}">${data}</div>`;
+    }
+}
+
+function clearExecution() {
+    document.getElementById('execParams').value = '';
+    document.getElementById('executionResults').innerHTML = '';
+}
+
+// Automation functions
+let automationRunning = false;
+
+function startAutomatedTest() {
+    if (automationRunning) return;
+    
+    automationRunning = true;
+    document.getElementById('stopTestBtn').disabled = false;
+    
+    const scope = document.getElementById('testScope').value;
+    const interval = parseInt(document.getElementById('testInterval').value);
+    
+    document.getElementById('liveAutomationResults').innerHTML = `
+        <div class="alert alert-info">
+            <h6>Automation Started</h6>
+            <p>Testing scope: ${scope} with ${interval}ms interval</p>
+        </div>
+    `;
+}
+
+function stopAutomatedTest() {
+    automationRunning = false;
+    document.getElementById('stopTestBtn').disabled = true;
+    
+    document.getElementById('liveAutomationResults').innerHTML = `
+        <div class="alert alert-warning">
+            <h6>Automation Stopped</h6>
+            <p>Test automation has been stopped by user</p>
+        </div>
+    `;
+}
+
+// Documentation functions
+function showDocumentation(version) {
+    const content = document.getElementById('documentationContent');
+    
+    const docs = {
+        '2024.11': {
+            title: 'Booking API (2024.11) - Latest Version',
+            description: 'The newest booking system with enhanced claim management',
+            commands: [
+                { name: 'Booking_Init', desc: 'Initialize new booking' },
+                { name: 'Booking_GetClaimInfo', desc: 'Retrieve claim information' },
+                { name: 'Booking_UpdatePeople', desc: 'Update person details' },
+                { name: 'Booking_CalcClaim', desc: 'Calculate claim amount' },
+                { name: 'Booking_SaveClaim', desc: 'Save claim data' }
+            ]
+        },
+        '2024.08': {
+            title: 'Messages API (2024.08)',
+            description: 'Messaging and communication system',
+            commands: [
+                { name: 'Messages_CreateMessage', desc: 'Create new message' },
+                { name: 'Messages_GetMessageTopics', desc: 'Get message topics' },
+                { name: 'Messages_GetMessageTypes', desc: 'Get message types' }
+            ]
+        }
+    };
+    
+    const doc = docs[version] || docs['2024.11'];
+    
+    content.innerHTML = `
+        <h5>${doc.title}</h5>
+        <p class="text-muted">${doc.description}</p>
+        
+        <h6>Available Commands:</h6>
+        <ul class="list-group">
+            ${doc.commands.map(cmd => `
+                <li class="list-group-item d-flex justify-content-between">
+                    <code>${cmd.name}</code>
+                    <span class="text-muted">${cmd.desc}</span>
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    samoApiManager.init();
+});
+</script>
+{% endblock %}
