@@ -6,17 +6,17 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ## Recent Changes (August 2025)
 
-### Unified Tour Search with Data Validation (August 26, 2025)
-- **Unified Search Interface**: Merged duplicate tour search pages into single professional interface
+### Unified Tour Search with Full SAMO Integration (August 27, 2025)
+- **Single Page Interface**: Complete tour search and results unified on one page /tours
+- **Enhanced SAMO Data**: Now using newest API file with 1,558 hotels and 75 destinations
+- **Real Departure Cities**: 18 authentic departure cities from SAMO TOWNS data
 - **Smart Data Validation**: Pre-search validation ensures all required data is loaded and form fields are valid
 - **Date Validation**: Prevents past dates and invalid date ranges with user-friendly error messages
-- **Clean Interface**: Removed duplicate routes and templates, consolidated to single tours.html page
-- **Enhanced User Experience**: Clear error messages, loading states, and form validation feedback
+- **Comprehensive Logging**: Detailed console logging for debugging all API calls and data processing
 - **All Placeholders Removed**: Interface shows only authentic SAMO API data without any mock values
-- **Real Data Integration**: 112 hotels primarily from Vietnam with authentic star ratings and locations
+- **Real Data Integration**: 1,558 hotels across 75 destinations with authentic star ratings and locations
 - **Clean Currency Loading**: 5 real currencies (RUB, USD, KZT, UZS, KGS) loaded dynamically from SAMO
 - **Dynamic Destination Loading**: Cities and hotels populated from real SAMO response data
-- **Authentic Price Display**: "Price on request" shown instead of fictional pricing
 - **Professional Interface**: Multi-tab booking system matches Crystal Bay's original design exactly
 
 ### Production Deployment & SAMO API Integration Success (August 26, 2025)
