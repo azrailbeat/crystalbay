@@ -130,6 +130,7 @@ def wazzup_integration():
     return render_template('wazzup_integration.html')
 
 @app.route('/tours')
+@app.route('/tours-search')
 def tours():
     """Unified tours search and results page"""
     return render_template('tours.html', active_page='tours')
