@@ -33,7 +33,80 @@ _memory_ai_config = {
     'active': True
 }
 
-_memory_leads = []  # Production starts with empty leads
+_memory_leads = [
+    {
+        'id': 1,
+        'name': 'Анна Петрова',
+        'phone': '+7 (495) 123-45-67',
+        'email': 'anna.petrova@email.com',
+        'destination': 'Вьетнам, Нячанг',
+        'departure_city': 'Москва',
+        'budget': '150000 руб',
+        'adults': 2,
+        'children': 1,
+        'duration': '10 дней',
+        'departure_date': '2025-12-15',
+        'status': 'новое',
+        'source': 'Сайт',
+        'notes': 'Интересуют отели 4-5*',
+        'created_at': '2025-08-30T10:30:00',
+        'updated_at': '2025-08-30T10:30:00'
+    },
+    {
+        'id': 2,
+        'name': 'Михаил Сидоров',
+        'phone': '+7 (495) 987-65-43',
+        'email': 'mikhail.sidorov@email.com',
+        'destination': 'Таиланд, Пхукет',
+        'departure_city': 'Санкт-Петербург',
+        'budget': '200000 руб',
+        'adults': 2,
+        'children': 0,
+        'duration': '14 дней',
+        'departure_date': '2025-11-20',
+        'status': 'в работе',
+        'source': 'Телефон',
+        'notes': 'Медовый месяц, романтический отдых',
+        'created_at': '2025-08-29T14:15:00',
+        'updated_at': '2025-08-30T09:20:00'
+    },
+    {
+        'id': 3,
+        'name': 'Елена Козлова',
+        'phone': '+7 (495) 555-77-99',
+        'email': 'elena.kozlova@email.com',
+        'destination': 'Индонезия, Бали',
+        'departure_city': 'Екатеринбург',
+        'budget': '120000 руб',
+        'adults': 1,
+        'children': 0,
+        'duration': '7 дней',
+        'departure_date': '2025-10-05',
+        'status': 'обработано',
+        'source': 'Instagram',
+        'notes': 'Йога-ретрит, вегетарианское питание',
+        'created_at': '2025-08-28T16:45:00',
+        'updated_at': '2025-08-30T11:10:00'
+    },
+    {
+        'id': 4,
+        'name': 'Дмитрий Волков',
+        'phone': '+7 (495) 321-99-88',
+        'email': 'dmitry.volkov@email.com',
+        'destination': 'Мальдивы',
+        'departure_city': 'Москва',
+        'budget': '500000 руб',
+        'adults': 2,
+        'children': 2,
+        'duration': '12 дней',
+        'departure_date': '2025-12-25',
+        'status': 'закрыто',
+        'source': 'Рекомендация',
+        'notes': 'Новогодний отдых, семейный отель',
+        'created_at': '2025-08-27T09:30:00',
+        'updated_at': '2025-08-30T08:45:00'
+    }
+]
 
 supabase = None
 try:
