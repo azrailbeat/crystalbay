@@ -21,8 +21,8 @@
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="loadCountries()">
                         Load Destinations
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadAllData()">
-                        Load All Data
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadAllDataFromSamo()">
+                        Load All SAMO Data
                     </button>
                 </div>
             </div>
@@ -281,27 +281,50 @@ function clearFilters() {
 // Helper function to get town name by key from loaded data
 function getTownName(townKey) {
     if (townKey && window.samoTownsData) {
-        const town = window.samoTownsData.find(t => t.id === townKey || t.key === townKey);
+        const town = window.samoTownsData.find(t => t.id === townKey || t.key === townKey || t.townKey === townKey);
         return town ? town.name : null;
     }
+    
+    // Fallback: check destinations data if towns data not available
+    if (townKey && window.samoDestinationsData) {
+        const destination = window.samoDestinationsData.find(d => d.id === townKey || d.town_key === townKey);
+        return destination ? destination.name : null;
+    }
+    
     return null;
 }
 
 // Load departure cities from SAMO API
 async function loadTownFroms() {
     try {
-        console.log('Loading:', 'Loading cities...');
-        const response = await fetch('/api/samo/get_townfroms', {
-            method: 'GET',
-            headers: {'Content-Type': 'application/json'}
+        console.log('Loading:', 'Loading departure cities...');
+        const response = await fetch('/api/samo/execute', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'SearchTour_ALL',
+                parameters: {},
+                source: 'load_townfroms'
+            })
         });
         
         const data = await response.json();
-        if (data.success && data.data && data.data.townfroms && data.data.townfroms.length > 0) {
-            townFromsData = data.data.townfroms;
-            populateSelect('townFrom', townFromsData, 'id', 'name');
-            document.getElementById('departureCitySection').style.display = 'block';
-            console.log('Success:', `Loaded ${townFromsData.length} real departure cities`);
+        console.log('Towns response:', data);
+        
+        if (data.success && data.data && data.data.SearchTour_ALL && data.data.SearchTour_ALL.TOWNS) {
+            const towns = data.data.SearchTour_ALL.TOWNS;
+            if (Array.isArray(towns) && towns.length > 0) {
+                townFromsData = towns;
+                // Store globally for reference
+                window.samoTownsData = towns;
+                populateSelect('townFrom', townFromsData, 'id', 'name');
+                document.getElementById('departureCitySection').style.display = 'block';
+                console.log('Success:', `Loaded ${townFromsData.length} real departure cities from SAMO`);
+                console.log('Towns data:', towns);
+            } else {
+                document.getElementById('departureCitySection').style.display = 'none';
+                console.log('Info:', 'No towns data in SAMO response');
+            }
         } else {
             // Hide departure city field if no real data available
             document.getElementById('departureCitySection').style.display = 'none';
@@ -309,6 +332,7 @@ async function loadTownFroms() {
         }
     } catch (error) {
         console.log('Error:', `Error loading cities: ${error.message}`);
+        document.getElementById('departureCitySection').style.display = 'none';
     }
 }
 
@@ -353,8 +377,8 @@ async function loadCountries() {
         
         if (data.success && data.data) {
             countriesData = data.data;
-            // Store towns data globally for reference
-            window.samoTownsData = countriesData;
+            // Store destinations data globally for reference
+            window.samoDestinationsData = countriesData;
             console.log('Countries Data Structure:', countriesData);
             populateSelect('countryTo', countriesData, 'name', 'name');
             console.log('Success:', `Loaded ${countriesData.length} destinations from real SAMO data`);
@@ -880,6 +904,65 @@ function clearForm() {
     `;
     document.getElementById('resultCount').textContent = '0 туров найдено';
     hideRawData();
+}
+
+// Load all data from SAMO SearchTour_ALL response
+async function loadAllDataFromSamo() {
+    try {
+        showLoading('Loading all SAMO data...');
+        
+        const response = await fetch('/api/samo/execute', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'SearchTour_ALL',
+                parameters: {},
+                source: 'load_all_data'
+            })
+        });
+        
+        const data = await response.json();
+        console.log('SAMO All data response:', data);
+        
+        if (data.success && data.data && data.data.SearchTour_ALL) {
+            const samoData = data.data.SearchTour_ALL;
+            
+            // Load towns/departure cities
+            if (samoData.TOWNS && Array.isArray(samoData.TOWNS) && samoData.TOWNS.length > 0) {
+                townFromsData = samoData.TOWNS;
+                window.samoTownsData = samoData.TOWNS;
+                populateSelect('townFrom', townFromsData, 'id', 'name');
+                document.getElementById('departureCitySection').style.display = 'block';
+                console.log('✓ Loaded departure cities from SAMO:', samoData.TOWNS.length);
+            }
+            
+            // Load currencies 
+            if (samoData.CURRENCIES && Array.isArray(samoData.CURRENCIES)) {
+                currenciesData = samoData.CURRENCIES.map(curr => ({
+                    code: curr.alias || curr.currencyISO,
+                    name: curr.name || curr.alias,
+                    id: curr.id
+                }));
+                populateSelect('currency', currenciesData, 'code', 'code');
+                console.log('✓ Loaded currencies from SAMO:', currenciesData.length);
+            }
+            
+            // Load destinations from separate endpoint (still needed for destination search)
+            await loadCountries();
+            
+            showSuccess(`✓ SAMO Data Loaded: ${townFromsData?.length || 0} cities, ${currenciesData?.length || 0} currencies, ${countriesData?.length || 0} destinations`);
+            
+            // Also show some sample data
+            console.log('Sample towns:', samoData.TOWNS.slice(0, 3));
+            console.log('Sample currencies:', samoData.CURRENCIES.slice(0, 3));
+            
+        } else {
+            throw new Error('Failed to load SAMO data structure');
+        }
+    } catch (error) {
+        showError(`Error loading SAMO data: ${error.message}`);
+        console.error('Load SAMO data error:', error);
+    }
 }
 
 function showRawData(data) {
