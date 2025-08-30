@@ -1283,7 +1283,7 @@ def register_api_routes(app):
             
             # Execute the command
             if action == 'SearchTour_ALL':
-                result = samo_api.search_tour_all()
+                result = samo_api.search_tours_detailed(parameters)
             else:
                 result = samo_api._make_request(action, request_data)
             

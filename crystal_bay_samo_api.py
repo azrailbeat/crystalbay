@@ -404,6 +404,10 @@ class CrystalBaySamoAPI:
             logger.error(f"Search prices error: {e}")
             return {"success": False, "error": str(e)}
 
+    def search_tour_all(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """SearchTour_ALL method for API compatibility"""
+        return self.search_tours_detailed(params)
+    
     def search_tours_detailed(self, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Детальный поиск туров с использованием SearchTour_ALL - рабочий метод"""
         try:
