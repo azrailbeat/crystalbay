@@ -519,13 +519,12 @@ function displaySearchResults(tours) {
                     </div>
                 </div>
             `;
-        }
+        });
         resultsHtml += '</div>';
     } else {
         // List view
         resultsHtml = '<div class="list-group list-group-flush">';
-        for (let index = 0; index < tours.length; index++) {
-            const tour = tours[index];
+        tours.forEach((tour, index) => {
             const stars = tour.stars || tour.hotel_stars || 0;
             const starDisplay = '★'.repeat(parseInt(stars));
             
@@ -552,7 +551,7 @@ function displaySearchResults(tours) {
                     </div>
                 </div>
             `;
-        }
+        });
         resultsHtml += '</div>';
     }
     
@@ -578,8 +577,7 @@ function populateSelect(selectId, data, valueField, textField) {
     
     console.log('Select cleared, adding new options...');
     
-    for (let index = 0; index < data.length; index++) {
-        const item = data[index];
+    data.forEach((item, index) => {
         console.log(`Adding option ${index}:`, item);
         const option = document.createElement('option');
         const value = item[valueField] || item.id || item.code;
@@ -588,7 +586,7 @@ function populateSelect(selectId, data, valueField, textField) {
         option.textContent = text;
         select.appendChild(option);
         console.log(`Added option: value="${value}", text="${text}"`);
-    }
+    });
     
     console.log(`Populated ${selectId} with ${data.length} options. Total options now:`, select.children.length);
 }
