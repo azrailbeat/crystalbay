@@ -278,6 +278,15 @@ function clearFilters() {
     showSuccess('Search form cleared');
 }
 
+// Helper function to get town name by key from loaded data
+function getTownName(townKey) {
+    if (townKey && window.samoTownsData) {
+        const town = window.samoTownsData.find(t => t.id === townKey || t.key === townKey);
+        return town ? town.name : null;
+    }
+    return null;
+}
+
 // Load departure cities from SAMO API
 async function loadTownFroms() {
     try {
@@ -344,6 +353,8 @@ async function loadCountries() {
         
         if (data.success && data.data) {
             countriesData = data.data;
+            // Store towns data globally for reference
+            window.samoTownsData = countriesData;
             console.log('Countries Data Structure:', countriesData);
             populateSelect('countryTo', countriesData, 'name', 'name');
             console.log('Success:', `Loaded ${countriesData.length} destinations from real SAMO data`);
@@ -394,23 +405,34 @@ async function searchTours() {
                     
                     // Look for hotels in the SAMO response
                     if (samoData.HOTELS && Array.isArray(samoData.HOTELS)) {
-                        tours = samoData.HOTELS.slice(0, 20).map((hotel, index) => ({
-                            id: hotel.id || index,
-                            hotel: hotel.hotel || hotel.name || `Отель ${index + 1}`,
-                            destination: hotel.town || hotel.state || searchParams.countryTo || 'Вьетнам',
-                            stars: hotel.stars || hotel.star || 4,
-                            nights: searchParams.nights || 7,
-                            adults: searchParams.adults || 2,
-                            children: searchParams.children || 0,
-                            price: hotel.price || hotel.cost || 'По запросу',
-                            currency: searchParams.currency || 'USD',
-                            meal: hotel.meal || hotel.food || 'BB',
-                            checkin: searchParams.checkIn || '',
-                            checkout: searchParams.checkOut || '',
-                            description: hotel.description || hotel.info || 'Комфортабельный отель с отличным сервисом',
-                            location: hotel.location || hotel.address || 'Центральное расположение',
-                            amenities: hotel.amenities || ['WiFi', 'Бассейн', 'Ресторан']
-                        }));
+                        tours = samoData.HOTELS.slice(0, 20).map((hotel, index) => {
+                            // Extract star rating from star field (format: "3*", "4*", etc.)
+                            const starMatch = hotel.star ? hotel.star.match(/(\d+)/) : null;
+                            const starRating = starMatch ? parseInt(starMatch[1]) : hotel.starKey || 4;
+                            
+                            return {
+                                id: hotel.id || index,
+                                hotel: hotel.name || hotel.nameAlt || `Отель ${index + 1}`,
+                                destination: getTownName(hotel.townKey) || 'Вьетнам',
+                                stars: starRating,
+                                nights: searchParams.nights || 7,
+                                adults: searchParams.adults || 2,
+                                children: searchParams.children || 0,
+                                price: 'По запросу', // Цена определяется отдельным запросом
+                                currency: searchParams.currency || 'USD',
+                                meal: 'BB', // Питание определяется при бронировании
+                                checkin: searchParams.checkIn || '',
+                                checkout: searchParams.checkOut || '',
+                                description: `${hotel.star || '4*'} отель с отличным сервисом`,
+                                location: `${getTownName(hotel.townKey) || 'Отличное'} расположение`,
+                                amenities: ['WiFi', 'Сервис', 'Комфорт'],
+                                hotelId: hotel.id,
+                                townKey: hotel.townKey,
+                                coordinates: hotel.latitude && hotel.longitude ? 
+                                    `${hotel.latitude}, ${hotel.longitude}` : null,
+                                website: hotel.www || null
+                            };
+                        });
                         console.log('Converted hotels to tours:', tours);
                     }
                     // Look for tours in the SAMO response
