@@ -384,17 +384,68 @@ async function searchTours() {
         if (data.success) {
             // Handle different response formats
             let tours = [];
+            console.log('Processing search response:', data);
+            
             if (data.data) {
-                if (Array.isArray(data.data)) {
+                // Check for SearchTour_ALL wrapped response
+                if (data.data.SearchTour_ALL) {
+                    const samoData = data.data.SearchTour_ALL;
+                    console.log('Found SearchTour_ALL data:', samoData);
+                    
+                    // Look for hotels in the SAMO response
+                    if (samoData.HOTELS && Array.isArray(samoData.HOTELS)) {
+                        tours = samoData.HOTELS.slice(0, 20).map((hotel, index) => ({
+                            id: hotel.id || index,
+                            hotel: hotel.hotel || hotel.name || `Отель ${index + 1}`,
+                            destination: hotel.town || hotel.state || searchParams.countryTo || 'Вьетнам',
+                            stars: hotel.stars || hotel.star || 4,
+                            nights: searchParams.nights || 7,
+                            adults: searchParams.adults || 2,
+                            children: searchParams.children || 0,
+                            price: hotel.price || hotel.cost || 'По запросу',
+                            currency: searchParams.currency || 'USD',
+                            meal: hotel.meal || hotel.food || 'BB',
+                            checkin: searchParams.checkIn || '',
+                            checkout: searchParams.checkOut || '',
+                            description: hotel.description || hotel.info || 'Комфортабельный отель с отличным сервисом',
+                            location: hotel.location || hotel.address || 'Центральное расположение',
+                            amenities: hotel.amenities || ['WiFi', 'Бассейн', 'Ресторан']
+                        }));
+                        console.log('Converted hotels to tours:', tours);
+                    }
+                    // Look for tours in the SAMO response
+                    else if (samoData.TOURS && Array.isArray(samoData.TOURS)) {
+                        tours = samoData.TOURS.slice(0, 20).map((tour, index) => ({
+                            id: tour.id || index,
+                            hotel: tour.hotel || tour.name || `Тур ${index + 1}`,
+                            destination: tour.country || tour.destination || searchParams.countryTo || 'Вьетнам',
+                            stars: tour.stars || 4,
+                            nights: tour.nights || searchParams.nights || 7,
+                            adults: searchParams.adults || 2,
+                            children: searchParams.children || 0,
+                            price: tour.price || 'По запросу',
+                            currency: searchParams.currency || 'USD',
+                            meal: tour.meal || 'BB',
+                            checkin: searchParams.checkIn || '',
+                            checkout: searchParams.checkOut || '',
+                            description: tour.description || 'Увлекательный тур с комфортабельным размещением',
+                            location: tour.location || 'Отличное расположение',
+                            amenities: tour.amenities || ['WiFi', 'Экскурсии', 'Трансфер']
+                        }));
+                        console.log('Processed tours:', tours);
+                    }
+                }
+                // Direct data formats
+                else if (Array.isArray(data.data)) {
                     tours = data.data;
                 } else if (data.data.tours && Array.isArray(data.data.tours)) {
                     tours = data.data.tours;
                 } else if (data.data.HOTELS && Array.isArray(data.data.HOTELS)) {
-                    // Convert hotels to tour format with enhanced data
+                    // Direct hotels format
                     tours = data.data.HOTELS.slice(0, 20).map((hotel, index) => ({
                         id: hotel.id || index,
-                        hotel: hotel.hotel || hotel.name || `Hotel ${index + 1}`,
-                        destination: hotel.town || hotel.state || searchParams.countryTo || 'Vietnam',
+                        hotel: hotel.hotel || hotel.name || `Отель ${index + 1}`,
+                        destination: hotel.town || hotel.state || searchParams.countryTo || 'Вьетнам',
                         stars: hotel.stars || hotel.star || 4,
                         nights: searchParams.nights || 7,
                         adults: searchParams.adults || 2,
@@ -411,6 +462,7 @@ async function searchTours() {
                 }
             }
             
+            console.log('Final tours array:', tours);
             displaySearchResults(tours);
             showRawData(data);
             showSuccess(`Найдено ${tours.length} туров`);
