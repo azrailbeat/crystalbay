@@ -33,80 +33,7 @@ _memory_ai_config = {
     'active': True
 }
 
-_memory_leads = [
-    {
-        'id': 1,
-        'name': 'Анна Петрова',
-        'phone': '+7 (495) 123-45-67',
-        'email': 'anna.petrova@email.com',
-        'destination': 'Вьетнам, Нячанг',
-        'departure_city': 'Москва',
-        'budget': '150000 руб',
-        'adults': 2,
-        'children': 1,
-        'duration': '10 дней',
-        'departure_date': '2025-12-15',
-        'status': 'новое',
-        'source': 'Сайт',
-        'notes': 'Интересуют отели 4-5*',
-        'created_at': '2025-08-30T10:30:00',
-        'updated_at': '2025-08-30T10:30:00'
-    },
-    {
-        'id': 2,
-        'name': 'Михаил Сидоров',
-        'phone': '+7 (495) 987-65-43',
-        'email': 'mikhail.sidorov@email.com',
-        'destination': 'Таиланд, Пхукет',
-        'departure_city': 'Санкт-Петербург',
-        'budget': '200000 руб',
-        'adults': 2,
-        'children': 0,
-        'duration': '14 дней',
-        'departure_date': '2025-11-20',
-        'status': 'в работе',
-        'source': 'Телефон',
-        'notes': 'Медовый месяц, романтический отдых',
-        'created_at': '2025-08-29T14:15:00',
-        'updated_at': '2025-08-30T09:20:00'
-    },
-    {
-        'id': 3,
-        'name': 'Елена Козлова',
-        'phone': '+7 (495) 555-77-99',
-        'email': 'elena.kozlova@email.com',
-        'destination': 'Индонезия, Бали',
-        'departure_city': 'Екатеринбург',
-        'budget': '120000 руб',
-        'adults': 1,
-        'children': 0,
-        'duration': '7 дней',
-        'departure_date': '2025-10-05',
-        'status': 'обработано',
-        'source': 'Instagram',
-        'notes': 'Йога-ретрит, вегетарианское питание',
-        'created_at': '2025-08-28T16:45:00',
-        'updated_at': '2025-08-30T11:10:00'
-    },
-    {
-        'id': 4,
-        'name': 'Дмитрий Волков',
-        'phone': '+7 (495) 321-99-88',
-        'email': 'dmitry.volkov@email.com',
-        'destination': 'Мальдивы',
-        'departure_city': 'Москва',
-        'budget': '500000 руб',
-        'adults': 2,
-        'children': 2,
-        'duration': '12 дней',
-        'departure_date': '2025-12-25',
-        'status': 'закрыто',
-        'source': 'Рекомендация',
-        'notes': 'Новогодний отдых, семейный отель',
-        'created_at': '2025-08-27T09:30:00',
-        'updated_at': '2025-08-30T08:45:00'
-    }
-]
+_memory_leads = []  # Real leads from SAMO API only
 
 supabase = None
 try:
@@ -178,18 +105,126 @@ class LeadService:
     """Service for lead management"""
     
     def get_leads(self, limit=50):
-        """Get leads from database or memory"""
+        """Get leads from SAMO API and database"""
+        # First try to get from SAMO API
+        samo_leads = self._fetch_leads_from_samo()
+        
         if not is_supabase_available():
-            return _memory_leads[:limit]
+            # Merge SAMO leads with memory leads
+            all_leads = samo_leads + _memory_leads
+            return all_leads[:limit]
             
         try:
             if supabase:
                 response = supabase.table('leads').select('*').order('created_at', desc=True).limit(limit).execute()
-                return response.data if response.data else []
-            return _memory_leads[:limit]
+                db_leads = response.data if response.data else []
+                # Merge SAMO leads with database leads
+                all_leads = samo_leads + db_leads
+                return all_leads[:limit]
+            return samo_leads[:limit]
         except Exception as e:
             logger.error(f"Failed to get leads: {e}")
-            return _memory_leads[:limit]
+            return samo_leads[:limit]
+    
+    def _fetch_leads_from_samo(self):
+        """Fetch leads/bookings from SAMO API"""
+        try:
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            samo_api = CrystalBaySamoAPI()
+            
+            # Try to get bookings data from SAMO API
+            response = samo_api.get_bookings_api()
+            
+            if response.get('success') and response.get('data'):
+                # Parse booking data into lead format
+                return self._parse_samo_bookings(response['data'])
+                
+            # Fallback: try to get general data that might contain bookings
+            response = samo_api.search_tours_detailed({})
+            if response.get('success') and response.get('data'):
+                # Check if there's any booking information in the response
+                return self._parse_samo_general_data(response['data'])
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch leads from SAMO: {e}")
+            
+        return []
+    
+    def _parse_samo_bookings(self, samo_data):
+        """Parse SAMO booking data into lead format"""
+        leads = []
+        
+        try:
+            # Check if we have booking data in the response
+            if isinstance(samo_data, dict):
+                # Look for booking-related keys in the response
+                booking_keys = ['bookings', 'claims', 'orders', 'reservations']
+                
+                for key in booking_keys:
+                    if key in samo_data and isinstance(samo_data[key], list):
+                        for booking in samo_data[key]:
+                            lead = self._convert_booking_to_lead(booking)
+                            if lead:
+                                leads.append(lead)
+                                
+        except Exception as e:
+            logger.error(f"Failed to parse SAMO bookings: {e}")
+            
+        return leads
+    
+    def _parse_samo_general_data(self, samo_data):
+        """Parse general SAMO data for any lead information"""
+        leads = []
+        
+        try:
+            # For SearchTour_ALL response, there might be booking history or client data
+            if isinstance(samo_data, dict) and 'SearchTour_ALL' in samo_data:
+                # This endpoint mainly contains configuration data
+                # No client booking data expected here
+                pass
+                
+        except Exception as e:
+            logger.error(f"Failed to parse SAMO general data: {e}")
+            
+        return leads
+    
+    def _convert_booking_to_lead(self, booking):
+        """Convert SAMO booking to lead format"""
+        try:
+            lead = {
+                'id': booking.get('id', f"samo_{hash(str(booking))}"),
+                'name': booking.get('client_name', booking.get('name', 'Клиент SAMO')),
+                'phone': booking.get('phone', booking.get('contact_phone', '')),
+                'email': booking.get('email', booking.get('contact_email', '')),
+                'destination': booking.get('destination', booking.get('tour_name', '')),
+                'departure_city': booking.get('departure_city', ''),
+                'budget': booking.get('total_cost', booking.get('price', 'По запросу')),
+                'adults': booking.get('adults', 2),
+                'children': booking.get('children', 0),
+                'duration': booking.get('duration', booking.get('nights', '')),
+                'departure_date': booking.get('departure_date', booking.get('check_in', '')),
+                'status': self._map_samo_status(booking.get('status', 'active')),
+                'source': 'SAMO API',
+                'notes': booking.get('notes', booking.get('comments', '')),
+                'created_at': booking.get('created_at', datetime.now().isoformat()),
+                'updated_at': booking.get('updated_at', datetime.now().isoformat())
+            }
+            return lead
+        except Exception as e:
+            logger.error(f"Failed to convert booking to lead: {e}")
+            return None
+    
+    def _map_samo_status(self, samo_status):
+        """Map SAMO booking status to CRM status"""
+        status_mapping = {
+            'new': 'новое',
+            'confirmed': 'в работе', 
+            'paid': 'обработано',
+            'completed': 'закрыто',
+            'cancelled': 'отменено',
+            'active': 'в работе'
+        }
+        return status_mapping.get(samo_status.lower(), 'новое')
     
     def create_lead(self, lead_data):
         """Create new lead"""

@@ -195,6 +195,45 @@ def register_api_routes(app):
         except Exception as e:
             logger.error(f"Error searching SAMO tours: {str(e)}")
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/samo/bookings', methods=['GET'])
+    def get_samo_bookings():
+        """Get bookings from SAMO API"""
+        try:
+            from crystal_bay_samo_api import CrystalBaySamoAPI
+            samo_api = CrystalBaySamoAPI()
+            
+            # Get date range from query parameters
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            
+            # Use the existing booking API method
+            result = samo_api.get_bookings_api(date_from, date_to)
+            
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Error getting SAMO bookings: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/leads', methods=['GET'])
+    def get_leads():
+        """Get all leads from SAMO API and database"""
+        try:
+            from models import LeadService
+            lead_service = LeadService()
+            leads = lead_service.get_leads()
+            return jsonify({
+                'success': True,
+                'data': leads,
+                'count': len(leads),
+                'source': 'samo_api'
+            })
+        except Exception as e:
+            logger.error(f"Error getting leads: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
     
     
     @app.route('/api/settings/samo', methods=['POST'])
