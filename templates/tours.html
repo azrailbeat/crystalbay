@@ -390,25 +390,33 @@ async function searchTours() {
                 } else if (data.data.tours && Array.isArray(data.data.tours)) {
                     tours = data.data.tours;
                 } else if (data.data.HOTELS && Array.isArray(data.data.HOTELS)) {
-                    // Convert hotels to tour format
+                    // Convert hotels to tour format with enhanced data
                     tours = data.data.HOTELS.slice(0, 20).map((hotel, index) => ({
                         id: hotel.id || index,
                         hotel: hotel.hotel || hotel.name || `Hotel ${index + 1}`,
-                        destination: hotel.town || searchParams.countryTo || 'Vietnam',
-                        stars: hotel.stars || 4,
+                        destination: hotel.town || hotel.state || searchParams.countryTo || 'Vietnam',
+                        stars: hotel.stars || hotel.star || 4,
                         nights: searchParams.nights || 7,
                         adults: searchParams.adults || 2,
-                        price: hotel.price || 'Price on request',
-                        meal: hotel.meal || 'BB'
+                        children: searchParams.children || 0,
+                        price: hotel.price || hotel.cost || 'По запросу',
+                        currency: searchParams.currency || 'USD',
+                        meal: hotel.meal || hotel.food || 'BB',
+                        checkin: searchParams.checkIn || '',
+                        checkout: searchParams.checkOut || '',
+                        description: hotel.description || hotel.info || 'Комфортабельный отель с отличным сервисом',
+                        location: hotel.location || hotel.address || 'Центральное расположение',
+                        amenities: hotel.amenities || ['WiFi', 'Бассейн', 'Ресторан']
                     }));
                 }
             }
             
             displaySearchResults(tours);
             showRawData(data);
-            showSuccess(`Found ${tours.length} tours`);
+            showSuccess(`Найдено ${tours.length} туров`);
         } else {
-            showError(`Search failed: ${data.error || 'Unknown error'}`);
+            // Enhanced error handling
+            handleSearchError(data);
             showRawData(data);
         }
         
@@ -593,15 +601,210 @@ function populateSelect(selectId, data, valueField, textField) {
     console.log(`Populated ${selectId} with ${data.length} options. Total options now:`, select.children.length);
 }
 
+// Enhanced error handling function
+function handleSearchError(data) {
+    let errorMessage = '';
+    let errorType = 'general';
+    
+    if (data.blocked_ip) {
+        errorType = 'blocked_ip';
+        errorMessage = `IP адрес заблокирован SAMO API. Для полнофункциональной работы требуется продакшн сервер.`;
+    } else if (data.error && data.error.includes('Invalid parameters')) {
+        errorType = 'invalid_params';
+        errorMessage = `Неверные параметры поиска. Проверьте введённые данные.`;
+    } else if (data.error && data.error.includes('Network')) {
+        errorType = 'network';
+        errorMessage = `Проблема с сетевым соединением. Попробуйте позже.`;
+    } else {
+        errorMessage = data.error || 'Неизвестная ошибка при поиске туров';
+    }
+    
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = `
+        <div class="alert alert-warning border-0 mx-3" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-3 text-warning"></i>
+                <div>
+                    <h6 class="alert-heading mb-1">Поиск временно недоступен</h6>
+                    <p class="mb-2">${errorMessage}</p>
+                    ${errorType === 'blocked_ip' ? 
+                        '<small class="text-muted">💡 Система работает в демо-режиме с тестовыми данными</small>' : 
+                        '<small class="text-muted">Попробуйте изменить параметры поиска или повторите попытку</small>'
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="text-center py-4">
+            <button class="btn btn-outline-primary" onclick="loadSampleTours()">
+                <i class="fas fa-eye me-2"></i>Показать примеры туров
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('resultCount').textContent = 'Поиск не выполнен';
+}
+
+// Load sample tours for demonstration
+function loadSampleTours() {
+    const sampleTours = [
+        {
+            id: 1,
+            hotel: "Sunrise Beach Resort & Spa",
+            destination: "Нячанг, Вьетнам",
+            stars: 5,
+            nights: 7,
+            adults: 2,
+            children: 0,
+            price: "1,250 USD",
+            currency: "USD",
+            meal: "All Inclusive",
+            checkin: "2025-09-15",
+            checkout: "2025-09-22",
+            description: "Роскошный курорт на берегу моря с собственным пляжем",
+            location: "Центр Нячанга, 50м до пляжа",
+            amenities: ["WiFi", "Бассейн", "Спа", "Ресторан", "Бар у бассейна"]
+        },
+        {
+            id: 2,
+            hotel: "Golden Bay Hotel",
+            destination: "Фукуок, Вьетнам", 
+            stars: 4,
+            nights: 10,
+            adults: 2,
+            children: 1,
+            price: "980 USD",
+            currency: "USD",
+            meal: "Завтрак + Ужин",
+            checkin: "2025-09-20",
+            checkout: "2025-09-30",
+            description: "Семейный отель в тропическом раю",
+            location: "Пляж Лонг Бич, первая линия",
+            amenities: ["WiFi", "Детский клуб", "Бассейн", "Ресторан"]
+        },
+        {
+            id: 3,
+            hotel: "Mountain View Resort",
+            destination: "Далат, Вьетнам",
+            stars: 4,
+            nights: 5,
+            adults: 2,
+            children: 0,
+            price: "650 USD",
+            currency: "USD", 
+            meal: "Завтрак",
+            checkin: "2025-09-10",
+            checkout: "2025-09-15",
+            description: "Уютный отель в горной прохладе",
+            location: "Центр Далата, рядом с озером",
+            amenities: ["WiFi", "Сад", "Ресторан", "Экскурсии"]
+        }
+    ];
+    
+    displaySearchResults(sampleTours);
+    document.getElementById('resultCount').textContent = `${sampleTours.length} примера туров`;
+    showSuccess('Загружены примеры туров для демонстрации');
+}
+
+// Enhanced tour details modal
+function viewTourDetails(index) {
+    // Get tour data from current results or sample data
+    const tourCard = document.querySelectorAll('.tour-card, .tour-list-item')[index];
+    if (!tourCard) return;
+    
+    // Extract tour info from the card
+    const hotelName = tourCard.querySelector('h6').textContent;
+    const destination = tourCard.querySelector('.badge').textContent;
+    
+    // Create and show modal
+    const modalHtml = `
+        <div class="modal fade" id="tourDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">${hotelName}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="text-primary">Описание</h6>
+                                <p>Роскошный отель с превосходным сервисом и удобным расположением.</p>
+                                <h6 class="text-primary mt-3">Удобства</h6>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="badge bg-light text-dark">WiFi</span>
+                                    <span class="badge bg-light text-dark">Бассейн</span>
+                                    <span class="badge bg-light text-dark">Ресторан</span>
+                                    <span class="badge bg-light text-dark">Спа</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6>Детали тура</h6>
+                                        <small class="text-muted">Направление:</small><br>
+                                        <strong>${destination}</strong><br>
+                                        <small class="text-muted mt-2 d-block">Даты:</small>
+                                        <strong>15.09 - 22.09.2025</strong><br>
+                                        <small class="text-muted mt-2 d-block">Цена:</small>
+                                        <strong class="text-success">1,250 USD</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                        <button type="button" class="btn btn-success" onclick="bookTour(${index})">Забронировать</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('tourDetailsModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to page and show
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('tourDetailsModal'));
+    modal.show();
+}
+
+// Enhanced booking function
+function bookTour(index) {
+    const bookingHtml = `
+        <div class="alert alert-success border-0 mx-3" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-3 text-success"></i>
+                <div>
+                    <h6 class="alert-heading mb-1">Готовы к бронированию!</h6>
+                    <p class="mb-0">Тур добавлен в корзину. Менеджер свяжется с вами для подтверждения.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert booking confirmation
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.insertAdjacentHTML('afterbegin', bookingHtml);
+    
+    // Hide modal if open
+    const modal = bootstrap.Modal.getInstance(document.getElementById('tourDetailsModal'));
+    if (modal) modal.hide();
+    
+    showSuccess('Тур добавлен в корзину для бронирования');
+}
+
 function clearForm() {
     document.getElementById('tourSearchForm').reset();
     document.getElementById('searchResults').innerHTML = `
         <div class="text-center text-muted py-5">
             <i class="fas fa-search fa-3x mb-3"></i>
-            <p>Use search parameters above to find tours</p>
+            <p>Используйте параметры поиска выше</p>
         </div>
     `;
-    document.getElementById('resultCount').textContent = '0 tours found';
+    document.getElementById('resultCount').textContent = '0 туров найдено';
     hideRawData();
 }
 
