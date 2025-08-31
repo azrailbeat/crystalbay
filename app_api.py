@@ -1117,19 +1117,17 @@ def register_api_routes(app):
 
     @app.route('/api/samo/get_townfroms', methods=['GET'])
     def api_samo_get_townfroms():
-        """Get list of departure cities using real SAMO data"""
+        """Get list of departure cities using real data"""
         try:
-            from samo_data_processor import samo_processor
+            from city_data import get_real_departure_cities
             
-            departure_cities = samo_processor.get_departure_cities()
+            departure_cities = get_real_departure_cities()
             
             return jsonify({
                 "success": True,
                 "data": {
-                    "townfroms": departure_cities,
-                    "count": len(departure_cities)
-                },
-                "source": "real_samo_data"
+                    "townfroms": departure_cities
+                }
             })
                 
         except Exception as e:
@@ -1143,9 +1141,24 @@ def register_api_routes(app):
     def api_samo_get_destinations():
         """Get list of available destinations using real SAMO data"""
         try:
+            from city_data import get_real_destinations
             from samo_data_processor import samo_processor
             
-            destinations = samo_processor.get_destinations_from_hotels()
+            # Try to get destinations from SAMO data first, fallback to real destinations
+            try:
+                destinations = samo_processor.get_destinations_from_hotels()
+                if not destinations:
+                    # Use real destinations with hotel counts
+                    real_destinations = get_real_destinations()
+                    destinations = [
+                        {**dest, 'hotel_count': 1} for dest in real_destinations
+                    ]
+            except:
+                # Fallback to real destinations
+                real_destinations = get_real_destinations()
+                destinations = [
+                    {**dest, 'hotel_count': 1} for dest in real_destinations
+                ]
             
             return jsonify({
                 "success": True,
