@@ -1730,4 +1730,81 @@ def register_api_routes(app):
                 'error': str(e)
             }), 500
 
+    # === AI ASSISTANT API ===
+    
+    @app.route('/api/ai/status', methods=['GET'])
+    def ai_status():
+        """Check AI assistant status"""
+        try:
+            from ai_samo_assistant import ai_assistant
+            
+            openai_available = bool(ai_assistant.openai_api_key)
+            samo_available = bool(ai_assistant.samo_api)
+            
+            return jsonify({
+                'success': True,
+                'openai_available': openai_available,
+                'samo_available': samo_available,
+                'status': 'healthy' if openai_available and samo_available else 'partial'
+            })
+        except Exception as e:
+            logger.error(f"AI status error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'openai_available': False,
+                'samo_available': False
+            }), 500
+    
+    @app.route('/api/ai/chat', methods=['POST'])
+    def ai_chat():
+        """Process AI chat message"""
+        try:
+            from ai_samo_assistant import ai_assistant
+            
+            data = request.get_json()
+            user_message = data.get('message', '').strip()
+            
+            if not user_message:
+                return jsonify({
+                    'success': False,
+                    'error': 'Message is required'
+                }), 400
+            
+            # Process with AI
+            result = ai_assistant.process_user_query(user_message)
+            
+            return jsonify({
+                'success': True,
+                'ai_response': result['ai_response'],
+                'actions': result['actions'],
+                'timestamp': result['timestamp']
+            })
+            
+        except Exception as e:
+            logger.error(f"AI chat error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/ai/search-tours', methods=['POST'])
+    def ai_search_tours():
+        """AI-powered tour search"""
+        try:
+            from ai_samo_assistant import ai_assistant
+            
+            parameters = request.get_json() or {}
+            
+            result = ai_assistant.search_tours_with_ai(parameters)
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"AI search tours error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     logger.info("API routes registered successfully")

@@ -198,6 +198,11 @@ def customer_journey():
     """Customer Journey Map with CRM integration"""
     return render_template('customer_journey.html')
 
+@app.route('/ai-chat')
+def ai_chat_page():
+    """AI Assistant Chat Interface"""
+    return render_template('ai_chat.html')
+
 @app.route('/settings')
 def settings():
     """Settings page (redirect to unified)"""

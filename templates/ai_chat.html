@@ -1,0 +1,561 @@
+{% extends "layout.html" %}
+
+{% block title %}ИИ-Помощник SAMO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Chat Interface -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>ИИ-Помощник Crystal Bay Travel
+                    </h5>
+                    <div class="badge bg-success" id="connection-status">
+                        <i class="fas fa-circle me-1"></i>Подключен
+                    </div>
+                </div>
+                <div class="card-body" style="height: 60vh; overflow-y: auto;" id="chat-messages">
+                    <!-- Welcome Message -->
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                Добро пожаловать! Я ваш умный помощник для работы с системой SAMO. 
+                                Я могу помочь вам:
+                                <ul class="mt-2 mb-0">
+                                    <li>Найти подходящие туры</li>
+                                    <li>Получить информацию о направлениях</li>
+                                    <li>Проанализировать запросы клиентов</li>
+                                    <li>Дать рекомендации по турам</li>
+                                </ul>
+                                Задайте любой вопрос!
+                            </div>
+                            <div class="message-time" id="welcome-time"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form id="chat-form" class="d-flex">
+                        <input type="text" class="form-control me-2" id="user-input" 
+                               placeholder="Введите ваш вопрос..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary" id="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Быстрые действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm quick-action" 
+                                data-query="Найди туры в Нячанг на 7 ночей для 2 взрослых">
+                            <i class="fas fa-search me-1"></i>Поиск туров в Нячанг
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm quick-action" 
+                                data-query="Расскажи о Таиланде, Пхукет. Когда лучше ехать?">
+                            <i class="fas fa-info-circle me-1"></i>Информация о Пхукете
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm quick-action" 
+                                data-query="Порекомендуй направление для семейного отдыха с детьми">
+                            <i class="fas fa-heart me-1"></i>Семейный отдых
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm quick-action" 
+                                data-query="Какие туры доступны в декабре?">
+                            <i class="fas fa-calendar me-1"></i>Туры в декабре
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Status -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Статус ИИ</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>OpenAI API:</span>
+                        <span class="badge bg-success" id="openai-status">Активен</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>SAMO API:</span>
+                        <span class="badge bg-success" id="samo-status">Подключен</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Запросов сегодня:</span>
+                        <span class="badge bg-info" id="requests-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Последние действия</h6>
+                </div>
+                <div class="card-body">
+                    <div id="recent-actions">
+                        <p class="text-muted">Действий пока нет</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Выполнить действие</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="action-content">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.message {
+    display: flex;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.ai-message .message-avatar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-avatar {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.message-content {
+    max-width: 70%;
+    position: relative;
+}
+
+.user-message .message-content {
+    text-align: right;
+}
+
+.message-text {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    line-height: 1.4;
+}
+
+.user-message .message-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.ai-message .message-text {
+    background: white;
+    border: 1px solid #e9ecef;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 4px;
+    padding: 0 12px;
+}
+
+.user-message .message-time {
+    text-align: right;
+}
+
+.message-loading {
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    float: left;
+    margin: 0 1px;
+    background-color: #9E9EA1;
+    display: block;
+    border-radius: 50%;
+    opacity: 0.4;
+}
+
+.typing-indicator span:nth-of-type(1) { animation: 1s blink infinite 0.3333s; }
+.typing-indicator span:nth-of-type(2) { animation: 1s blink infinite 0.6666s; }
+.typing-indicator span:nth-of-type(3) { animation: 1s blink infinite 0.9999s; }
+
+@keyframes blink {
+    50% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.action-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    margin: 4px;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white;
+}
+
+#chat-messages {
+    scroll-behavior: smooth;
+}
+
+.quick-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+<script>
+let requestsCount = 0;
+
+$(document).ready(function() {
+    // Set welcome message time
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                 now.getMinutes().toString().padStart(2, '0');
+    $('#welcome-time').text(time);
+    
+    // Check API status on load
+    checkAPIStatus();
+    
+    // Handle form submission
+    $('#chat-form').on('submit', function(e) {
+        e.preventDefault();
+        sendMessage();
+    });
+    
+    // Quick actions
+    $('.quick-action').on('click', function() {
+        const query = $(this).data('query');
+        $('#user-input').val(query);
+        sendMessage();
+    });
+    
+    // Auto-resize input
+    $('#user-input').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+});
+
+function checkAPIStatus() {
+    // Check OpenAI API status
+    $.get('/api/ai/status')
+        .done(function(data) {
+            if (data.openai_available) {
+                $('#openai-status').removeClass('bg-danger').addClass('bg-success').text('Активен');
+            } else {
+                $('#openai-status').removeClass('bg-success').addClass('bg-danger').text('Недоступен');
+            }
+            
+            if (data.samo_available) {
+                $('#samo-status').removeClass('bg-danger').addClass('bg-success').text('Подключен');
+            } else {
+                $('#samo-status').removeClass('bg-success').addClass('bg-danger').text('Недоступен');
+            }
+        })
+        .fail(function() {
+            $('#openai-status').removeClass('bg-success').addClass('bg-warning').text('Неизвестно');
+            $('#samo-status').removeClass('bg-success').addClass('bg-warning').text('Неизвестно');
+        });
+}
+
+function sendMessage() {
+    const userInput = $('#user-input');
+    const message = userInput.val().trim();
+    
+    if (!message) return;
+    
+    // Clear input
+    userInput.val('');
+    
+    // Add user message to chat
+    addUserMessage(message);
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Send to API
+    $.post('/api/ai/chat', {
+        message: message,
+        timestamp: new Date().toISOString()
+    })
+    .done(function(response) {
+        hideTypingIndicator();
+        
+        if (response.success) {
+            addAIMessage(response.ai_response, response.actions);
+            updateRequestsCount();
+            
+            // Add to recent actions
+            if (response.actions && response.actions.length > 0) {
+                addRecentAction(response.actions[0]);
+            }
+        } else {
+            addAIMessage('Извините, произошла ошибка: ' + response.error);
+        }
+    })
+    .fail(function() {
+        hideTypingIndicator();
+        addAIMessage('Ошибка соединения с сервером. Попробуйте еще раз.');
+    });
+}
+
+function addUserMessage(message) {
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                 now.getMinutes().toString().padStart(2, '0');
+    
+    const messageHtml = `
+        <div class="message user-message">
+            <div class="message-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-text">${escapeHtml(message)}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        </div>
+    `;
+    
+    $('#chat-messages').append(messageHtml);
+    scrollToBottom();
+}
+
+function addAIMessage(message, actions = []) {
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                 now.getMinutes().toString().padStart(2, '0');
+    
+    let actionsHtml = '';
+    if (actions && actions.length > 0) {
+        actionsHtml = '<div class="mt-2">';
+        actions.forEach(action => {
+            actionsHtml += `<button class="action-button" onclick="executeAction('${action.type}', '${escapeHtml(JSON.stringify(action.parameters || {}))}')">
+                <i class="fas fa-play me-1"></i>${action.description}
+            </button>`;
+        });
+        actionsHtml += '</div>';
+    }
+    
+    const messageHtml = `
+        <div class="message ai-message">
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-text">
+                    ${message.replace(/\n/g, '<br>')}
+                    ${actionsHtml}
+                </div>
+                <div class="message-time">${time}</div>
+            </div>
+        </div>
+    `;
+    
+    $('#chat-messages').append(messageHtml);
+    scrollToBottom();
+}
+
+function showTypingIndicator() {
+    const typingHtml = `
+        <div class="message ai-message" id="typing-indicator">
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-text message-loading">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span class="ms-2">Думаю...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#chat-messages').append(typingHtml);
+    scrollToBottom();
+}
+
+function hideTypingIndicator() {
+    $('#typing-indicator').remove();
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function executeAction(actionType, parameters) {
+    let params = {};
+    try {
+        params = JSON.parse(parameters);
+    } catch(e) {
+        console.error('Error parsing parameters:', e);
+    }
+    
+    switch(actionType) {
+        case 'search_tours':
+            searchTours(params);
+            break;
+        case 'destination_info':
+            getDestinationInfo(params);
+            break;
+        case 'booking_assistance':
+            showBookingForm(params);
+            break;
+        default:
+            addAIMessage('Функция "' + actionType + '" пока не реализована.');
+    }
+}
+
+function searchTours(parameters) {
+    addAIMessage('Ищу туры по вашим параметрам...');
+    
+    $.post('/api/ai/search-tours', parameters)
+        .done(function(response) {
+            if (response.success && response.data.length > 0) {
+                let toursHtml = '<strong>Найденные туры:</strong><br><br>';
+                response.data.slice(0, 5).forEach((tour, index) => {
+                    toursHtml += `<div class="border rounded p-2 mb-2">
+                        <strong>${tour.hotel || 'Отель'}</strong><br>
+                        <small class="text-muted">
+                            ${tour.destination || ''} • ${tour.stars ? tour.stars + '★' : ''} • 
+                            ${tour.nights || '7'} ночей • ${tour.meal || 'HB'}
+                        </small>`;
+                    
+                    if (tour.ai_description) {
+                        toursHtml += `<br><div class="mt-1">${tour.ai_description}</div>`;
+                    }
+                    
+                    toursHtml += '</div>';
+                });
+                
+                if (response.data.length > 5) {
+                    toursHtml += `<br><small class="text-muted">И еще ${response.data.length - 5} вариантов...</small>`;
+                }
+                
+                addAIMessage(toursHtml);
+            } else {
+                addAIMessage('К сожалению, туры по указанным параметрам не найдены. Попробуйте изменить критерии поиска.');
+            }
+        })
+        .fail(function() {
+            addAIMessage('Ошибка при поиске туров. Попробуйте позже.');
+        });
+}
+
+function getDestinationInfo(parameters) {
+    addAIMessage('Получаю информацию о направлении...');
+    // Implementation for destination info
+}
+
+function showBookingForm(parameters) {
+    $('#action-content').html(`
+        <div class="text-center">
+            <h5>Помощь с бронированием</h5>
+            <p>Для оформления бронирования обратитесь к менеджеру или заполните форму на сайте.</p>
+        </div>
+    `);
+    $('#actionModal').modal('show');
+}
+
+function updateRequestsCount() {
+    requestsCount++;
+    $('#requests-count').text(requestsCount);
+}
+
+function addRecentAction(action) {
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                 now.getMinutes().toString().padStart(2, '0');
+    
+    const actionHtml = `
+        <div class="border-bottom pb-2 mb-2">
+            <small class="text-muted">${time}</small><br>
+            <strong>${action.description}</strong>
+        </div>
+    `;
+    
+    $('#recent-actions').prepend(actionHtml);
+    
+    // Keep only last 5 actions
+    $('#recent-actions > div:gt(4)').remove();
+    
+    // Remove "no actions" message
+    $('#recent-actions p.text-muted').remove();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
