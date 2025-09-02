@@ -4,6 +4,24 @@
 
 Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system. Its primary purpose is to streamline travel operations through automated lead processing, AI-powered customer interactions, and integrated booking management. The system features a clean web-based admin dashboard with Apple-inspired design and complete SAMO API integration for tour management.
 
+## Recent Changes (September 2025)
+
+### Production-Ready Kazakhstan-Vietnam System (September 2, 2025)
+- **Complete Demo Data Removal**: All placeholder and mock data eliminated from the system per user requirement
+- **Kazakhstan Market Configuration**: System configured specifically for Kazakhstan departures (Almaty, Astana) to Vietnam destinations
+- **SAMO API Production Setup**: OAuth token (27bd59a7ac...) configured and validated
+- **IP Whitelist Issue Identified**: IP address 34.139.221.108 requires whitelisting on SAMO server (returns 403 Forbidden)
+- **Vietnam-Specific Search Interface**: Dedicated search page for Kazakhstan → Vietnam routes with KZT currency priority
+- **Error Handling Enhancement**: System properly handles API errors without fallback to demo data
+- **Production Deployment Ready**: System prepared for server deployment with real API integration
+
+### System Status:
+- **SAMO Token**: Configured and valid ✓
+- **IP Whitelist**: Pending (34.139.221.108 blocked) ⚠️
+- **Demo Data**: Completely removed ✓
+- **Kazakhstan Config**: Almaty/Astana as primary departure cities ✓
+- **Vietnam Focus**: Priority destination configured ✓
+
 ## Recent Changes (August 2025)
 
 ### Customer Journey Map with CRM Integration (August 27, 2025)
@@ -84,7 +102,10 @@ curl --location --request POST 'https://booking.crystalbay.com/export/default.ph
 
 Preferred communication style: Simple, everyday language.
 Data integrity requirement: Use only authentic data from SAMO API, no placeholders or mock data.
+Market focus: Kazakhstan travelers (Almaty, Astana) to Vietnam destinations.
+Currency priority: Kazakhstan Tenge (KZT) as default currency.
 Production deployment: Docker-containerized system ready for deployment on external server with comprehensive cleanup and error handling.
+API Requirements: Real SAMO API integration only, no demo fallbacks.
 
 ## System Architecture
 
