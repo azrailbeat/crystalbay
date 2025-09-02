@@ -203,6 +203,11 @@ def ai_chat_page():
     """AI Assistant Chat Interface"""
     return render_template('ai_chat.html')
 
+@app.route('/samo-orders')
+def samo_orders():
+    """SAMO Orders Management page"""
+    return render_template('samo_orders.html')
+
 @app.route('/settings')
 def settings():
     """Settings page (redirect to unified)"""

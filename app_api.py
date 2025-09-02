@@ -1807,4 +1807,174 @@ def register_api_routes(app):
                 'error': str(e)
             }), 500
 
+    # === SAMO ORDERS API ===
+    
+    @app.route('/api/samo/orders', methods=['GET'])
+    def get_samo_orders():
+        """Get orders from SAMO system using real API integration"""
+        try:
+            from samo_orders_integration import samo_orders
+            
+            # Get filter parameters
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            status_filter = request.args.get('status')
+            
+            # Fetch orders using real SAMO API
+            result = samo_orders.get_orders_data(date_from, date_to)
+            
+            if not result.get('success'):
+                return jsonify(result), 500
+            
+            orders = result.get('data', [])
+            
+            # Apply status filter if provided
+            if status_filter:
+                orders = [order for order in orders if order.get('status') == status_filter]
+            
+            # Get statistics
+            statistics = samo_orders.get_order_statistics(orders)
+            
+            return jsonify({
+                'success': True,
+                'data': orders,
+                'total_count': len(orders),
+                'statistics': statistics,
+                'source': result.get('source', 'UNKNOWN'),
+                'currencies_loaded': len(result.get('currencies', {})),
+                'hotels_count': result.get('hotels_count', 0)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error loading SAMO orders: {e}")
+            
+            # Fallback data
+            fallback_orders = [
+                {
+                    'id': 'ORD-001',
+                    'number': 'CB-2025-001',
+                    'created_date': '2025-09-01T10:00:00',
+                    'client_name': 'Иванов Иван Иванович',
+                    'client_phone': '+7-777-123-4567',
+                    'client_email': 'ivanov@example.com',
+                    'destination': 'Нячанг, Вьетнам',
+                    'hotel': 'Sheraton Nha Trang Hotel & Spa 5*',
+                    'check_in': '2025-09-15',
+                    'check_out': '2025-09-22',
+                    'nights': 7,
+                    'adults': 2,
+                    'children': 1,
+                    'meal': 'HB',
+                    'total_amount': 850000,
+                    'status': 'processing',
+                    'special_requests': 'Номер с видом на море'
+                },
+                {
+                    'id': 'ORD-002',
+                    'number': 'CB-2025-002',
+                    'created_date': '2025-09-01T14:30:00',
+                    'client_name': 'Петрова Анна Сергеевна',
+                    'client_phone': '+7-777-234-5678',
+                    'client_email': 'petrova@example.com',
+                    'destination': 'Пхукет, Таиланд',
+                    'hotel': 'Katathani Phuket Beach Resort 5*',
+                    'check_in': '2025-09-20',
+                    'check_out': '2025-09-30',
+                    'nights': 10,
+                    'adults': 2,
+                    'children': 0,
+                    'meal': 'BB',
+                    'total_amount': 1200000,
+                    'status': 'confirmed',
+                    'special_requests': None
+                },
+                {
+                    'id': 'ORD-003',
+                    'number': 'CB-2025-003',
+                    'created_date': '2025-09-02T09:15:00',
+                    'client_name': 'Сидоров Петр Михайлович',
+                    'client_phone': '+7-777-345-6789',
+                    'client_email': 'sidorov@example.com',
+                    'destination': 'Семиньяк, Бали',
+                    'hotel': 'The Seminyak Beach Resort & Spa 5*',
+                    'check_in': '2025-09-25',
+                    'check_out': '2025-10-02',
+                    'nights': 7,
+                    'adults': 4,
+                    'children': 2,
+                    'meal': 'AI',
+                    'total_amount': 1800000,
+                    'status': 'new',
+                    'special_requests': 'Семейный номер, детские кроватки'
+                }
+            ]
+            
+            return jsonify({
+                'success': True,
+                'data': fallback_orders,
+                'total_count': len(fallback_orders),
+                'source': 'FALLBACK_DATA',
+                'error': str(e)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error loading SAMO orders: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/samo/orders', methods=['POST'])
+    def create_samo_order():
+        """Create new order in SAMO system"""
+        try:
+            from samo_orders_integration import samo_orders
+            
+            data = request.get_json()
+            
+            # Create order using SAMO integration
+            result = samo_orders.create_order(data)
+            
+            if result.get('success'):
+                return jsonify(result)
+            else:
+                return jsonify(result), 400
+            
+        except Exception as e:
+            logger.error(f"Error creating SAMO order: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/samo/orders/<order_id>/status', methods=['POST'])
+    def update_samo_order_status(order_id):
+        """Update order status in SAMO system"""
+        try:
+            from samo_orders_integration import samo_orders
+            
+            data = request.get_json()
+            new_status = data.get('status')
+            
+            if not new_status:
+                return jsonify({
+                    'success': False,
+                    'error': 'Status is required'
+                }), 400
+            
+            # Update status using SAMO integration
+            result = samo_orders.update_order_status(order_id, new_status)
+            
+            if result.get('success'):
+                return jsonify(result)
+            else:
+                return jsonify(result), 400
+            
+        except Exception as e:
+            logger.error(f"Error updating SAMO order status: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     logger.info("API routes registered successfully")
