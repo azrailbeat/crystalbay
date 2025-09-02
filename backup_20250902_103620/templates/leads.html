@@ -1,0 +1,2515 @@
+{% extends "layout.html" %}
+
+{% block title %}Crystal Bay Travel - Воронка обращений{% endblock %}
+
+{% block page_title %}Воронка обращений{% endblock %}
+
+{% block head %}
+<style>
+    /* Header and Navigation Styling */
+    .leads-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        padding-bottom: 1rem;
+    }
+    
+    .lead-stats {
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    /* Kanban Board Layout */
+    .kanban-board {
+        display: flex;
+        gap: 1.25rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 75vh;
+    }
+    
+    .kanban-column {
+        min-width: 320px;
+        width: 320px;
+        background-color: #f8f9fa; /* Light gray background for columns */
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    
+    .kanban-column:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    
+    .kanban-column-header {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: white;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+    
+    .column-title {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .column-count {
+        background-color: #f2f3f5;
+        border-radius: 20px;
+        padding: 0.15rem 0.6rem;
+        font-size: 0.8rem;
+        color: #666;
+        font-weight: normal;
+    }
+    
+    .lead-list {
+        padding: 1rem;
+        flex-grow: 1;
+        overflow-y: auto;
+        min-height: 100px;
+        transition: background-color 0.2s ease, border 0.2s ease;
+    }
+    
+    /* Drag and Drop styles */
+    .lead-list.drop-target {
+        background-color: rgba(13, 110, 253, 0.05);
+        border: 2px dashed rgba(13, 110, 253, 0.2);
+        border-radius: 8px;
+    }
+    
+    /* Lead Card Styling - Apple-inspired light theme */
+    .lead-card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: box-shadow 0.2s ease, transform 0.1s ease, opacity 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .lead-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    /* Drag and Drop styles */
+    .lead-card[draggable="true"] {
+        cursor: grab !important;
+    }
+    
+    .lead-card[draggable="true"]:active {
+        cursor: grabbing !important;
+    }
+    
+    .lead-card.dragging {
+        opacity: 0.7;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        transform: scale(1.02);
+    }
+    
+    .lead-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .lead-source {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .source-icon {
+        color: #007aff; /* iOS blue color */
+    }
+    
+    .lead-name {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        color: #333;
+    }
+    
+    .lead-details {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
+    }
+    
+    .lead-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .lead-tag {
+        background-color: #f2f3f5;
+        border-radius: 20px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        color: #555;
+    }
+    
+    .lead-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+    
+    .lead-date {
+        color: #888;
+    }
+    
+    .lead-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .lead-actions button {
+        background: none;
+        border: none;
+        color: #007aff; /* iOS blue */
+        padding: 0.25rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .lead-actions button:hover {
+        color: #0056b3; /* Darker blue */
+    }
+    
+    .new-lead-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.75rem;
+        background-color: transparent;
+        border: 2px dashed rgba(0,0,0,0.1);
+        border-radius: 10px;
+        color: #888;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    
+    .new-lead-btn:hover {
+        border-color: #007aff;
+        color: #007aff;
+    }
+    
+    .lead-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #f2f3f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    /* Lead modal */
+    .lead-modal .modal-header {
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .lead-modal .modal-footer {
+        border-top: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .lead-info-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead-info-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #666;
+    }
+    
+    .lead-info-value {
+        font-size: 1rem;
+    }
+    
+    .lead-status-select {
+        width: auto;
+    }
+    
+    .comment-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .comment-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comment-author {
+        font-weight: 500;
+    }
+    
+    .comment-date {
+        font-size: 0.85rem;
+        color: #888;
+    }
+    
+    .comment-content {
+        font-size: 0.95rem;
+    }
+    
+    /* AI Badge for processed cards */
+    .ai-badge {
+        background-color: #f2f3f5;
+        border-radius: 4px;
+        padding: 0.1rem 0.4rem;
+        font-size: 0.7rem;
+        color: #666;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        margin-left: 0.5rem;
+    }
+    
+    .ai-badge .bi-robot {
+        font-size: 0.8rem;
+        color: #007aff;
+    }
+    
+    /* Auto-processing loading indicator */
+    .auto-processing {
+        position: relative;
+    }
+    
+    .processing-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255,255,255,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 10px;
+    }
+    
+    .processing-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f2f3f5;
+        border-top-color: #007aff;
+        border-radius: 50%;
+        animation: spinner 0.8s linear infinite;
+    }
+    
+    @keyframes spinner {
+        to {transform: rotate(360deg);}
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Leads Header -->
+    <div class="leads-header">
+        <h5 class="mb-0">Управление и обслуживание процесса обработки обращений</h5>
+        <div class="d-flex align-items-center">
+            <div class="lead-stats me-4">
+                <span class="me-3">Всего: <span class="fw-bold">{{ leads_data.total_leads if leads_data else 0 }}</span></span>
+                <span class="me-3">Новые: <span class="fw-bold text-primary">{{ leads_data.new_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">В работе: <span class="fw-bold text-warning">{{ leads_data.in_progress_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">Ожидание: <span class="fw-bold text-info">{{ leads_data.pending_leads|length if leads_data else 0 }}</span></span>
+                <span class="me-3">Выполнено: <span class="fw-bold text-success">{{ leads_data.confirmed_leads|length if leads_data else 0 }}</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search and Action Bar -->
+    <div class="d-flex justify-content-between mb-4 mt-3">
+        <div class="d-flex">
+            <div class="input-group me-3" style="width: 220px;">
+                <input type="text" class="form-control" placeholder="Поиск обращений...">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            
+            <div class="input-group-text me-3">ИИ обработка:</div>
+            
+            <button class="btn btn-outline-success me-2" id="auto-process-btn">
+                <i class="bi bi-play-fill"></i> Авто-обработка
+            </button>
+            
+            <button class="btn btn-success me-2" onclick="syncSamoLeads()">
+                <i class="bi bi-cloud-download"></i> Синхронизация SAMO
+            </button>
+            
+            <button class="btn btn-outline-primary me-2" onclick="testSamoConnection()">
+                <i class="bi bi-wifi"></i> Тест SAMO API
+            </button>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Все статусы
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Все статусы</a></li>
+                    <li><a class="dropdown-item" href="#">Новые</a></li>
+                    <li><a class="dropdown-item" href="#">В работе</a></li>
+                    <li><a class="dropdown-item" href="#">Ожидание</a></li>
+                    <li><a class="dropdown-item" href="#">Выполнено</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+            <i class="bi bi-plus"></i> Создать обращение
+        </button>
+    </div>
+    
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <!-- New Leads Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-plus-circle text-primary"></i> Новые
+                    <span class="column-count">{{ leads_data.new_leads|length if leads_data else 0 }}</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                {% if leads_data and leads_data.new_leads %}
+                    {% for lead in leads_data.new_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Новый</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет новых лидов</p>
+                    </div>
+                {% endif %}
+                
+                <button class="new-lead-btn" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить новое обращение
+                </button>
+            </div>
+        </div>
+        
+        <!-- In Progress Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-clock-history text-warning"></i> В работе
+                    <span class="column-count">{{ leads_data.in_progress_leads|length if leads_data else 0 }}</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                {% if leads_data and leads_data.in_progress_leads %}
+                    {% for lead in leads_data.in_progress_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 1000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">В работе</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет лидов в работе</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Negotiation Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-chat-dots text-info"></i> Переговоры
+                    <span class="column-count">{{ leads_data.pending_leads|length if leads_data else 0 }}</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                {% if leads_data and leads_data.pending_leads %}
+                    {% for lead in leads_data.pending_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 2000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Переговоры</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-arrow-right-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-chat-dots" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет лидов на переговорах</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Booked Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-check-circle text-success"></i> Забронировано
+                    <span class="column-count">{{ leads_data.confirmed_leads|length if leads_data else 0 }}</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                {% if leads_data and leads_data.confirmed_leads %}
+                    {% for lead in leads_data.confirmed_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 3000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Забронировано</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-check-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет забронированных туров</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Cancelled Column -->
+        <div class="kanban-column">
+            <div class="kanban-column-header">
+                <div class="column-title">
+                    <i class="bi bi-x-circle text-danger"></i> Отменено
+                    <span class="column-count">{{ leads_data.closed_leads|length if leads_data else 0 }}</span>
+                </div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+            </div>
+            
+            <div class="lead-list">
+                {% if leads_data and leads_data.closed_leads %}
+                    {% for lead in leads_data.closed_leads %}
+                    <div class="lead-card" data-lead-id="{{ loop.index + 4000 }}" draggable="true">
+                        <div class="lead-source">
+                            <i class="bi bi-{{ 'telegram' if lead.get('source') == 'telegram' else 'globe' if lead.get('source') == 'website' else 'telephone' if lead.get('source') == 'phone' else 'envelope' if lead.get('source') == 'email' else 'person' }} source-icon"></i> 
+                            {{ lead.get('source', 'Unknown').title() }}
+                        </div>
+                        <div class="lead-name">{{ lead.get('name', 'Клиент не указан') }}</div>
+                        <div class="lead-details">{{ lead.get('message', 'Сообщение отсутствует')[:80] }}{% if lead.get('message') and lead.get('message')|length > 80 %}...{% endif %}</div>
+                        <div class="lead-tags">
+                            {% if lead.get('destination') %}
+                            <span class="lead-tag">{{ lead.get('destination') }}</span>
+                            {% endif %}
+                            <span class="lead-tag">Отменено</span>
+                        </div>
+                        <div class="lead-footer">
+                            <div class="lead-date">{{ lead.get('created_at', '')[:10] if lead.get('created_at') else 'Дата не указана' }}</div>
+                            <div class="lead-actions">
+                                <button><i class="bi bi-chat"></i></button>
+                                <button><i class="bi bi-x-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-x-circle" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Нет отмененных заявок</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Lead Modal -->
+<div class="modal fade lead-modal" id="newLeadModal" tabindex="-1" aria-labelledby="newLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newLeadModalLabel">Новое обращение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newLeadForm">
+                    <div class="mb-3">
+                        <label for="leadName" class="form-label">ФИО клиента</label>
+                        <input type="text" class="form-control" id="leadName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadContact" class="form-label">Контакт</label>
+                        <input type="text" class="form-control" id="leadContact" placeholder="Телефон или email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadSource" class="form-label">Источник</label>
+                        <select class="form-select" id="leadSource" required>
+                            <option value="" selected disabled>Выберите источник</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="website">Веб-сайт</option>
+                            <option value="phone">Телефон</option>
+                            <option value="email">Email</option>
+                            <option value="referral">Рекомендация</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadInterest" class="form-label">Интерес</label>
+                        <select class="form-select" id="leadInterest" required>
+                            <option value="" selected disabled>Выберите интерес</option>
+                            <option value="beach">Пляжный отдых</option>
+                            <option value="excursion">Экскурсионный тур</option>
+                            <option value="ski">Горнолыжный отдых</option>
+                            <option value="cruise">Круиз</option>
+                            <option value="corporate">Корпоративный тур</option>
+                            <option value="visa">Визовая поддержка</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadDetails" class="form-label">Подробности</label>
+                        <textarea class="form-control" id="leadDetails" rows="4" placeholder="Детали запроса, предпочтения клиента, направления, даты"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leadAgent" class="form-label">Назначить менеджера</label>
+                        <select class="form-select" id="leadAgent">
+                            <option value="" selected>Автоматическое назначение</option>
+                            <option value="1">Алексей Ковалев</option>
+                            <option value="2">Елена Кравцова</option>
+                            <option value="3">Мария Иванова</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Lead Modal -->
+<div class="modal fade lead-modal" id="viewLeadModal" tabindex="-1" aria-labelledby="viewLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewLeadModalLabel">Анна Смирнова</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Контактная информация</div>
+                            <div class="lead-info-value">
+                                <i class="bi bi-telephone me-2"></i> +7 (XXX) XXX-XX-XX<br>
+                                <i class="bi bi-envelope me-2"></i> anna.user@example.com
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Источник</div>
+                            <div class="lead-info-value"><i class="bi bi-telegram me-2 text-primary"></i> Telegram</div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Статус</div>
+                            <div class="lead-info-value">
+                                <select class="form-select lead-status-select">
+                                    <option value="new" selected>Новый</option>
+                                    <option value="in_progress">В работе</option>
+                                    <option value="negotiation">Переговоры</option>
+                                    <option value="booked">Забронировано</option>
+                                    <option value="cancelled">Отменено</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Менеджер</div>
+                            <div class="lead-info-value">
+                                <select class="form-select">
+                                    <option value="" selected>Не назначен</option>
+                                    <option value="1">Алексей Ковалев</option>
+                                    <option value="2">Елена Кравцова</option>
+                                    <option value="3">Мария Иванова</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Обращение</div>
+                            <div class="lead-info-value">
+                                Запрос на тур в Турцию, семейный отдых, июль-август 2025. Интересует отель 5* с аквапарком, всё включено. Бюджет около $0 на троих (2 взрослых + ребенок 7 лет).
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Теги</div>
+                            <div class="lead-tags mb-2">
+                                <span class="lead-tag">Пляжный отдых</span>
+                                <span class="lead-tag">Семья</span>
+                                <span class="lead-tag">Турция</span>
+                                <span class="lead-tag">All Inclusive</span>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-sm" placeholder="Добавить тег">
+                                <button class="btn btn-sm btn-outline-secondary" type="button">Добавить</button>
+                            </div>
+                        </div>
+                        
+                        <div class="lead-info-group">
+                            <div class="lead-info-label">Дата создания</div>
+                            <div class="lead-info-value">4 мая 2025, 15:32</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Wazzup24 Chat History -->
+                <div id="wazzup-chat-container"></div>
+                
+                <h6>История коммуникаций CRM</h6>
+                <div class="comment-list">
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="lead-avatar">AК</span>
+                            <span class="comment-author">Алексей Ковалев</span>
+                            <span class="comment-date">4 мая 2025, 15:40</span>
+                        </div>
+                        <div class="comment-content">
+                            Связался с клиентом по телефону. Уточнил предпочтения по отелю. Интересуют курорты Белек или Аланья. Отправил подборку вариантов на email.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <textarea class="form-control" rows="3" placeholder="Добавить комментарий..."></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-2">
+                                <i class="bi bi-paperclip"></i> Прикрепить
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-calendar-event"></i> Запланировать
+                            </button>
+                        </div>
+                        <button class="btn btn-primary">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/drag-and-drop.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация всех draggable элементов
+        const draggableCards = document.querySelectorAll('.lead-card');
+        const dropZones = document.querySelectorAll('.lead-list');
+        
+        let draggedItem = null;
+        
+        // Настраиваем карточки как перетаскиваемые
+        draggableCards.forEach(card => {
+            // Добавляем атрибут draggable и стиль курсора
+            card.setAttribute('draggable', 'true');
+            card.style.cursor = 'grab';
+            
+            // События для drag-and-drop
+            card.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                e.dataTransfer.setData('text/plain', this.dataset.leadId || 'unknown');
+                
+                // Небольшая задержка для визуального эффекта
+                setTimeout(() => {
+                    this.classList.add('dragging');
+                }, 0);
+            });
+            
+            card.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                draggedItem = null;
+                
+                // Убираем подсветку со всех контейнеров
+                dropZones.forEach(zone => {
+                    zone.classList.remove('drop-target');
+                });
+            });
+            
+            // Добавляем обработчик клика для открытия модального окна деталей
+            card.addEventListener('click', function(e) {
+                // Проверяем, что клик не был по кнопке действия
+                const isActionButton = e.target.closest('.lead-actions button');
+                if (!isActionButton) {
+                    // Получаем ID карточки
+                    const leadId = this.getAttribute('data-lead-id');
+                    console.log('Opening lead modal for ID:', leadId);
+                    
+                    // Открываем модальное окно с деталями
+                    const viewLeadModal = document.getElementById('viewLeadModal');
+                    if (viewLeadModal) {
+                        // Устанавливаем данные карточки в модальное окно
+                        viewLeadModal.setAttribute('data-lead-id', leadId);
+                        
+                        // Показываем модальное окно
+                        const modal = new bootstrap.Modal(viewLeadModal);
+                        modal.show();
+                        
+                        // Инициализируем Wazzup чат при открытии модального окна
+                        viewLeadModal.addEventListener('shown.bs.modal', function() {
+                            initializeWazzupChat(leadId);
+                        }, { once: true });
+                    } else {
+                        console.error('viewLeadModal element not found');
+                    }
+                }
+            });
+        });
+        
+        // Настройка зон для drop
+        dropZones.forEach(zone => {
+            // Разрешаем drop при перетаскивании над зоной
+            zone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drop-target');
+            });
+            
+            // При выходе из зоны убираем подсветку
+            zone.addEventListener('dragleave', function() {
+                this.classList.remove('drop-target');
+            });
+            
+            // Обработка события drop
+            zone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const leadId = e.dataTransfer.getData('text/plain');
+                
+                if (draggedItem) {
+                    // Добавляем карточку в новый контейнер
+                    this.appendChild(draggedItem);
+                    
+                    // Получаем новый статус из колонки
+                    const column = this.closest('.kanban-column');
+                    const newStatus = getStatusFromColumn(column);
+                    
+                    // Вызываем API для обновления статуса
+                    updateLeadStatus(leadId, newStatus);
+                    
+                    // Показываем индикатор обновления на короткое время
+                    showUpdateIndicator(draggedItem);
+                    
+                    // Обновляем счетчики в колонках
+                    updateColumnCounts();
+                }
+                
+                // Убираем подсветку
+                this.classList.remove('drop-target');
+            });
+        });
+        
+        // Инициализируем автоматическую обработку
+        if (typeof initProcessButtons === 'function') {
+            initProcessButtons();
+        }
+        
+        // Вспомогательные функции
+        function getStatusFromColumn(column) {
+            const columnTitle = column.querySelector('.column-title').textContent.trim();
+            // Разделяем текст и берем второе слово (после иконки)
+            return columnTitle.split(' ').slice(1).join(' ').trim();
+        }
+        
+        function updateLeadStatus(leadId, status) {
+            console.log(`Обновление статуса обращения ${leadId} на "${status}"`);
+            
+            // Здесь был бы вызов к API, например:
+            // fetch('/api/leads/' + leadId + '/status', {
+            //     method: 'PATCH',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ status: status })
+            // }).then(response => response.json())
+            //   .then(data => console.log('Статус обновлен:', data));
+        }
+        
+        function updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                const cardsCount = column.querySelectorAll('.lead-card').length;
+                column.querySelector('.column-count').textContent = cardsCount;
+            });
+        }
+        
+        function showUpdateIndicator(card) {
+            // Добавляем временный класс, показывающий успешное обновление
+            card.classList.add('border-success');
+            setTimeout(() => {
+                card.classList.remove('border-success');
+            }, 1000);
+        }
+        
+        // Функция для отображения уведомлений
+        window.showToast = function(message, type = 'info') {
+            try {
+                console.log(`Toast: ${message} (${type})`);
+                
+                // Создаем простое уведомление в консоли если нет toast компонента
+                if (!window.bootstrap) {
+                    console.info(`[${type.toUpperCase()}] ${message}`);
+                    return;
+                }
+                
+                // Создаем элемент для toast
+                const toastContainer = document.querySelector('.toast-container') || 
+                                     (() => {
+                                         const container = document.createElement('div');
+                                         container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                                         container.style.zIndex = '9999';
+                                         document.body.appendChild(container);
+                                         return container;
+                                     })();
+                
+                const toastId = 'toast-' + Date.now();
+                const bgClass = {
+                    'success': 'bg-success',
+                    'danger': 'bg-danger', 
+                    'warning': 'bg-warning',
+                    'info': 'bg-info'
+                }[type] || 'bg-info';
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement);
+                toast.show();
+                
+                // Автоматически удаляем toast после исчезновения
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+                
+            } catch (error) {
+                console.error('Error showing toast:', error);
+                // Fallback to simple console output
+                console.info(`[${type.toUpperCase()}] ${message}`);
+            }
+        };
+
+        // Показываем уведомление о загрузке страницы
+        setTimeout(() => {
+            showToast('Система управления лидами загружена', 'info');
+        }, 500);
+    });
+    
+    // Инициализация Drag and Drop для карточек
+    function initDragAndDrop() {
+        console.log('Initializing drag and drop with simplified approach...');
+        
+        // Полностью новый подход без клонирования и переключения существующих карточек
+        try {
+            // Сначала удаляем все слушатели с элементов
+            removeDragAndDropListeners();
+            
+            // Добавляем новые слушатели на карточки
+            const cards = document.querySelectorAll('.lead-card');
+            console.log(`Found ${cards.length} cards to make draggable`);
+            
+            cards.forEach((card, index) => {
+                // Добавляем ID, если его нет
+                if (!card.hasAttribute('data-lead-id')) {
+                    const cardId = 1000 + index;
+                    card.setAttribute('data-lead-id', cardId);
+                    console.log(`Added missing ID ${cardId} to card`);
+                }
+                
+                // Устанавливаем draggable
+                card.setAttribute('draggable', 'true');
+                
+                // Добавляем обработчики перетаскивания
+                card.addEventListener('dragstart', cardDragStart);
+                card.addEventListener('dragend', cardDragEnd);
+                
+                // Заменяем modal trigger на click handler
+                card.removeAttribute('data-bs-toggle');
+                card.removeAttribute('data-bs-target');
+                
+                // Клик по карточке для просмотра
+                card.addEventListener('click', handleCardClick);
+                
+                console.log(`Card ${card.getAttribute('data-lead-id')} is now draggable`);
+            });
+            
+            // Настраиваем колонки для приема перетаскиваемых карточек
+            const columns = document.querySelectorAll('.lead-list');
+            console.log(`Found ${columns.length} columns for drop targets`);
+            
+            columns.forEach((column, index) => {
+                column.addEventListener('dragover', columnDragOver);
+                column.addEventListener('dragenter', columnDragEnter);
+                column.addEventListener('dragleave', columnDragLeave);
+                column.addEventListener('drop', columnDrop);
+                console.log(`Column ${index} is now a drop target`);
+            });
+            
+            console.log('Drag and drop initialization completed successfully');
+        } catch (error) {
+            console.error('Error initializing drag and drop:', error);
+        }
+    }
+    
+    // Удаление всех слушателей Drag and Drop
+    function removeDragAndDropListeners() {
+        // Отключаем старые слушатели с карточек, если есть
+        document.querySelectorAll('.lead-card').forEach(card => {
+            card.removeAttribute('draggable');
+            const newCard = card.cloneNode(true);
+            if (card.parentNode) {
+                card.parentNode.replaceChild(newCard, card);
+            }
+        });
+        
+        // Отключаем старые слушатели с колонок, если есть
+        document.querySelectorAll('.lead-list').forEach(column => {
+            const newColumn = column.cloneNode(false);
+            
+            // Перемещаем все дочерние элементы
+            while (column.firstChild) {
+                newColumn.appendChild(column.firstChild);
+            }
+            
+            if (column.parentNode) {
+                column.parentNode.replaceChild(newColumn, column);
+            }
+        });
+        
+        console.log('All previous drag and drop listeners removed');
+    }
+    
+    // Переменная для хранения перетаскиваемой карточки
+    let currentDraggedCard = null;
+    
+    // Новые функции обработки событий
+    function handleCardClick(e) {
+        // Не открывать при клике на кнопки или действия
+        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            return;
+        }
+        
+        try {
+            const leadId = this.getAttribute('data-lead-id');
+            console.log('Card clicked, opening modal for lead ID:', leadId);
+            
+            // Открываем модальное окно с деталями
+            const viewLeadModal = document.getElementById('viewLeadModal');
+            if (viewLeadModal) {
+                // Устанавливаем данные карточки в модальное окно
+                viewLeadModal.setAttribute('data-lead-id', leadId);
+                
+                // Показываем модальное окно напрямую
+                const modal = new bootstrap.Modal(viewLeadModal);
+                modal.show();
+            } else {
+                console.error('viewLeadModal element not found');
+            }
+        } catch (error) {
+            console.error('Error opening lead modal:', error);
+        }
+    }
+    
+    function cardDragStart(e) {
+        try {
+            // Предотвращаем события, если это клик по кнопкам или действиям
+            if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            console.log('Starting drag for card:', this.getAttribute('data-lead-id'));
+            currentDraggedCard = this;
+            
+            // Добавляем класс для стилизации
+            this.classList.add('dragging');
+            
+            // Сохраняем ID карточки
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+            e.dataTransfer.effectAllowed = 'move';
+            
+            // Задержка для визуализации начала перетаскивания
+            setTimeout(() => {
+                if (this && this.style) {
+                    this.style.opacity = '0.4';
+                }
+            }, 0);
+            
+            return true;
+        } catch (error) {
+            console.error('Error in cardDragStart:', error);
+            return false;
+        }
+    }
+    
+    function cardDragEnd(e) {
+        console.log('Drag ended');
+        
+        try {
+            // Восстанавливаем нормальный вид карточки
+            this.classList.remove('dragging');
+            
+            // Проверяем наличие style перед обращением к нему
+            if (this && this.style) {
+                this.style.opacity = '1';
+            }
+            
+            // Убираем подсветку со всех колонок
+            document.querySelectorAll('.lead-list').forEach(col => {
+                col.classList.remove('drop-target');
+            });
+        } catch (error) {
+            console.error('Error in cardDragEnd:', error);
+        }
+    }
+    
+    function columnDragOver(e) {
+        // Это нужно для разрешения drop
+        e.preventDefault();
+        return false;
+    }
+    
+    function columnDragEnter(e) {
+        // Подсвечиваем целевую колонку
+        console.log('Entered column');
+        this.classList.add('drop-target');
+    }
+    
+    function columnDragLeave(e) {
+        // Убираем подсветку при выходе из колонки
+        this.classList.remove('drop-target');
+    }
+    
+    function columnDrop(e) {
+        // Предотвращаем стандартное поведение
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Убираем подсветку
+        this.classList.remove('drop-target');
+        
+        // Получаем ID перетаскиваемой карточки
+        const leadId = e.dataTransfer.getData('text/plain');
+        console.log('Drop detected for lead ID:', leadId);
+        
+        if (!currentDraggedCard) {
+            console.error('No card being dragged');
+            return false;
+        }
+        
+        try {
+            // Определяем исходную и целевую колонки
+            const sourceColumn = currentDraggedCard.closest('.kanban-column');
+            const targetColumn = this.closest('.kanban-column');
+            
+            if (!sourceColumn || !targetColumn) {
+                console.error('Could not determine source or target column');
+                return false;
+            }
+            
+            // Перемещаем только между разными колонками
+            if (sourceColumn !== targetColumn) {
+                console.log('Moving card between different columns');
+                
+                // Получаем индексы колонок для определения статуса
+                const columns = Array.from(document.querySelectorAll('.kanban-column'));
+                const sourceIndex = columns.indexOf(sourceColumn);
+                const targetIndex = columns.indexOf(targetColumn);
+                
+                // Определяем новый статус
+                const newStatus = getStatusByColumnIndex(targetIndex);
+                console.log(`Moving from status ${sourceIndex} to ${targetIndex}: ${newStatus}`);
+                
+                // Перемещаем карточку в DOM
+                const addButton = this.querySelector('.new-lead-btn');
+                if (addButton) {
+                    this.insertBefore(currentDraggedCard, addButton);
+                } else {
+                    this.appendChild(currentDraggedCard);
+                }
+                
+                // Обновляем счетчики в колонках
+                updateColumnCounts();
+                
+                // Отправляем запрос на обновление статуса
+                updateLeadStatus(leadId, newStatus);
+                
+                // Уведомление пользователя
+                showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
+            } else {
+                console.log('Same column drop, not moving');
+            }
+        } catch (error) {
+            console.error('Error in column drop:', error);
+        }
+        
+        return false;
+    }
+    
+    // Обработчики событий Drag and Drop
+    let draggedCard = null;
+    
+    function handleDragStart(e) {
+        console.log('Drag start event:', e.type, e.target.tagName);
+        
+        // Останавливаем обработку, если клик по actions или кнопкам
+        if (e.target.closest('.lead-actions') || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            console.log('Ignoring drag from button or action');
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        
+        try {
+            // Запоминаем перетаскиваемую карточку
+            draggedCard = this;
+            console.log('Dragging card with ID:', this.getAttribute('data-lead-id'));
+            
+            // Добавляем класс для визуального эффекта
+            this.classList.add('dragging');
+            
+            // Сохраняем информацию о карточке для передачи
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-lead-id'));
+            
+            console.log('Drag start successful');
+        } catch (error) {
+            console.error('Error in handleDragStart:', error);
+        }
+    }
+    
+    function handleDragEnd(e) {
+        try {
+            this.classList.remove('dragging');
+            
+            // Проверяем наличие style перед обращением к нему
+            if (this && this.style) {
+                this.style.opacity = '1';
+            }
+            
+            // Сбрасываем подсветку всех колонок
+            document.querySelectorAll('.lead-list').forEach(col => {
+                col.classList.remove('drop-target');
+            });
+        } catch (error) {
+            console.error('Error in handleDragEnd:', error);
+        }
+    }
+    
+    function handleDragOver(e) {
+        e.preventDefault(); // Необходимо для разрешения drop
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+    
+    function handleDragEnter(e) {
+        // Добавляем подсветку при входе в колонку
+        this.classList.add('drop-target');
+    }
+    
+    function handleDragLeave(e) {
+        // Убираем подсветку при выходе из колонки
+        this.classList.remove('drop-target');
+    }
+    
+    function handleDrop(e) {
+        e.stopPropagation(); // Останавливаем всплытие события
+        e.preventDefault();
+        
+        // Убираем подсветку
+        this.classList.remove('drop-target');
+        
+        // Получаем данные об ID карточки
+        const leadId = e.dataTransfer.getData('text/plain');
+        if (!leadId || !draggedCard) {
+            console.error('Missing leadId or draggedCard');
+            return false;
+        }
+        
+        // Проверяем, что перетаскиваем на другую колонку
+        const sourceColumn = draggedCard.closest('.kanban-column');
+        const targetColumn = this.closest('.kanban-column');
+        
+        // Проверки на наличие колонок
+        if (!sourceColumn || !targetColumn) {
+            console.error('Missing sourceColumn or targetColumn');
+            return false;
+        }
+        
+        // Перемещаем карточку только если колонки разные
+        if (sourceColumn !== targetColumn) {
+            console.log('Moving card between columns...');
+            
+            // Получаем статусы колонок
+            const columns = Array.from(document.querySelectorAll('.kanban-column'));
+            const sourceIndex = columns.indexOf(sourceColumn);
+            const targetIndex = columns.indexOf(targetColumn);
+            
+            console.log(`Moving from column ${sourceIndex} to ${targetIndex}`);
+            
+            // Определяем новый статус
+            const newStatus = getStatusByColumnIndex(targetIndex);
+            console.log(`New status: ${newStatus}`);
+            
+            // Добавляем карточку в новую колонку
+            const targetList = this;
+            
+            // Если есть кнопка "Добавить", вставляем перед ней
+            const addButton = targetList.querySelector('.new-lead-btn');
+            if (addButton) {
+                targetList.insertBefore(draggedCard, addButton);
+            } else {
+                targetList.appendChild(draggedCard);
+            }
+            
+            // Обновляем счетчики в колонках
+            updateColumnCounts();
+            
+            // Логируем успешное перемещение
+            console.log(`Card ${leadId} moved successfully`); 
+            
+            // Отправляем запрос на сервер для обновления статуса
+            updateLeadStatus(leadId, newStatus);
+            
+            // Показываем уведомление
+            showToast(`Карточка перемещена в статус "${getStatusName(newStatus)}"`, 'success');
+        } else {
+            console.log('Same column, not moving');
+        }
+        
+        return false;
+    }
+    
+    function getStatusByColumnIndex(index) {
+        // Маппинг индексов колонок к статусам
+        const statusMap = [
+            'new',            // 0 - Новые
+            'in_progress',    // 1 - В работе
+            'negotiation',    // 2 - Переговоры
+            'booked',         // 3 - Забронировано
+            'canceled'        // 4 - Отменено
+        ];
+        
+        return statusMap[index] || 'new';
+    }
+    
+    // Обновление статуса обращения на сервере
+    async function updateLeadStatus(leadId, newStatus) {
+        try {
+            // Показываем уведомление о начале обновления
+            showToast(`Обновление статуса обращения #${leadId}...`, 'info');
+            
+            // Отправляем запрос на обновление статуса
+            const response = await fetch(`/api/leads/${leadId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Статус обращения #${leadId} изменен на "${getStatusName(newStatus)}"`, 'success');
+            } else {
+                showToast(`Ошибка при обновлении статуса: ${data.error || 'Неизвестная ошибка'}`, 'danger');
+                // Возвращаем карточку назад в случае ошибки (в реальном приложении)
+            }
+        } catch (error) {
+            console.error('Error updating lead status:', error);
+            showToast(`Ошибка при обновлении статуса: ${error.message}`, 'danger');
+        }
+    }
+    
+    // Open the lead details modal for a specific lead
+    function openLeadModal(leadId) {
+        const viewLeadModal = document.getElementById('viewLeadModal');
+        const bsModal = new bootstrap.Modal(viewLeadModal);
+        
+        // Set lead ID in modal
+        viewLeadModal.setAttribute('data-lead-id', leadId);
+        
+        // For now, just show the modal without API fetch
+        bsModal.show();
+        
+        // Populate lead data
+        fetchLeadData(leadId).then(data => {
+            populateLeadModal(data);
+            bsModal.show();
+        }).catch(error => {
+            console.error('Error fetching lead data:', error);
+            showToast('Ошибка загрузки данных обращения', 'error');
+        });
+    }
+    
+    // Fetch lead data from API
+    async function fetchLeadData(leadId) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const text = await response.text();
+            if (!text || text.trim() === '') {
+                throw new Error('Empty response from server');
+            }
+            
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (jsonError) {
+                console.error('JSON parsing error:', jsonError);
+                console.error('Response text:', text);
+                throw new Error('Invalid JSON response from server');
+            }
+            
+            return data.lead;
+        } catch (error) {
+            console.error('Error fetching lead data:', error);
+            throw error;
+        }
+    }
+    
+    // Populate the lead modal with data
+    function populateLeadModal(lead) {
+        const modal = document.getElementById('viewLeadModal');
+        
+        // Set lead details
+        modal.querySelector('.lead-name-title').textContent = lead.customer_name || 'Без имени';
+        modal.querySelector('.lead-source-info').textContent = lead.source || 'Неизвестный источник';
+        modal.querySelector('.lead-email').textContent = lead.customer_email || 'Нет данных';
+        modal.querySelector('.lead-phone').textContent = lead.customer_phone || 'Нет данных';
+        modal.querySelector('.lead-status').textContent = getStatusName(lead.status);
+        modal.querySelector('.lead-created').textContent = formatDate(lead.created_at);
+        
+        // Set lead notes
+        const notesElement = modal.querySelector('.lead-notes');
+        if (notesElement) {
+            notesElement.textContent = lead.notes || 'Нет заметок';
+        }
+        
+        // Set lead interactions
+        loadLeadInteractions(lead.id);
+    }
+    
+    // Load lead interactions
+    async function loadLeadInteractions(leadId) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}/interactions`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            
+            // Populate interactions list
+            const interactionsList = document.querySelector('.comment-list');
+            if (interactionsList && data.interactions && data.interactions.length > 0) {
+                interactionsList.innerHTML = '';
+                
+                data.interactions.forEach(interaction => {
+                    const interactionHtml = createInteractionHtml(interaction);
+                    interactionsList.insertAdjacentHTML('beforeend', interactionHtml);
+                });
+            } else if (interactionsList) {
+                interactionsList.innerHTML = '<div class="no-interactions">Нет истории взаимодействий</div>';
+            }
+        } catch (error) {
+            console.error('Error loading interactions:', error);
+            showToast('Ошибка загрузки взаимодействий', 'error');
+        }
+    }
+    
+    // Create HTML for an interaction
+    function createInteractionHtml(interaction) {
+        const date = formatDate(interaction.created_at);
+        const author = interaction.agent_name || 'Система';
+        const initials = getInitials(author);
+        
+        // Add special styling for AI interactions
+        const isAiAnalysis = interaction.type === 'ai_analysis';
+        const aiClass = isAiAnalysis ? 'ai-interaction' : '';
+        
+        return `
+            <div class="comment-item ${aiClass}">
+                <div class="comment-header">
+                    <span class="lead-avatar ${isAiAnalysis ? 'ai-avatar' : ''}">
+                        ${isAiAnalysis ? '<i class="bi bi-cpu"></i>' : initials}
+                    </span>
+                    <span class="comment-author">${author}</span>
+                    <span class="comment-date">${date}</span>
+                </div>
+                <div class="comment-content">
+                    ${formatInteractionNotes(interaction.notes)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Format interaction notes with line breaks
+    function formatInteractionNotes(notes) {
+        if (!notes) return 'Нет данных';
+        return notes.replace(/\n/g, '<br>');
+    }
+    
+    // Get initials from name
+    function getInitials(name) {
+        if (!name) return '??';
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+    
+    // Format date for display
+    function formatDate(dateStr) {
+        if (!dateStr) return 'Нет даты';
+        
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleString('ru-RU', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+    
+    // Get status name from status code
+    function getStatusName(status) {
+        const statusMap = {
+            'new': 'Новый',
+            'in_progress': 'В работе',
+            'pending': 'В ожидании',
+            'confirmed': 'Подтвержден',
+            'closed': 'Закрыт',
+            'cancelled': 'Отменен'
+        };
+        
+        return statusMap[status] || status;
+    }
+    
+    // Initialize process buttons
+    function initProcessButtons() {
+        // Add AI analysis button to modal
+        const modal = document.getElementById('viewLeadModal');
+        if (modal) {
+            const analyzeBtn = modal.querySelector('.analyze-lead-btn');
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', function() {
+                    const leadId = modal.getAttribute('data-lead-id');
+                    if (leadId) {
+                        analyzeLeadWithAI(leadId);
+                    }
+                });
+            }
+            
+            // Add check booking button
+            const checkBookingBtn = modal.querySelector('.check-booking-btn');
+            if (checkBookingBtn) {
+                checkBookingBtn.addEventListener('click', function() {
+                    const leadId = modal.getAttribute('data-lead-id');
+                    if (leadId) {
+                        checkLeadBooking(leadId);
+                    }
+                });
+            }
+            
+            // Add status update buttons
+            const statusBtns = modal.querySelectorAll('.update-status-btn');
+            if (statusBtns.length > 0) {
+                statusBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const leadId = modal.getAttribute('data-lead-id');
+                        const status = this.getAttribute('data-status');
+                        if (leadId && status) {
+                            updateLeadStatus(leadId, status);
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Add process all button
+        const processAllBtn = document.querySelector('.process-all-btn');
+        if (processAllBtn) {
+            processAllBtn.addEventListener('click', function() {
+                processAllLeads();
+            });
+        }
+        
+        // Add column action buttons
+        const columnActionBtns = document.querySelectorAll('.column-action-btn');
+        if (columnActionBtns.length > 0) {
+            columnActionBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    const column = this.getAttribute('data-column');
+                    
+                    if (action === 'analyze') {
+                        analyzeColumnLeads(column);
+                    } else if (action === 'process') {
+                        processColumnLeads(column);
+                    }
+                });
+            });
+        }
+    }
+    
+    // Analyze lead with AI
+    async function analyzeLeadWithAI(leadId) {
+        try {
+            showToast('Анализирую обращение...', 'info');
+            
+            const response = await fetch(`/api/leads/${leadId}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Reload interactions to show the new analysis
+            loadLeadInteractions(leadId);
+            
+            // Show success message
+            showToast('Анализ обращения выполнен успешно', 'success');
+            
+        } catch (error) {
+            console.error('Error analyzing lead:', error);
+            showToast('Ошибка анализа обращения', 'error');
+        }
+    }
+    
+    // Check lead booking
+    async function checkLeadBooking(leadId) {
+        try {
+            // First get the lead to find booking reference
+            const lead = await fetchLeadData(leadId);
+            
+            // Extract booking reference from lead notes using regex
+            const bookingMatch = lead.notes.match(/\b([A-Z]{2}-\d{5,})\b/);
+            if (!bookingMatch) {
+                showToast('Номер брони не найден в тексте обращения', 'warning');
+                return;
+            }
+            
+            const bookingRef = bookingMatch[0];
+            showToast(`Проверяю бронь ${bookingRef}...`, 'info');
+            
+            // Check booking status
+            const response = await fetch(`/api/bookings/check/${bookingRef}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Add interaction with booking info
+            await addLeadInteraction(leadId, {
+                type: 'booking_check',
+                notes: `Данные бронирования ${bookingRef}:\n\n` +
+                       `Статус: ${data.booking.status}\n` +
+                       `Клиент: ${data.booking.customer_name}\n` +
+                       `Дата отправления: ${data.booking.departure_date}\n` +
+                       `Дата возвращения: ${data.booking.return_date}\n` +
+                       `Направление: ${data.booking.destination}\n` +
+                       `Отель: ${data.booking.hotel}\n` +
+                       `Оплачено: ${data.booking.amount_paid} / ${data.booking.total_amount}`
+            });
+            
+            // Show success message
+            showToast('Данные бронирования обновлены', 'success');
+            
+            // Reload interactions
+            loadLeadInteractions(leadId);
+            
+        } catch (error) {
+            console.error('Error checking booking:', error);
+            showToast('Ошибка проверки бронирования', 'error');
+        }
+    }
+    
+    // Add lead interaction
+    async function addLeadInteraction(leadId, interactionData) {
+        try {
+            const response = await fetch(`/api/leads/${leadId}/interactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(interactionData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding interaction:', error);
+            throw error;
+        }
+    }
+    
+    // Update lead status
+    async function updateLeadStatus(leadId, status) {
+        try {
+            showToast('Обновляю статус...', 'info');
+            
+            const response = await fetch(`/api/leads/${leadId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    requested_status: status
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update UI to reflect status change
+            const modal = document.getElementById('viewLeadModal');
+            if (modal) {
+                modal.querySelector('.lead-status').textContent = getStatusName(data.lead.status);
+            }
+            
+            // Reload interactions
+            loadLeadInteractions(leadId);
+            
+            // Reload the page to reflect the new status in the kanban board
+            // This could be optimized to move the card without a page reload
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+            
+            showToast('Статус обновлен успешно', 'success');
+            
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showToast('Ошибка обновления статуса', 'error');
+        }
+    }
+    
+    // Process all leads
+    async function processAllLeads() {
+        try {
+            showToast('Обрабатываю все обращения...', 'info');
+            
+            const response = await fetch('/api/leads/process-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Show success message with stats
+            showToast(`Обработка завершена: обновлено ${data.updated} обращений`, 'success');
+            
+            // Reload the page to reflect the changes
+            if (data.updated > 0) {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+            
+        } catch (error) {
+            console.error('Error processing all leads:', error);
+            showToast('Ошибка обработки обращений', 'error');
+        }
+    }
+    
+    // Analyze all leads in a column
+    async function analyzeColumnLeads(column) {
+        try {
+            showToast(`Анализирую обращения в колонке "${column}"...`, 'info');
+            
+            // Get all lead IDs in the column
+            const leadCards = document.querySelectorAll(`.kanban-column[data-column="${column}"] .lead-card`);
+            const leadIds = Array.from(leadCards).map(card => card.getAttribute('data-lead-id')).filter(id => id);
+            
+            if (leadIds.length === 0) {
+                showToast('Нет обращений для анализа', 'warning');
+                return;
+            }
+            
+            // Process each lead
+            let successCount = 0;
+            for (const leadId of leadIds) {
+                try {
+                    const response = await fetch(`/api/leads/${leadId}/analyze`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (e) {
+                    console.error(`Error analyzing lead ${leadId}:`, e);
+                }
+            }
+            
+            showToast(`Анализ завершен: обработано ${successCount} из ${leadIds.length} обращений`, 'success');
+            
+        } catch (error) {
+            console.error('Error analyzing column leads:', error);
+            showToast('Ошибка анализа обращений', 'error');
+        }
+    }
+    
+    // Process all leads in a column
+    async function processColumnLeads(column) {
+        try {
+            showToast(`Обрабатываю обращения в колонке "${column}"...`, 'info');
+            
+            // Get all lead IDs in the column
+            const leadCards = document.querySelectorAll(`.kanban-column[data-column="${column}"] .lead-card`);
+            const leadIds = Array.from(leadCards).map(card => card.getAttribute('data-lead-id')).filter(id => id);
+            
+            if (leadIds.length === 0) {
+                showToast('Нет обращений для обработки', 'warning');
+                return;
+            }
+            
+            // Process each lead
+            let successCount = 0;
+            for (const leadId of leadIds) {
+                try {
+                    const response = await fetch(`/api/leads/${leadId}/update-status`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (e) {
+                    console.error(`Error processing lead ${leadId}:`, e);
+                }
+            }
+            
+            showToast(`Обработка завершена: обновлено ${successCount} из ${leadIds.length} обращений`, 'success');
+            
+            // Reload the page to reflect the changes
+            if (successCount > 0) {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+            
+        } catch (error) {
+            console.error('Error processing column leads:', error);
+            showToast('Ошибка обработки обращений', 'error');
+        }
+    }
+    
+    // Schedule periodic status check
+    function scheduleStatusCheck() {
+        // Check for status updates every 5 minutes
+        setInterval(processAllLeads, 5 * 60 * 1000);
+    }
+    
+    // Автоматическая обработка обращений
+    let processingActive = false;
+    let leadQueue = [];
+    let processedCount = 0;
+    let totalLeadsToProcess = 0;
+    
+    document.getElementById('start-process-btn')?.addEventListener('click', startAutoProcess);
+    document.getElementById('stop-process-btn')?.addEventListener('click', stopAutoProcess);
+    
+    function startAutoProcess() {
+        if (processingActive) return;
+        
+        // Сбор всех обращений для обработки
+        leadQueue = [];
+        processedCount = 0;
+        
+        // Получаем настройки
+        const processNew = document.getElementById('process-new').checked;
+        const processInProgress = document.getElementById('process-in-progress').checked;
+        const showAnimation = document.getElementById('show-animation').checked;
+        
+        // Собираем карточки для обработки
+        if (processNew) {
+            const newLeads = document.querySelectorAll('.kanban-column:nth-child(1) .lead-card');
+            newLeads.forEach(card => {
+                if (card.dataset.leadId) {
+                    leadQueue.push({
+                        id: card.dataset.leadId,
+                        element: card,
+                        fromStatus: 'new',
+                        toStatus: determineNextStatus('new', card.innerText)
+                    });
+                }
+            });
+        }
+        
+        if (processInProgress) {
+            const inProgressLeads = document.querySelectorAll('.kanban-column:nth-child(2) .lead-card');
+            inProgressLeads.forEach(card => {
+                if (card.dataset.leadId) {
+                    leadQueue.push({
+                        id: card.dataset.leadId,
+                        element: card,
+                        fromStatus: 'in_progress',
+                        toStatus: determineNextStatus('in_progress', card.innerText)
+                    });
+                }
+            });
+        }
+        
+        totalLeadsToProcess = leadQueue.length;
+        
+        // Обновляем интерфейс
+        updateProcessingUI('running', 0);
+        logProcessAction('Начата автоматическая обработка обращений');
+        logProcessAction(`Всего обращений для обработки: ${totalLeadsToProcess}`);
+        
+        // Переключаем кнопки управления процессом
+        document.getElementById('start-process-btn').classList.add('d-none');
+        document.getElementById('stop-process-btn').classList.remove('d-none');
+        
+        // Запускаем обработку
+        processingActive = true;
+        processNextLead();
+    }
+    
+    function stopAutoProcess() {
+        if (!processingActive) return;
+        
+        processingActive = false;
+        logProcessAction('Процесс обработки остановлен пользователем');
+        updateProcessingUI('stopped', (processedCount / totalLeadsToProcess) * 100);
+        
+        // Переключаем кнопки управления процессом
+        document.getElementById('start-process-btn').classList.remove('d-none');
+        document.getElementById('stop-process-btn').classList.add('d-none');
+    }
+    
+    function processNextLead() {
+        if (!processingActive || leadQueue.length === 0) {
+            if (processingActive) {
+                // Завершение процесса
+                logProcessAction('Процесс обработки завершен');
+                updateProcessingUI('completed', 100);
+                processingActive = false;
+                
+                // Переключаем кнопки управления процессом
+                document.getElementById('start-process-btn').classList.remove('d-none');
+                document.getElementById('stop-process-btn').classList.add('d-none');
+            }
+            return;
+        }
+        
+        const lead = leadQueue.shift();
+        processedCount++;
+        
+        // Обновляем прогресс
+        const progress = (processedCount / totalLeadsToProcess) * 100;
+        updateProcessingUI('running', progress);
+        
+        // Логируем действие
+        logProcessAction(`Обработка обращения #${lead.id}: перемещение из "${getStatusName(lead.fromStatus)}" в "${getStatusName(lead.toStatus)}"`); 
+        
+        // Анимируем перемещение карточки, если включено
+        if (document.getElementById('show-animation').checked) {
+            moveCardWithAnimation(lead.element, lead.fromStatus, lead.toStatus, () => {
+                // По завершении обработки текущей карточки запускаем следующую
+                setTimeout(processNextLead, 500); // Пауза между обработкой обращений
+            });
+        } else {
+            // Мгновенное перемещение без анимации
+            moveCard(lead.element, lead.toStatus);
+            // Запускаем следующую с небольшой задержкой
+            setTimeout(processNextLead, 300);
+        }
+    }
+    
+    function moveCardWithAnimation(cardElement, fromStatus, toStatus, callback) {
+        // Получаем колонки источника и назначения
+        const sourceColumn = getColumnByStatus(fromStatus);
+        const targetColumn = getColumnByStatus(toStatus);
+        
+        if (!sourceColumn || !targetColumn) {
+            callback();
+            return;
+        }
+        
+        // Создаем временный клон для анимации
+        const clone = cardElement.cloneNode(true);
+        document.body.appendChild(clone);
+        
+        // Устанавливаем стили для клона
+        const cardRect = cardElement.getBoundingClientRect();
+        const targetRect = targetColumn.querySelector('.lead-list').getBoundingClientRect();
+        
+        clone.style.position = 'fixed';
+        clone.style.top = cardRect.top + 'px';
+        clone.style.left = cardRect.left + 'px';
+        clone.style.width = cardRect.width + 'px';
+        clone.style.height = cardRect.height + 'px';
+        clone.style.zIndex = '9999';
+        clone.style.transition = 'all 0.7s ease-in-out';
+        clone.style.boxShadow = '0 0 15px rgba(0, 120, 255, 0.5)';
+        
+        // Запускаем анимацию после небольшой задержки
+        setTimeout(() => {
+            clone.style.top = targetRect.top + 10 + 'px';
+            clone.style.left = targetRect.left + (targetRect.width - cardRect.width) / 2 + 'px';
+        }, 50);
+        
+        // По завершении анимации
+        clone.addEventListener('transitionend', () => {
+            // Удаляем клон
+            clone.remove();
+            
+            // Перемещаем исходную карточку
+            moveCard(cardElement, toStatus);
+            
+            // Вызываем callback
+            callback();
+        });
+    }
+    
+    function moveCard(cardElement, toStatus) {
+        // Получаем колонку назначения
+        const targetColumn = getColumnByStatus(toStatus);
+        if (!targetColumn) return;
+        
+        // Удаляем карточку из текущей колонки
+        cardElement.remove();
+        
+        // Добавляем карточку в колонку назначения
+        const targetList = targetColumn.querySelector('.lead-list');
+        
+        // Вставляем перед кнопкой "Добавить" (если есть) или в конец списка
+        const addButton = targetList.querySelector('.new-lead-btn');
+        if (addButton) {
+            targetList.insertBefore(cardElement, addButton);
+        } else {
+            targetList.appendChild(cardElement);
+        }
+        
+        // Обновляем счетчики в колонках
+        updateColumnCounts();
+    }
+    
+    function getColumnByStatus(status) {
+        // Маппинг статусов к индексам колонок
+        const statusMap = {
+            'new': 1,
+            'in_progress': 2,
+            'negotiation': 3,
+            'booked': 4,
+            'canceled': 5
+        };
+        
+        const index = statusMap[status];
+        if (!index) return null;
+        
+        return document.querySelector(`.kanban-column:nth-child(${index})`);
+    }
+    
+    async function determineNextStatus(currentStatus, content) {
+        // Используем агентов AI для анализа обращения
+        try {
+            logProcessAction(`Анализ обращения с помощью AI-агента...`);
+            
+            // Вызываем API для анализа обращения с помощью AI
+            const response = await fetch('/api/leads/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    content: content,
+                    current_status: currentStatus 
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка API: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.next_status) {
+                logProcessAction(`AI-агент рекомендует статус: ${getStatusName(data.next_status)}`);
+                return data.next_status;
+            } else {
+                throw new Error('Некорректный ответ от API');
+            }
+        } catch (error) {
+            // В случае ошибки используем запасную логику
+            logProcessAction(`Ошибка при обращении к AI-агенту: ${error.message}. Используем стандартные правила.`);
+            
+            // Стандартная логика
+            switch(currentStatus) {
+                case 'new':
+                    return 'in_progress';
+                case 'in_progress':
+                    // Проверяем содержимое карточки на ключевые слова
+                    if (content.toLowerCase().includes('люкс') || content.toLowerCase().includes('vip')) {
+                        return 'negotiation';
+                    } else if (content.toLowerCase().includes('бронирование') || content.toLowerCase().includes('забронировать')) {
+                        return 'booked';
+                    } else {
+                        return 'negotiation';
+                    }
+                case 'negotiation':
+                    return 'booked';
+                default:
+                    return currentStatus;
+            }
+        }
+    }
+    
+    function updateProcessingUI(status, progress) {
+        const statusEl = document.getElementById('process-status');
+        const progressBar = document.getElementById('process-progress');
+        
+        // Обновляем прогресс
+        progressBar.style.width = `${progress}%`;
+        progressBar.setAttribute('aria-valuenow', progress);
+        
+        // Обновляем статус
+        switch(status) {
+            case 'running':
+                statusEl.textContent = 'Выполняется';
+                statusEl.className = 'badge bg-primary';
+                break;
+            case 'completed':
+                statusEl.textContent = 'Завершено';
+                statusEl.className = 'badge bg-success';
+                break;
+            case 'stopped':
+                statusEl.textContent = 'Остановлено';
+                statusEl.className = 'badge bg-warning';
+                break;
+            default:
+                statusEl.textContent = 'Ожидание';
+                statusEl.className = 'badge bg-secondary';
+        }
+    }
+    
+    function logProcessAction(message) {
+        const log = document.getElementById('process-log');
+        const timestamp = new Date().toLocaleTimeString();
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${message}`;
+        
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+    
+    function updateColumnCounts() {
+        // Обновление счетчиков карточек в колонках
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const count = column.querySelectorAll('.lead-card').length;
+            const countElement = column.querySelector('.column-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        });
+    }
+    
+    function getStatusName(statusCode) {
+        const statusMap = {
+            'new': 'Новые',
+            'in_progress': 'В работе',
+            'negotiation': 'Переговоры',
+            'booked': 'Забронировано',
+            'canceled': 'Отменено'
+        };
+        
+        return statusMap[statusCode] || statusCode;
+    }
+</script>
+
+<!-- Модальное окно автоматической обработки обращений -->
+<div class="modal fade" id="autoProcessModal" tabindex="-1" aria-labelledby="autoProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="autoProcessModalLabel">Автоматическая обработка обращений</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="auto-process-status mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Статус обработки:</h6>
+                        <span id="process-status" class="badge bg-secondary">Ожидание</span>
+                    </div>
+                    <div class="progress">
+                        <div id="process-progress" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                
+                <div class="auto-process-log mb-4">
+                    <h6>Лог обработки:</h6>
+                    <div id="process-log" class="border rounded p-3 bg-light" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+                        <div class="log-entry text-muted">Ожидание начала обработки...</div>
+                    </div>
+                </div>
+                
+                <div class="auto-process-settings">
+                    <h6>Настройки обработки:</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="process-new" checked>
+                                <label class="form-check-label" for="process-new">Обработать новые обращения</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="process-in-progress">
+                                <label class="form-check-label" for="process-in-progress">Обработать обращения в работе</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="auto-assign">
+                                <label class="form-check-label" for="auto-assign">Автоматически назначать менеджеров</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show-animation" checked>
+                                <label class="form-check-label" for="show-animation">Показывать анимацию перемещения</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-danger d-none" id="stop-process-btn">Остановить</button>
+                <button type="button" class="btn btn-success" id="start-process-btn">Начать обработку</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция инициализации виджета Wazzup чата
+    function initializeWazzupChat(leadId) {
+        console.log('Initializing Wazzup chat for lead:', leadId);
+        
+        // Проверяем существование контейнера
+        const container = document.getElementById('wazzup-chat-container');
+        if (!container) {
+            console.error('Wazzup chat container not found');
+            return;
+        }
+        
+        // Очищаем контейнер перед инициализацией
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div><div class="mt-2">Загрузка истории чата...</div></div>';
+        
+        // Загружаем историю чата через правильный API
+        loadChatHistory(leadId);
+        
+        console.log('Wazzup chat widget initialized successfully');
+    }
+    
+    // Функция для загрузки истории чата
+    async function loadChatHistory(leadId) {
+        try {
+            const response = await fetch(`/api/chat/history/${leadId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            const container = document.getElementById('wazzup-chat-container');
+            if (!container) return;
+            
+            if (data.messages && data.messages.length > 0) {
+                // Отображаем сообщения
+                container.innerHTML = data.messages.map(msg => `
+                    <div class="chat-message ${msg.direction}">
+                        <div class="message-content">${msg.content}</div>
+                        <div class="message-time">${new Date(msg.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } else {
+                // Отображаем пустое состояние
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-chat-dots" style="font-size: 2rem;"></i>
+                        <div class="mt-2">История чата пока пуста</div>
+                        <div class="small">Сообщения будут отображаться здесь</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            const container = document.getElementById('wazzup-chat-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-danger">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                        <div class="mt-2">Ошибка загрузки чата</div>
+                        <div class="small">Проверьте подключение к серверу</div>
+                    </div>
+                `;
+            }
+        }
+    }
+                // Создаем уникальный ID для контейнера чата
+                const chatContainerId = `wazzup-chat-${leadId}`;
+                container.innerHTML = `<div id="${chatContainerId}"></div>`;
+                
+                // Инициализируем виджет
+                const chatWidget = window.initWazzupChat(chatContainerId, leadId);
+                console.log('Wazzup chat widget initialized successfully');
+                
+                return chatWidget;
+            } catch (error) {
+                console.error('Error initializing Wazzup chat widget:', error);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Ошибка загрузки истории чата Wazzup24
+                    </div>
+                `;
+            }
+        } else {
+            console.error('Wazzup chat constructor not available');
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Компонент истории чата Wazzup24 недоступен
+                </div>
+            `;
+        }
+    }
+    
+    // SAMO API Integration Functions
+    async function syncSamoLeads() {
+        try {
+            showToast('Запуск синхронизации заявок из SAMO API...', 'info');
+            
+            const response = await fetch('/api/samo/leads/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ days_back: 7 })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Синхронизация завершена! Загружено ${data.leads_count} заявок`, 'success');
+                // Перезагружаем страницу для отображения новых заявок
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast(`Ошибка синхронизации: ${data.message}`, 'warning');
+            }
+        } catch (error) {
+            console.error('Error syncing SAMO leads:', error);
+            showToast('Ошибка при синхронизации с SAMO API', 'danger');
+        }
+    }
+    
+    async function testSamoConnection() {
+        try {
+            showToast('Тестирование подключения к SAMO API...', 'info');
+            
+            const response = await fetch('/api/samo/leads/test');
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`${data.message}`, 'success');
+            } else {
+                showToast(`Ошибка подключения: ${data.message}`, 'warning');
+            }
+        } catch (error) {
+            console.error('Error testing SAMO connection:', error);
+            showToast('Ошибка при тестировании SAMO API', 'danger');
+        }
+    }
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,908 @@
+{% extends "layout.html" %}
+
+{% block title %}Tour Search - SAMO API{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Crystal Bay Tours</h1>
+                    <small class="text-muted">Professional travel booking system</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTownFroms()">
+                        Load Cities
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="loadCurrencies()">
+                        Load Currencies
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="loadCountries()">
+                        Load Destinations
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadAllData()">
+                        Load All Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Search Interface -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Tour Search - Crystal Bay Travel</h5>
+                </div>
+                <div class="card-body p-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                    
+                    <!-- Main Search Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="searchTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search-panel" type="button" role="tab">
+                                Search Tours
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="hotels-tab" data-bs-toggle="tab" data-bs-target="#hotels-panel" type="button" role="tab">
+                                Hotels
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="recommended-tab" data-bs-toggle="tab" data-bs-target="#recommended-panel" type="button" role="tab">
+                                Recommended
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets-panel" type="button" role="tab">
+                                Flight Tickets
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="searchTabsContent">
+                        <!-- Main Search Panel -->
+                        <div class="tab-pane fade show active" id="search-panel" role="tabpanel">
+                            <form id="tourSearchForm">
+                                
+                                <!-- Location and Dates Row -->
+                                <div class="row mb-3">
+                                    <div class="col-md-3" id="departureCitySection" style="display: none;">
+                                        <label class="form-label fw-bold">Departure City</label>
+                                        <select class="form-select form-select-lg" id="townFrom" name="townFrom">
+                                            <option value="">Select departure city...</option>
+                                        </select>
+                                        <small class="text-muted">Available in production with API access</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Destination</label>
+                                        <select class="form-select form-select-lg" id="countryTo" name="countryTo">
+                                            <option value="">Select destination...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Check-in</label>
+                                        <input type="date" class="form-control form-control-lg" id="checkIn" name="checkIn">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Check-out</label>
+                                        <input type="date" class="form-control form-control-lg" id="checkOut" name="checkOut">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Type</label>
+                                        <select class="form-select form-select-lg" id="tourType" name="tourType">
+                                            <option value="">All</option>
+                                            <option value="beach">Beach</option>
+                                            <option value="cultural">Cultural</option>
+                                            <option value="adventure">Adventure</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Guests and Duration Row -->
+                                <div class="row mb-3">
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Departing</label>
+                                        <input type="date" class="form-control" id="departDate" name="departDate">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Until</label>
+                                        <input type="date" class="form-control" id="untilDate" name="untilDate">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Adults</label>
+                                        <select class="form-select" id="adults" name="adults">
+                                            <option value="1">1</option>
+                                            <option value="2" selected>2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Children</label>
+                                        <select class="form-select" id="children" name="children">
+                                            <option value="0" selected>0</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Currency</label>
+                                        <select class="form-select" id="currency" name="currency">
+                                            <option value="">Select currency...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Budget From</label>
+                                        <input type="number" class="form-control" id="priceFrom" name="priceFrom" placeholder="">
+                                    </div>
+                                </div>
+
+                                <!-- Advanced Filters -->
+                                <div class="row">
+                                    <!-- Cities Column -->
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Cities</label>
+                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;" id="citiesContainer">
+                                            <div class="text-muted text-center py-3">
+                                                <small>Loading destinations...</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Categories Column -->
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Categories</label>
+                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cat_2star" name="categories[]" value="2">
+                                                <label class="form-check-label small" for="cat_2star">★★ 2*</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cat_3star" name="categories[]" value="3">
+                                                <label class="form-check-label small" for="cat_3star">★★★ 3*</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cat_4star" name="categories[]" value="4">
+                                                <label class="form-check-label small" for="cat_4star">★★★★ 4*</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cat_5star" name="categories[]" value="5">
+                                                <label class="form-check-label small" for="cat_5star">★★★★★ 5*</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cat_vip" name="categories[]" value="VIP">
+                                                <label class="form-check-label small" for="cat_vip">VIP</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hotels Column -->
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Hotels</label>
+                                        <div class="border rounded p-2" style="height: 150px; overflow-y: auto; background: white;" id="hotelsContainer">
+                                            <div class="text-muted text-center py-3">
+                                                <small>Loading hotels...</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Meal & Features Column -->
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Meals</label>
+                                        <div class="border rounded p-2 mb-2" style="height: 70px; overflow-y: auto; background: white;">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="meal_al" name="meals[]" value="AI">
+                                                <label class="form-check-label small" for="meal_al">All Inclusive</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="meal_bb" name="meals[]" value="BB">
+                                                <label class="form-check-label small" for="meal_bb">Breakfast</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="meal_fb" name="meals[]" value="FB">
+                                                <label class="form-check-label small" for="meal_fb">Full Board</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="meal_hb" name="meals[]" value="HB">
+                                                <label class="form-check-label small" for="meal_hb">Half Board</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="meal_ro" name="meals[]" value="RO">
+                                                <label class="form-check-label small" for="meal_ro">Room Only</label>
+                                            </div>
+                                        </div>
+
+                                        <label class="form-label fw-bold small">Actions</label>
+                                        <div class="border rounded p-2" style="height: 70px; background: white;">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="filter_children" name="filters[]" value="children_places">
+                                                <label class="form-check-label small" for="filter_children">Children places on beds</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="filter_comfortable" name="filters[]" value="comfortable_seats">
+                                                <label class="form-check-label small" for="filter_comfortable">Comfortable airplane seats</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="filter_no_sales" name="filters[]" value="no_sales">
+                                                <label class="form-check-label small" for="filter_no_sales">No sales conditions</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="filter_installment" name="filters[]" value="installment">
+                                                <label class="form-check-label small" for="filter_installment">Installment confirmation</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Search Actions -->
+                                <div class="row mt-4">
+                                    <div class="col-12 text-center">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="groupResults" name="groupResults" value="1">
+                                            <label class="form-check-label" for="groupResults">Group results</label>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-lg px-5 ms-3" onclick="validateAndSearchTours()">
+                                            Search Tours
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="clearFilters()">
+                                            Clear
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-lg ms-2" onclick="loadAllData()">
+                                            Refresh Data
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        <!-- Other Tabs Content -->
+                        <div class="tab-pane fade" id="hotels-panel" role="tabpanel">
+                            <div class="text-center py-5">
+                                <h5>Hotel Search</h5>
+                                <p class="text-muted">Direct hotel booking interface coming soon</p>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="recommended-panel" role="tabpanel">
+                            <div class="text-center py-5">
+                                <h5>Recommended Tours</h5>
+                                <p class="text-muted">Curated recommendations based on your preferences</p>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="tickets-panel" role="tabpanel">
+                            <div class="text-center py-5">
+                                <h5>Flight Tickets</h5>
+                                <p class="text-muted">Flight booking interface coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Search Results</h5>
+                    <div>
+                        <span id="resultCount" class="badge bg-light text-dark">0 tours found</span>
+                        <div class="btn-group ms-2">
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleView('grid')" id="gridViewBtn">
+                                Grid
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleView('list')" id="listViewBtn">
+                                List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="searchResults">
+                        <div class="text-center text-muted py-5">
+                            <div class="mb-3">
+                                <svg width="64" height="64" class="text-muted">
+                                    <rect width="64" height="40" rx="4" fill="currentColor" opacity="0.1"/>
+                                    <circle cx="20" cy="20" r="8" fill="currentColor" opacity="0.2"/>
+                                    <rect x="32" y="15" width="20" height="4" fill="currentColor" opacity="0.2"/>
+                                    <rect x="32" y="22" width="16" height="3" fill="currentColor" opacity="0.1"/>
+                                    <rect x="10" y="50" width="44" height="8" rx="2" fill="currentColor" opacity="0.1"/>
+                                </svg>
+                            </div>
+                            <p class="mb-0">Use search parameters above to find tours</p>
+                            <small class="text-muted">Crystal Bay Travel - Premium tour experiences</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw API Data (for debugging) -->
+            <div class="card mt-4" id="rawDataCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">🔧 Raw API Response</h5>
+                </div>
+                <div class="card-body">
+                    <pre id="rawApiData" class="small bg-light p-3"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables for SAMO data
+let townFromsData = [];
+let currenciesData = [];
+let countriesData = [];
+
+// Validate data and search tours
+async function validateAndSearchTours() {
+    try {
+        // First validate that we have required data loaded
+        if (!countriesData || countriesData.length === 0) {
+            showError('Please wait for destinations to load, then try searching again');
+            return;
+        }
+        
+        if (!currenciesData || currenciesData.length === 0) {
+            showError('Please wait for currencies to load, then try searching again');
+            return;
+        }
+        
+        // Get form data
+        const formData = new FormData(document.getElementById('tourSearchForm'));
+        const searchParams = Object.fromEntries(formData.entries());
+        
+        // Detailed validation logging
+        console.log('Validation Check - Form Data:', searchParams);
+        console.log('Check-in date:', searchParams.checkIn);
+        console.log('Check-out date:', searchParams.checkOut);
+        console.log('Currency:', searchParams.currency);
+        console.log('Destination:', searchParams.countryTo);
+        
+        // Validate required fields
+        if (!searchParams.checkIn || !searchParams.checkOut) {
+            console.log('Validation Failed: Missing dates');
+            showError('Please select check-in and check-out dates');
+            return;
+        }
+        
+        if (!searchParams.currency) {
+            console.log('Validation Failed: Missing currency');
+            showError('Please select a currency');
+            return;
+        }
+        
+        // Validate destination is selected
+        if (!searchParams.countryTo) {
+            console.log('Validation Failed: Missing destination');
+            showError('Please select a destination');
+            return;
+        }
+        
+        console.log('All validation passed, proceeding with search...');
+        
+        // Validate destination is selected
+        if (!searchParams.countryTo) {
+            showError('Please select a destination');
+            return;
+        }
+        
+        // Validate dates
+        const checkInDate = new Date(searchParams.checkIn);
+        const checkOutDate = new Date(searchParams.checkOut);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (checkInDate < today) {
+            showError('Check-in date cannot be in the past');
+            return;
+        }
+        
+        if (checkOutDate <= checkInDate) {
+            showError('Check-out date must be after check-in date');
+            return;
+        }
+        
+        // Proceed with search
+        showLoading('Validating parameters...');
+        setTimeout(() => searchTours(), 300);
+        
+    } catch (error) {
+        showError(`Validation error: ${error.message}`);
+    }
+}
+
+// Clear all filters and reset form
+function clearFilters() {
+    document.getElementById('tourSearchForm').reset();
+    
+    // Reset to default dates
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekLater = new Date(today);
+    weekLater.setDate(weekLater.getDate() + 8);
+    
+    document.getElementById('checkIn').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('checkOut').value = weekLater.toISOString().split('T')[0];
+    document.getElementById('departDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('untilDate').value = weekLater.toISOString().split('T')[0];
+    
+    // Clear results
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-muted py-5">
+            <p class="mb-0">Use search parameters above to find tours</p>
+            <small class="text-muted">Crystal Bay Travel - Premium tour experiences</small>
+        </div>
+    `;
+    document.getElementById('resultCount').textContent = '0 tours found';
+    
+    showSuccess('Search form cleared');
+}
+
+// Load departure cities from SAMO API
+async function loadTownFroms() {
+    try {
+        console.log('Loading:', 'Loading cities...');
+        const response = await fetch('/api/samo/get_townfroms', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data && data.data.townfroms && data.data.townfroms.length > 0) {
+            townFromsData = data.data.townfroms;
+            populateSelect('townFrom', townFromsData, 'id', 'name');
+            document.getElementById('departureCitySection').style.display = 'block';
+            console.log('Success:', `Loaded ${townFromsData.length} real departure cities`);
+        } else {
+            // Hide departure city field if no real data available
+            document.getElementById('departureCitySection').style.display = 'none';
+            console.log('Info:', 'No real departure cities available - field hidden');
+        }
+    } catch (error) {
+        console.log('Error:', `Error loading cities: ${error.message}`);
+    }
+}
+
+// Load currencies from SAMO API
+async function loadCurrencies() {
+    try {
+        console.log('Loading:', 'Loading currencies...');
+        const response = await fetch('/api/samo/get_currencies', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        console.log('Currency API Response Status:', response.status);
+        const data = await response.json();
+        console.log('Currency API Response Data:', data);
+        
+        if (data.success && data.data) {
+            currenciesData = data.data;
+            populateSelect('currency', currenciesData, 'code', 'code');
+            console.log('Success:', `Loaded ${currenciesData.length} currencies from real SAMO data`);
+            console.log('Currencies:', currenciesData);
+        } else {
+            console.log('Error:', `Failed to load currencies: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.log('Error:', `Error loading currencies: ${error.message}`);
+    }
+}
+
+// Load destinations from SAMO API
+async function loadCountries() {
+    try {
+        console.log('Loading:', 'Loading destinations...');
+        const response = await fetch('/api/samo/get_destinations', {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        console.log('Destinations API Response Status:', response.status);
+        const data = await response.json();
+        console.log('Destinations API Response Data:', data);
+        
+        if (data.success && data.data) {
+            countriesData = data.data;
+            console.log('Countries Data Structure:', countriesData);
+            populateSelect('countryTo', countriesData, 'name', 'name');
+            populateCitiesCheckboxes(countriesData);
+            console.log('Success:', `Loaded ${countriesData.length} destinations from real SAMO data`);
+        } else {
+            console.log('Error:', `Failed to load destinations: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.log('Error:', `Error loading destinations: ${error.message}`);
+    }
+}
+
+// Populate cities checkboxes with real destinations
+function populateCitiesCheckboxes(destinations) {
+    const container = document.getElementById('citiesContainer');
+    if (!container) return;
+    
+    let html = '';
+    destinations.forEach((dest, index) => {
+        const checkboxId = `city_${dest.id}`;
+        html += `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="${checkboxId}" name="cities[]" value="${dest.name}">
+                <label class="form-check-label small" for="${checkboxId}">${dest.name} (${dest.hotel_count} hotels)</label>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Load all SAMO data for comprehensive view
+async function loadAllData() {
+    try {
+        showLoading('Loading all SAMO data...');
+        const response = await fetch('/api/samo/test_api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'SearchTour_ALL'})
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showRawData(data);
+            showSuccess('All SAMO data loaded successfully');
+        } else {
+            showError(`Failed to load all data: ${data.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showError(`Error loading all data: ${error.message}`);
+    }
+}
+
+// Search tours with parameters
+async function searchTours() {
+    try {
+        const form = document.getElementById('tourSearchForm');
+        const formData = new FormData(form);
+        const searchParams = Object.fromEntries(formData.entries());
+        
+        // Remove empty values
+        Object.keys(searchParams).forEach(key => {
+            if (!searchParams[key]) delete searchParams[key];
+        });
+        
+        showLoading('Searching tours...');
+        
+        const response = await fetch('/api/samo/execute', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'SearchTour_TOURS',
+                parameters: searchParams,
+                source: 'tours_search'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySearchResults(data.data || data.tours || []);
+            showRawData(data);
+            showSuccess(`Found ${(data.data || data.tours || []).length} tours`);
+        } else {
+            showError(`Search failed: ${data.error || 'Unknown error'}`);
+            showRawData(data);
+        }
+        
+    } catch (error) {
+        showError(`Search error: ${error.message}`);
+    }
+}
+
+// Global variable to track current view mode
+let currentView = 'grid';
+let currentTours = [];
+
+// Toggle between grid and list view
+function toggleView(viewType) {
+    currentView = viewType;
+    
+    // Update button styles
+    document.getElementById('gridViewBtn').className = viewType === 'grid' 
+        ? 'btn btn-sm btn-light' : 'btn btn-sm btn-outline-light';
+    document.getElementById('listViewBtn').className = viewType === 'list' 
+        ? 'btn btn-sm btn-light' : 'btn btn-sm btn-outline-light';
+    
+    // Re-render results with new view
+    if (currentTours.length > 0) {
+        displaySearchResults(currentTours);
+    }
+}
+
+// Display search results
+function displaySearchResults(tours) {
+    const resultsDiv = document.getElementById('searchResults');
+    const countSpan = document.getElementById('resultCount');
+    
+    // Store tours for view switching
+    currentTours = tours;
+    
+    if (!tours || tours.length === 0) {
+        resultsDiv.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <div class="mb-3">
+                    <svg width="64" height="64" class="text-muted">
+                        <rect width="64" height="40" rx="4" fill="currentColor" opacity="0.1"/>
+                        <circle cx="20" cy="20" r="8" fill="currentColor" opacity="0.2"/>
+                        <rect x="32" y="15" width="20" height="4" fill="currentColor" opacity="0.2"/>
+                        <rect x="32" y="22" width="16" height="3" fill="currentColor" opacity="0.1"/>
+                        <rect x="10" y="50" width="44" height="8" rx="2" fill="currentColor" opacity="0.1"/>
+                    </svg>
+                </div>
+                <p class="mb-0">No tours found matching your criteria</p>
+                <small class="text-muted">Try adjusting your search parameters</small>
+            </div>
+        `;
+        countSpan.textContent = '0 tours found';
+        return;
+    }
+    
+    countSpan.textContent = `${tours.length} tours found`;
+    
+    let resultsHtml = '';
+    
+    if (currentView === 'grid') {
+        resultsHtml = '<div class="row p-3">';
+        tours.forEach((tour, index) => {
+            const stars = tour.stars || tour.hotel_stars || 0;
+            const starDisplay = '★'.repeat(parseInt(stars)) + '☆'.repeat(5 - parseInt(stars));
+            
+            resultsHtml += `
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-header bg-light border-0 p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-primary">${tour.destination || 'Vietnam'}</span>
+                                <small class="text-warning">${starDisplay}</small>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-primary mb-2">${tour.hotel || tour.name || `Tour ${index + 1}`}</h6>
+                            <div class="row text-sm">
+                                <div class="col-6">
+                                    <small class="text-muted">Duration:</small><br>
+                                    <strong>${tour.nights || '7'} nights</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Guests:</small><br>
+                                    <strong>${tour.adults || '2'} adults</strong>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">From</small><br>
+                                    <strong class="text-success h6 mb-0">${tour.price || 'Price on request'}</strong>
+                                </div>
+                                <span class="badge bg-info">${tour.meal || 'HB'}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 p-3 pt-0">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="viewTourDetails(${index})">
+                                    View Details
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="bookTour(${index})">
+                                    Book Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        resultsHtml += '</div>';
+    } else {
+        // List view
+        resultsHtml = '<div class="list-group list-group-flush">';
+        tours.forEach((tour, index) => {
+            const stars = tour.stars || tour.hotel_stars || 0;
+            const starDisplay = '★'.repeat(parseInt(stars));
+            
+            resultsHtml += `
+                <div class="list-group-item border-0 border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 class="mb-1 text-primary">${tour.hotel || tour.name || `Tour ${index + 1}`}</h6>
+                            <p class="mb-1 text-muted small">${tour.destination || 'Vietnam'}</p>
+                            <small class="text-warning">${starDisplay}</small>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted">Duration</small><br>
+                            <strong>${tour.nights || '7'} nights</strong>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted">Guests</small><br>
+                            <strong>${tour.adults || '2'} adults</strong>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <div class="mb-2">
+                                <strong class="text-success">${tour.price || 'Price on request'}</strong><br>
+                                <small class="text-muted">${tour.meal || 'HB'}</small>
+                            </div>
+                            <div class="btn-group-sm">
+                                <button class="btn btn-outline-primary btn-sm me-1" onclick="viewTourDetails(${index})">
+                                    Details
+                                </button>
+                                <button class="btn btn-success btn-sm" onclick="bookTour(${index})">
+                                    Book
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        resultsHtml += '</div>';
+    }
+    
+    resultsDiv.innerHTML = resultsHtml;
+}
+
+// View tour details
+function viewTourDetails(index) {
+    // Implementation for tour details modal
+    alert('Tour details feature coming soon!');
+}
+
+// Book tour
+function bookTour(index) {
+    // Implementation for booking
+    alert('Booking feature coming soon!');
+}
+
+// Utility functions
+function populateSelect(selectId, data, valueField, textField) {
+    console.log('PopulateSelect called:', {selectId, dataLength: data.length, valueField, textField, data});
+    const select = document.getElementById(selectId);
+    if (!select) {
+        console.log('Error:', `Select element ${selectId} not found`);
+        return;
+    }
+    
+    // Clear existing options except first
+    console.log('Current select options before clear:', select.children.length);
+    select.innerHTML = select.children[0].outerHTML;
+    console.log('Select cleared, adding new options...');
+    
+    data.forEach((item, index) => {
+        console.log(`Adding option ${index}:`, item);
+        const option = document.createElement('option');
+        const value = item[valueField] || item.id || item.code;
+        const text = item[textField] || item.name || item.title;
+        option.value = value;
+        option.textContent = text;
+        select.appendChild(option);
+        console.log(`Added option: value="${value}", text="${text}"`);
+    });
+    
+    console.log(`Populated ${selectId} with ${data.length} options. Total options now:`, select.children.length);
+}
+
+function clearForm() {
+    document.getElementById('tourSearchForm').reset();
+    document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <p>Use search parameters above to find tours</p>
+        </div>
+    `;
+    document.getElementById('resultCount').textContent = '0 tours found';
+    hideRawData();
+}
+
+function showRawData(data) {
+    document.getElementById('rawApiData').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('rawDataCard').style.display = 'block';
+}
+
+function hideRawData() {
+    document.getElementById('rawDataCard').style.display = 'none';
+}
+
+function showLoading(message) {
+    // Simple loading implementation
+    console.log('Loading:', message);
+}
+
+function showSuccess(message) {
+    console.log('Success:', message);
+    // You can implement toast notifications here
+}
+
+function showError(message) {
+    console.error('Error:', message);
+    // You can implement error notifications here
+}
+
+// Auto-load basic data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekLater = new Date();
+    weekLater.setDate(weekLater.getDate() + 8);
+    
+    document.getElementById('checkIn').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('checkOut').value = weekLater.toISOString().split('T')[0];
+    document.getElementById('departDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('untilDate').value = weekLater.toISOString().split('T')[0];
+    
+    // Auto-load real SAMO data
+    setTimeout(() => {
+        loadCountries();
+        loadTownFroms();
+        loadCurrencies();
+        loadHotelsForFilter();
+    }, 500);
+});
+
+// Load all SAMO data at once
+async function loadAllData() {
+    showLoading('Loading all SAMO data...');
+    
+    try {
+        // Load all data in parallel
+        await Promise.all([
+            loadTownFroms(),
+            loadCountries(), 
+            loadCurrencies()
+        ]);
+        
+        showSuccess('All SAMO data loaded successfully');
+    } catch (error) {
+        showError(`Error loading all data: ${error.message}`);
+    }
+}
+
+// Load hotels for filter checkboxes
+async function loadHotelsForFilter() {
+    try {
+        const response = await fetch('/api/samo/execute', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'SearchTour_HOTELS',
+                source: 'tours_page'
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success && data.data) {
+            populateHotelsCheckboxes(data.data.slice(0, 10)); // Show first 10 hotels
+        }
+    } catch (error) {
+        console.error('Error loading hotels for filter:', error);
+    }
+}
+
+// Populate hotels checkboxes with real hotel data
+function populateHotelsCheckboxes(hotels) {
+    const container = document.getElementById('hotelsContainer');
+    if (!container) return;
+    
+    let html = '';
+    hotels.forEach((hotel, index) => {
+        const checkboxId = `hotel_${hotel.id || index}`;
+        const stars = '★'.repeat(hotel.stars || 3);
+        html += `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="${checkboxId}" name="hotels[]" value="${hotel.hotel}">
+                <label class="form-check-label small" for="${checkboxId}">${hotel.hotel} ${stars}</label>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

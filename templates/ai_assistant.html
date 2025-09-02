@@ -1,0 +1,470 @@
+{% extends "layout.html" %}
+
+{% block title %}ИИ-Помощник - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-2">ИИ-Помощник</h1>
+            <p class="text-muted mb-0">Умный помощник для работы с SAMO API и управления заявками</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary" onclick="clearChat()">
+                <i class="bi bi-trash me-2"></i>
+                Очистить чат
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Chat Interface -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-robot me-2"></i>
+                    Чат с ИИ-помощником
+                </h5>
+            </div>
+            <div class="card-body d-flex flex-column" style="height: 600px;">
+                <div id="chat-messages" class="flex-grow-1 overflow-auto mb-3" style="max-height: 500px;">
+                    <div class="ai-message">
+                        <div class="d-flex mb-3">
+                            <div class="avatar-ai me-3">
+                                <i class="bi bi-robot"></i>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble ai-bubble">
+                                    <p>Привет! Я ваш ИИ-помощник для работы с Crystal Bay Travel.</p>
+                                    <p>Я могу помочь вам:</p>
+                                    <ul class="mb-0">
+                                        <li>Найти туры и отели через SAMO API</li>
+                                        <li>Создать заявки для клиентов</li>
+                                        <li>Проанализировать данные о турах</li>
+                                        <li>Ответить на вопросы о системе</li>
+                                    </ul>
+                                </div>
+                                <small class="text-muted">Сейчас</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="chat-form" class="d-flex">
+                    <input type="text" 
+                           class="form-control me-2" 
+                           id="chat-input" 
+                           placeholder="Напишите ваш вопрос..."
+                           autocomplete="off"
+                           disabled>
+                    <button type="submit" class="btn btn-primary" id="send-button" disabled>
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assistant Info -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Возможности ИИ
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="bi bi-search me-2"></i>Поиск туров</h6>
+                    <p class="small text-muted">Умный поиск туров по описанию на естественном языке</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="bi bi-plus-circle me-2"></i>Создание заявок</h6>
+                    <p class="small text-muted">Автоматическое создание заявок на основе пожеланий клиента</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="bi bi-bar-chart me-2"></i>Анализ данных</h6>
+                    <p class="small text-muted">Анализ трендов и рекомендации по турам</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="bi bi-question-circle me-2"></i>Консультации</h6>
+                    <p class="small text-muted">Ответы на вопросы о системе и API</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Примеры запросов
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm text-start" onclick="sendSampleQuery('Найди туры в Турцию на 7 ночей')">
+                        "Найди туры в Турцию на 7 ночей"
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm text-start" onclick="sendSampleQuery('Покажи статистику заявок за месяц')">
+                        "Покажи статистику заявок за месяц"
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm text-start" onclick="sendSampleQuery('Создай заявку для семьи из 4 человек')">
+                        "Создай заявку для семьи из 4 человек"
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm text-start" onclick="sendSampleQuery('Какие отели есть в Анталии?')">
+                        "Какие отели есть в Анталии?"
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear me-2"></i>
+                    Статус ИИ
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Модель:</span>
+                    <span class="badge bg-info">GPT-4o</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Статус:</span>
+                    <span class="badge bg-warning" id="ai-status">В разработке</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>API:</span>
+                    <span class="badge bg-primary" id="api-connection">SAMO API</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-ai {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--crystal-blue), var(--crystal-dark));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.avatar-user {
+    width: 40px;
+    height: 40px;
+    background: #6c757d;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.message-bubble {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 12px 16px;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.ai-bubble {
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    border-left: 4px solid var(--crystal-blue);
+}
+
+.user-bubble {
+    background: #e9ecef;
+    border-left: 4px solid #6c757d;
+}
+
+.user-message {
+    margin-left: auto;
+}
+
+.user-message .d-flex {
+    flex-direction: row-reverse;
+}
+
+.user-message .avatar-user {
+    margin-left: 1rem;
+    margin-right: 0;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border-left: 4px solid var(--crystal-blue);
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--crystal-blue);
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let chatHistory = [];
+
+// Отправка сообщения
+async function sendMessage(message) {
+    if (!message.trim()) return;
+    
+    // Добавляем сообщение пользователя
+    addUserMessage(message);
+    
+    // Показываем индикатор печати
+    showTypingIndicator();
+    
+    try {
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                history: chatHistory.slice(-10) // Последние 10 сообщений для контекста
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Убираем индикатор печати
+        hideTypingIndicator();
+        
+        if (data.success) {
+            addAIMessage(data.ai_response || data.message);
+        } else {
+            addAIMessage('Извините, произошла ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+        
+    } catch (error) {
+        console.error('Chat error:', error);
+        hideTypingIndicator();
+        addAIMessage('Извините, не удалось отправить сообщение. Проверьте подключение к интернету.');
+    }
+}
+
+function addUserMessage(message) {
+    const chatContainer = document.getElementById('chat-messages');
+    const timestamp = new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+    
+    const messageHTML = `
+        <div class="user-message">
+            <div class="d-flex mb-3">
+                <div class="avatar-user me-3">
+                    <i class="bi bi-person"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble user-bubble">
+                        ${escapeHtml(message)}
+                    </div>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    // Сохраняем в историю
+    chatHistory.push({
+        role: 'user',
+        content: message,
+        timestamp: new Date()
+    });
+}
+
+function addAIMessage(message) {
+    const chatContainer = document.getElementById('chat-messages');
+    const timestamp = new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+    
+    const messageHTML = `
+        <div class="ai-message">
+            <div class="d-flex mb-3">
+                <div class="avatar-ai me-3">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble ai-bubble">
+                        ${formatAIMessage(message)}
+                    </div>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    // Сохраняем в историю
+    chatHistory.push({
+        role: 'assistant',
+        content: message,
+        timestamp: new Date()
+    });
+}
+
+function showTypingIndicator() {
+    const chatContainer = document.getElementById('chat-messages');
+    
+    const typingHTML = `
+        <div class="ai-message typing-message">
+            <div class="d-flex mb-3">
+                <div class="avatar-ai me-3">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <span class="ms-2 small text-muted">ИИ печатает...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatContainer.insertAdjacentHTML('beforeend', typingHTML);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    const typingMessage = document.querySelector('.typing-message');
+    if (typingMessage) {
+        typingMessage.remove();
+    }
+}
+
+function formatAIMessage(message) {
+    // Простое форматирование сообщений
+    return escapeHtml(message)
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function sendSampleQuery(query) {
+    document.getElementById('chat-input').value = query;
+    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+}
+
+function clearChat() {
+    if (confirm('Очистить историю чата?')) {
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="ai-message">
+                <div class="d-flex mb-3">
+                    <div class="avatar-ai me-3">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble ai-bubble">
+                            <p>Чат очищен. Как дела? Чем могу помочь?</p>
+                        </div>
+                        <small class="text-muted">Сейчас</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatHistory = [];
+    }
+}
+
+// Обработка формы
+document.getElementById('chat-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (message) {
+        sendMessage(message);
+        input.value = '';
+    }
+});
+
+// Автоматическое изменение размера textarea
+document.getElementById('chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    // Временно отключаем ИИ-функционал
+    const isAIEnabled = false;
+    
+    if (isAIEnabled) {
+        document.getElementById('chat-input').disabled = false;
+        document.getElementById('send-button').disabled = false;
+        document.getElementById('ai-status').textContent = 'Активен';
+        document.getElementById('ai-status').className = 'badge bg-success';
+    } else {
+        // Показываем сообщение о разработке
+        setTimeout(() => {
+            addAIMessage('ИИ-помощник находится в разработке. Скоро будет доступен полный функционал с интеграцией OpenAI GPT-4o!');
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}

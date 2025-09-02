@@ -1,0 +1,432 @@
+{% extends "layout.html" %}
+
+{% block title %}Поиск туров - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-2">Поиск туров</h1>
+            <p class="text-muted mb-0">Поиск и бронирование туров через SAMO API</p>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search me-2"></i>
+                    Параметры поиска
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="search-form">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Страна</label>
+                            <select class="form-select" id="destination" name="destination">
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Город отправления</label>
+                            <select class="form-select" id="departure-city" name="departure_city">
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Дата заезда</label>
+                            <input type="date" class="form-control" id="check-in" name="check_in" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Ночей</label>
+                            <select class="form-select" id="nights" name="nights">
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Взрослых</label>
+                            <select class="form-select" id="adults" name="adults">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Детей</label>
+                            <select class="form-select" id="children" name="children">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Звезд</label>
+                            <select class="form-select" id="stars" name="stars">
+                                <option value="">Любая</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Питание</label>
+                            <select class="form-select" id="meal" name="meal">
+                                <option value="">Любое</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Валюта</label>
+                            <select class="form-select" id="currency" name="currency">
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-search me-2"></i>
+                                Найти туры
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                Сбросить
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list me-2"></i>
+                    Результаты поиска
+                </h5>
+                <div id="results-count" class="text-muted"></div>
+            </div>
+            <div class="card-body p-0">
+                <div id="search-results">
+                    <div class="text-center p-5 text-muted">
+                        <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <div class="mt-3">Введите параметры поиска и нажмите "Найти туры"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let searchData = {};
+
+// Загрузка справочных данных
+async function loadReferenceData() {
+    try {
+        // Загружаем все справочники параллельно
+        const [currencies, states, townFroms, nights, stars, meals] = await Promise.all([
+            fetch('/api/samo/SearchTour_CURRENCIES').then(r => r.json()),
+            fetch('/api/samo/SearchTour_STATES').then(r => r.json()),
+            fetch('/api/samo/SearchTour_TOWNFROMS').then(r => r.json()),
+            fetch('/api/samo/NIGHTS').then(r => r.json()),
+            fetch('/api/samo/SearchTour_STARS').then(r => r.json()),
+            fetch('/api/samo/SearchTour_MEALS').then(r => r.json())
+        ]);
+        
+        // Заполняем селекты
+        populateSelect('currency', currencies.data?.SearchTour_CURRENCIES || [], 'id', 'name');
+        populateSelect('destination', states.data?.SearchTour_STATES || [], 'id', 'name');
+        populateSelect('departure-city', townFroms.data?.SearchTour_TOWNFROMS || [], 'id', 'name');
+        populateSelect('nights', nights.data?.NIGHTS || [], 'nights', 'nights', ' ночей');
+        populateSelect('stars', stars.data?.SearchTour_STARS || [], 'id', 'name');
+        populateSelect('meal', meals.data?.SearchTour_MEALS || [], 'id', 'name');
+        
+        console.log('Reference data loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading reference data:', error);
+        showError('Ошибка загрузки справочных данных: ' + error.message);
+    }
+}
+
+function populateSelect(selectId, data, valueField, textField, suffix = '') {
+    const select = document.getElementById(selectId);
+    
+    if (!data || data.length === 0) {
+        select.innerHTML = '<option value="">Нет данных</option>';
+        return;
+    }
+    
+    let html = '<option value="">Выберите...</option>';
+    data.forEach(item => {
+        const value = item[valueField];
+        const text = item[textField] + suffix;
+        html += `<option value="${value}">${text}</option>`;
+    });
+    
+    select.innerHTML = html;
+}
+
+// Поиск туров
+async function searchTours(formData) {
+    const searchParams = {
+        state_id: formData.get('destination'),
+        town_from_id: formData.get('departure_city'),
+        date_from: formData.get('check_in'),
+        nights: formData.get('nights'),
+        adults: formData.get('adults'),
+        children: formData.get('children'),
+        stars: formData.get('stars'),
+        meal: formData.get('meal'),
+        currency: formData.get('currency')
+    };
+    
+    // Удаляем пустые параметры
+    Object.keys(searchParams).forEach(key => {
+        if (!searchParams[key]) {
+            delete searchParams[key];
+        }
+    });
+    
+    try {
+        const response = await fetch('/api/samo/SearchTour_ALL', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySearchResults(data.data);
+        } else {
+            showError('Ошибка поиска: ' + data.error);
+        }
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        showError('Ошибка выполнения поиска: ' + error.message);
+    }
+}
+
+function displaySearchResults(results) {
+    const container = document.getElementById('search-results');
+    const countContainer = document.getElementById('results-count');
+    
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center p-5 text-muted">
+                <i class="bi bi-exclamation-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                <div class="mt-3">По вашему запросу ничего не найдено</div>
+                <div class="mt-2">Попробуйте изменить параметры поиска</div>
+            </div>
+        `;
+        countContainer.textContent = '';
+        return;
+    }
+    
+    // Обрабатываем результаты (результат может содержать разные разделы)
+    let tours = [];
+    
+    // Ищем туры в результатах
+    if (results.SearchTour_ALL) {
+        tours = Array.isArray(results.SearchTour_ALL) ? results.SearchTour_ALL : [results.SearchTour_ALL];
+    } else if (Array.isArray(results)) {
+        tours = results;
+    } else {
+        // Пытаемся найти массив туров в любом поле
+        Object.values(results).forEach(value => {
+            if (Array.isArray(value) && value.length > 0) {
+                tours = value;
+            }
+        });
+    }
+    
+    countContainer.textContent = `Найдено: ${tours.length} туров`;
+    
+    if (tours.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info m-3">
+                <h5>Данные получены, но туры не найдены</h5>
+                <p>Получен ответ от SAMO API, но туры по указанным критериям отсутствуют.</p>
+                <details>
+                    <summary>Показать полный ответ API</summary>
+                    <pre class="mt-2 small">${JSON.stringify(results, null, 2)}</pre>
+                </details>
+            </div>
+        `;
+        return;
+    }
+    
+    // Отображаем туры
+    let html = '<div class="row">';
+    
+    tours.slice(0, 20).forEach((tour, index) => {
+        html += `
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${tour.hotel_name || tour.name || 'Тур ' + (index + 1)}</h6>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                ${tour.destination || tour.country || tour.state_name || 'Не указано'}
+                            </small>
+                        </div>
+                        
+                        ${tour.stars ? `
+                            <div class="mb-2">
+                                ${'★'.repeat(parseInt(tour.stars))}
+                                <span class="text-muted">${'☆'.repeat(5 - parseInt(tour.stars))}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="text-muted small">Ночей</div>
+                                <strong>${tour.nights || '-'}</strong>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Питание</div>
+                                <strong>${tour.meal || tour.meal_name || '-'}</strong>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Взрослых</div>
+                                <strong>${tour.adults || '-'}</strong>
+                            </div>
+                        </div>
+                        
+                        ${tour.price || tour.total_price ? `
+                            <div class="text-center mb-3">
+                                <h5 class="text-primary mb-0">
+                                    ${formatPrice(tour.price || tour.total_price, tour.currency)}
+                                </h5>
+                                <small class="text-muted">за тур</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <button class="btn btn-primary btn-sm w-100" onclick="bookTour(${index})">
+                            <i class="bi bi-plus me-1"></i>
+                            Создать заявку
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    if (tours.length > 20) {
+        html += `
+            <div class="alert alert-info m-3">
+                Показано первые 20 туров из ${tours.length} найденных.
+                Уточните параметры поиска для более точных результатов.
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    
+    // Сохраняем данные туров для бронирования
+    searchData.tours = tours;
+}
+
+function formatPrice(price, currency = 'KZT') {
+    if (!price) return '-';
+    return new Intl.NumberFormat('ru-RU', {
+        style: 'currency',
+        currency: currency || 'KZT',
+        minimumFractionDigits: 0
+    }).format(price);
+}
+
+function bookTour(tourIndex) {
+    const tour = searchData.tours[tourIndex];
+    if (!tour) return;
+    
+    // Переходим на страницу заявок с предзаполненными данными
+    const params = new URLSearchParams({
+        tour_data: JSON.stringify(tour)
+    });
+    
+    window.location.href = '/orders?' + params.toString();
+}
+
+function showError(message) {
+    const container = document.getElementById('search-results');
+    container.innerHTML = `
+        <div class="alert alert-danger m-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function resetForm() {
+    document.getElementById('search-form').reset();
+    document.getElementById('search-results').innerHTML = `
+        <div class="text-center p-5 text-muted">
+            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+            <div class="mt-3">Введите параметры поиска и нажмите "Найти туры"</div>
+        </div>
+    `;
+    document.getElementById('results-count').textContent = '';
+}
+
+// Обработка формы поиска
+document.getElementById('search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Валидация
+    if (!formData.get('check_in')) {
+        alert('Выберите дату заезда');
+        return;
+    }
+    
+    // Показываем загрузку
+    const container = document.getElementById('search-results');
+    container.innerHTML = `
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+            <div class="mt-3">Ищем туры...</div>
+            <div class="text-muted">Это может занять несколько секунд</div>
+        </div>
+    `;
+    
+    document.getElementById('results-count').textContent = '';
+    
+    // Выполняем поиск
+    searchTours(formData);
+});
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    // Устанавливаем минимальную дату (завтра)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('check-in').min = tomorrow.toISOString().split('T')[0];
+    
+    // Загружаем справочные данные
+    loadReferenceData();
+});
+</script>
+{% endblock %}

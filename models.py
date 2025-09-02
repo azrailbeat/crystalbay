@@ -1,319 +1,185 @@
 """
-Database models for Crystal Bay Travel - Production Version
-Clean version without development dependencies and type errors
+Crystal Bay Travel - Database Models
+Модели для работы с заявками, клиентами и SAMO данными
 """
-import os
-import json
-import logging
+
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, Boolean, ForeignKey
+from sqlalchemy.orm import relationship, DeclarativeBase
 
-# Configure logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# Базовый класс для моделей
+class Base(DeclarativeBase):
+    pass
 
-# Initialize Supabase client with error handling
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_KEY")
-
-# In-memory fallback data stores
-_memory_samo_settings = {
-    'api_url': 'https://booking.crystalbay.com/export/default.php',
-    'oauth_token': os.environ.get('SAMO_OAUTH_TOKEN', '27bd59a7ac67422189789f0188167379'),
-    'timeout': 30,
-    'user_agent': 'Crystal Bay Travel Integration/1.0'
-}
-
-_memory_ai_config = {
-    'model': 'gpt-4o',
-    'temperature': 0.2,
-    'active': True
-}
-
-_memory_leads = []  # Real leads from SAMO API only
-
-supabase = None
-try:
-    if supabase_url and supabase_key:
-        from supabase import create_client
-        supabase = create_client(supabase_url, supabase_key)
-        logger.info("Supabase client initialized successfully")
-    else:
-        logger.warning("SUPABASE_URL or SUPABASE_KEY not set. Using memory storage.")
-except ImportError:
-    logger.error("Could not import supabase module. Using memory storage.")
-except Exception as e:
-    logger.error(f"Failed to initialize Supabase: {e}")
-
-def is_supabase_available():
-    """Check if Supabase is available"""
-    return supabase is not None
-
-class SettingsService:
-    """Service for application settings"""
+class Client(Base):
+    """Модель клиента"""
+    __tablename__ = 'clients'
     
-    @staticmethod
-    def get_samo_settings():
-        """Get SAMO API settings"""
-        if not is_supabase_available():
-            return _memory_samo_settings
-            
-        try:
-            if supabase:
-                response = supabase.table('settings').select('*').eq('key', 'samo_api').execute()
-                if response.data:
-                    settings_data = response.data[0]
-                    return json.loads(settings_data.get('value', '{}'))
-            return _memory_samo_settings
-        except Exception as e:
-            logger.error(f"Failed to get SAMO settings: {e}")
-            return _memory_samo_settings
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    phone = Column(String(50), nullable=False)
+    email = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    @staticmethod
-    def update_samo_settings(settings):
-        """Update SAMO API settings"""
-        if not is_supabase_available():
-            _memory_samo_settings.update(settings)
-            return True
-            
-        try:
-            if supabase:
-                settings_json = json.dumps(settings)
-                data = {
-                    'key': 'samo_api',
-                    'value': settings_json,
-                    'updated_at': datetime.now().isoformat()
-                }
-                
-                # Try to update existing record
-                response = supabase.table('settings').select('id').eq('key', 'samo_api').execute()
-                if response.data:
-                    supabase.table('settings').update(data).eq('key', 'samo_api').execute()
-                else:
-                    supabase.table('settings').insert(data).execute()
-                    
-                return True
-        except Exception as e:
-            logger.error(f"Failed to update SAMO settings: {e}")
-            _memory_samo_settings.update(settings)
-            return False
-
-class LeadService:
-    """Service for lead management"""
+    # Связи
+    orders = relationship("Order", back_populates="client")
     
-    def get_leads(self, limit=50):
-        """Get leads from SAMO API and database"""
-        # First try to get from SAMO API
-        samo_leads = self._fetch_leads_from_samo()
-        
-        if not is_supabase_available():
-            # Merge SAMO leads with memory leads
-            all_leads = samo_leads + _memory_leads
-            return all_leads[:limit]
-            
-        try:
-            if supabase:
-                response = supabase.table('leads').select('*').order('created_at', desc=True).limit(limit).execute()
-                db_leads = response.data if response.data else []
-                # Merge SAMO leads with database leads
-                all_leads = samo_leads + db_leads
-                return all_leads[:limit]
-            return samo_leads[:limit]
-        except Exception as e:
-            logger.error(f"Failed to get leads: {e}")
-            return samo_leads[:limit]
-    
-    def _fetch_leads_from_samo(self):
-        """Fetch leads/bookings from SAMO API"""
-        try:
-            from crystal_bay_samo_api import CrystalBaySamoAPI
-            samo_api = CrystalBaySamoAPI()
-            
-            # Try to get bookings data from SAMO API
-            response = samo_api.get_bookings_api()
-            
-            if response.get('success') and response.get('data'):
-                # Parse booking data into lead format
-                return self._parse_samo_bookings(response['data'])
-                
-            # Fallback: try to get general data that might contain bookings
-            response = samo_api.search_tours_detailed({})
-            if response.get('success') and response.get('data'):
-                # Check if there's any booking information in the response
-                return self._parse_samo_general_data(response['data'])
-                
-        except Exception as e:
-            logger.error(f"Failed to fetch leads from SAMO: {e}")
-            
-        return []
-    
-    def _parse_samo_bookings(self, samo_data):
-        """Parse SAMO booking data into lead format"""
-        leads = []
-        
-        try:
-            # Check if we have booking data in the response
-            if isinstance(samo_data, dict):
-                # Look for booking-related keys in the response
-                booking_keys = ['bookings', 'claims', 'orders', 'reservations']
-                
-                for key in booking_keys:
-                    if key in samo_data and isinstance(samo_data[key], list):
-                        for booking in samo_data[key]:
-                            lead = self._convert_booking_to_lead(booking)
-                            if lead:
-                                leads.append(lead)
-                                
-        except Exception as e:
-            logger.error(f"Failed to parse SAMO bookings: {e}")
-            
-        return leads
-    
-    def _parse_samo_general_data(self, samo_data):
-        """Parse general SAMO data for any lead information"""
-        leads = []
-        
-        try:
-            # For SearchTour_ALL response, there might be booking history or client data
-            if isinstance(samo_data, dict) and 'SearchTour_ALL' in samo_data:
-                # This endpoint mainly contains configuration data
-                # No client booking data expected here
-                pass
-                
-        except Exception as e:
-            logger.error(f"Failed to parse SAMO general data: {e}")
-            
-        return leads
-    
-    def _convert_booking_to_lead(self, booking):
-        """Convert SAMO booking to lead format"""
-        try:
-            lead = {
-                'id': booking.get('id', f"samo_{hash(str(booking))}"),
-                'name': booking.get('client_name', booking.get('name', 'Клиент SAMO')),
-                'phone': booking.get('phone', booking.get('contact_phone', '')),
-                'email': booking.get('email', booking.get('contact_email', '')),
-                'destination': booking.get('destination', booking.get('tour_name', '')),
-                'departure_city': booking.get('departure_city', ''),
-                'budget': booking.get('total_cost', booking.get('price', 'По запросу')),
-                'adults': booking.get('adults', 2),
-                'children': booking.get('children', 0),
-                'duration': booking.get('duration', booking.get('nights', '')),
-                'departure_date': booking.get('departure_date', booking.get('check_in', '')),
-                'status': self._map_samo_status(booking.get('status', 'active')),
-                'source': 'SAMO API',
-                'notes': booking.get('notes', booking.get('comments', '')),
-                'created_at': booking.get('created_at', datetime.now().isoformat()),
-                'updated_at': booking.get('updated_at', datetime.now().isoformat())
-            }
-            return lead
-        except Exception as e:
-            logger.error(f"Failed to convert booking to lead: {e}")
-            return None
-    
-    def _map_samo_status(self, samo_status):
-        """Map SAMO booking status to CRM status"""
-        status_mapping = {
-            'new': 'новое',
-            'confirmed': 'в работе', 
-            'paid': 'обработано',
-            'completed': 'закрыто',
-            'cancelled': 'отменено',
-            'active': 'в работе'
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'phone': self.phone,
+            'email': self.email,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-        return status_mapping.get(samo_status.lower(), 'новое')
-    
-    def create_lead(self, lead_data):
-        """Create new lead"""
-        lead_data['created_at'] = datetime.now().isoformat()
-        lead_data['updated_at'] = datetime.now().isoformat()
-        
-        if not is_supabase_available():
-            lead_data['id'] = f"lead_{len(_memory_leads) + 1}"
-            _memory_leads.append(lead_data)
-            return lead_data['id']
-            
-        try:
-            if supabase:
-                response = supabase.table('leads').insert(lead_data).execute()
-                if response.data:
-                    return response.data[0]['id']
-            return None
-        except Exception as e:
-            logger.error(f"Failed to create lead: {e}")
-            # Fallback to memory
-            lead_data['id'] = f"lead_{len(_memory_leads) + 1}"
-            _memory_leads.append(lead_data)
-            return lead_data['id']
-    
-    def update_lead(self, lead_id, updates):
-        """Update lead"""
-        updates['updated_at'] = datetime.now().isoformat()
-        
-        if not is_supabase_available():
-            for lead in _memory_leads:
-                if lead.get('id') == lead_id:
-                    lead.update(updates)
-                    return True
-            return False
-            
-        try:
-            if supabase:
-                response = supabase.table('leads').update(updates).eq('id', lead_id).execute()
-                return bool(response.data)
-            return False
-        except Exception as e:
-            logger.error(f"Failed to update lead: {e}")
-            return False
 
-class AIService:
-    """Service for AI configuration"""
+class Order(Base):
+    """Модель заявки на тур"""
+    __tablename__ = 'orders'
     
-    def get_ai_config(self):
-        """Get AI configuration"""
-        if not is_supabase_available():
-            return _memory_ai_config
-            
-        try:
-            if supabase:
-                response = supabase.table('settings').select('*').eq('key', 'ai_config').execute()
-                if response.data:
-                    config_data = response.data[0]
-                    return json.loads(config_data.get('value', '{}'))
-            return _memory_ai_config
-        except Exception as e:
-            logger.error(f"Failed to get AI config: {e}")
-            return _memory_ai_config
+    id = Column(Integer, primary_key=True)
+    number = Column(String(100), unique=True, nullable=False)
     
-    def update_ai_config(self, config):
-        """Update AI configuration"""
-        if not is_supabase_available():
-            _memory_ai_config.update(config)
-            return True
-            
-        try:
-            if supabase:
-                config_json = json.dumps(config)
-                data = {
-                    'key': 'ai_config',
-                    'value': config_json,
-                    'updated_at': datetime.now().isoformat()
-                }
-                
-                response = supabase.table('settings').select('id').eq('key', 'ai_config').execute()
-                if response.data:
-                    supabase.table('settings').update(data).eq('key', 'ai_config').execute()
-                else:
-                    supabase.table('settings').insert(data).execute()
-                    
-                return True
-        except Exception as e:
-            logger.error(f"Failed to update AI config: {e}")
-            _memory_ai_config.update(config)
-            return False
+    # Клиент
+    client_id = Column(Integer, ForeignKey('clients.id'), nullable=False)
+    
+    # Параметры тура
+    destination = Column(String(255), nullable=False)
+    hotel_name = Column(String(255), nullable=True)
+    hotel_stars = Column(Integer, nullable=True)
+    check_in = Column(DateTime, nullable=False)
+    check_out = Column(DateTime, nullable=False)
+    nights = Column(Integer, nullable=False)
+    adults = Column(Integer, nullable=False, default=1)
+    children = Column(Integer, nullable=False, default=0)
+    meal_type = Column(String(50), nullable=True)
+    
+    # Финансы
+    total_amount = Column(Float, nullable=True)
+    currency = Column(String(10), default='KZT')
+    
+    # Статус
+    status = Column(String(50), default='new')  # new, processing, confirmed, paid, cancelled
+    
+    # SAMO данные
+    samo_tour_id = Column(String(100), nullable=True)
+    samo_hotel_id = Column(String(100), nullable=True)
+    samo_booking_id = Column(String(100), nullable=True)
+    
+    # Дополнительно
+    special_requests = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Связи
+    client = relationship("Client", back_populates="orders")
+    order_logs = relationship("OrderLog", back_populates="order")
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'client': self.client.to_dict() if self.client else None,
+            'destination': self.destination,
+            'hotel_name': self.hotel_name,
+            'hotel_stars': self.hotel_stars,
+            'check_in': self.check_in.isoformat() if self.check_in else None,
+            'check_out': self.check_out.isoformat() if self.check_out else None,
+            'nights': self.nights,
+            'adults': self.adults,
+            'children': self.children,
+            'meal_type': self.meal_type,
+            'total_amount': self.total_amount,
+            'currency': self.currency,
+            'status': self.status,
+            'special_requests': self.special_requests,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
-# Export services for easy import
-__all__ = ['SettingsService', 'LeadService', 'AIService', 'is_supabase_available']
+class OrderLog(Base):
+    """Лог изменений заявки"""
+    __tablename__ = 'order_logs'
+    
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
+    
+    action = Column(String(100), nullable=False)  # created, updated, status_changed, etc.
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    
+    # User who made the change (для будущего расширения)
+    user_id = Column(String(100), nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Связи
+    order = relationship("Order", back_populates="order_logs")
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'action': self.action,
+            'old_value': self.old_value,
+            'new_value': self.new_value,
+            'description': self.description,
+            'user_id': self.user_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SamoCache(Base):
+    """Кэш данных SAMO API"""
+    __tablename__ = 'samo_cache'
+    
+    id = Column(Integer, primary_key=True)
+    cache_key = Column(String(255), unique=True, nullable=False)
+    cache_data = Column(Text, nullable=False)  # JSON data
+    
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'cache_key': self.cache_key,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class ApiLog(Base):
+    """Лог API запросов"""
+    __tablename__ = 'api_logs'
+    
+    id = Column(Integer, primary_key=True)
+    api_type = Column(String(50), nullable=False)  # samo, webapi
+    endpoint = Column(String(255), nullable=False)
+    method = Column(String(10), nullable=False)
+    request_data = Column(Text, nullable=True)
+    response_data = Column(Text, nullable=True)
+    response_code = Column(Integer, nullable=True)
+    execution_time = Column(Float, nullable=True)  # в секундах
+    success = Column(Boolean, default=True)
+    error_message = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'api_type': self.api_type,
+            'endpoint': self.endpoint,
+            'method': self.method,
+            'response_code': self.response_code,
+            'execution_time': self.execution_time,
+            'success': self.success,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

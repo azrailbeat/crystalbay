@@ -1,0 +1,370 @@
+{% extends "layout.html" %}
+
+{% block title %}Демонстрация - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-2">Демонстрация системы</h1>
+            <p class="text-muted mb-0">Полнофункциональная система управления турами на основе SAMO API</p>
+        </div>
+        <div>
+            <span class="badge bg-success fs-6">Готово к использованию</span>
+        </div>
+    </div>
+</div>
+
+<!-- Features Overview -->
+<div class="row mb-4">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary rounded-3 p-3 me-3">
+                        <i class="bi bi-database text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h5 class="card-title mb-0">SAMO API Интеграция</h5>
+                </div>
+                <p class="card-text">Полная интеграция с SAMO API для поиска туров, отелей и управления заявками</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success me-2"></i>SearchTour_ALL</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Справочники</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Управление заявками</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-success rounded-3 p-3 me-3">
+                        <i class="bi bi-palette text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Современный дизайн</h5>
+                </div>
+                <p class="card-text">Интерфейс в стиле Apple с адаптивным дизайном и темной темой боковой панели</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Bootstrap 5</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Адаптивность</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Apple-стиль</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-info rounded-3 p-3 me-3">
+                        <i class="bi bi-robot text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h5 class="card-title mb-0">ИИ-Помощник</h5>
+                </div>
+                <p class="card-text">Готовая архитектура для интеграции с OpenAI GPT-4o для умного поиска туров</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-clock text-warning me-2"></i>В разработке</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>Интерфейс готов</li>
+                    <li><i class="bi bi-check-circle text-success me-2"></i>API структура</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Technical Implementation -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear me-2"></i>
+                    Техническая реализация
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-server me-2"></i>Backend</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Framework:</strong> Flask 2.3.3</li>
+                            <li><strong>Database:</strong> PostgreSQL + SQLAlchemy</li>
+                            <li><strong>API Integration:</strong> SAMO API + WebAPI</li>
+                            <li><strong>Server:</strong> Gunicorn + CORS</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-palette me-2"></i>Frontend</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Framework:</strong> Bootstrap 5.3</li>
+                            <li><strong>Icons:</strong> Bootstrap Icons</li>
+                            <li><strong>JS:</strong> jQuery + Vanilla JS</li>
+                            <li><strong>Design:</strong> Apple-inspired UI</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Testing Demo -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-code-slash me-2"></i>
+                    Демонстрация API
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Система включает полнофункциональный интерфейс тестирования API с поддержкой всех команд SAMO:</p>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="text-primary">Справочники</h6>
+                            <small class="text-muted">
+                                SearchTour_CURRENCIES<br>
+                                SearchTour_STATES<br>
+                                SearchTour_TOWNFROMS<br>
+                                SearchTour_MEALS
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="text-success">Туры</h6>
+                            <small class="text-muted">
+                                SearchTour_ALL<br>
+                                SearchTour_TOURS<br>
+                                SearchTour_PRICES<br>
+                                SearchTour_PROGRAMS
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="text-info">Отели</h6>
+                            <small class="text-muted">
+                                SearchTour_HOTELS<br>
+                                SearchTour_STARS<br>
+                                NIGHTS
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="text-warning">Заявки</h6>
+                            <small class="text-muted">
+                                Create Order<br>
+                                Update Status<br>
+                                Order Details<br>
+                                Cancel Order
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('api_testing') }}" class="btn btn-primary">
+                        <i class="bi bi-play me-2"></i>
+                        Открыть тестирование API
+                    </a>
+                    <button class="btn btn-outline-success ms-2" onclick="testSampleAPI()">
+                        <i class="bi bi-lightning me-2"></i>
+                        Быстрый тест
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Architecture Overview -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-diagram-3 me-2"></i>
+                    Архитектура системы
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="bg-light p-4 rounded">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-block bg-primary text-white px-3 py-2 rounded">
+                            <i class="bi bi-person me-2"></i>Пользователь
+                        </div>
+                        <div class="my-2">
+                            <i class="bi bi-arrow-down text-muted"></i>
+                        </div>
+                        <div class="d-inline-block bg-success text-white px-3 py-2 rounded">
+                            <i class="bi bi-globe me-2"></i>Flask Web App
+                        </div>
+                        <div class="my-2">
+                            <i class="bi bi-arrow-down text-muted"></i>
+                        </div>
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <div class="bg-info text-white px-3 py-2 rounded me-2">
+                                    <i class="bi bi-database me-2"></i>SAMO API
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="bg-warning text-white px-3 py-2 rounded me-2">
+                                    <i class="bi bi-cloud me-2"></i>WebAPI
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="bg-secondary text-white px-3 py-2 rounded">
+                                    <i class="bi bi-server me-2"></i>PostgreSQL
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <p class="text-muted small">
+                        Модульная архитектура с разделением на слои API интеграции, бизнес-логики и презентации.
+                        Все компоненты легко тестируются и масштабируются.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-link-45deg me-2"></i>
+                    Навигация
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        Дашборд
+                    </a>
+                    <a href="{{ url_for('tours_search') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-search me-2"></i>
+                        Поиск туров
+                    </a>
+                    <a href="{{ url_for('orders') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-list-ul me-2"></i>
+                        Управление заявками
+                    </a>
+                    <a href="{{ url_for('ai_assistant') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-robot me-2"></i>
+                        ИИ-Помощник
+                    </a>
+                    <a href="{{ url_for('api_testing') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-code-slash me-2"></i>
+                        Тестирование API
+                    </a>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <h6 class="text-muted">Статус системы</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="text-success">
+                                <i class="bi bi-check-circle"></i><br>
+                                <small>Frontend</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-warning">
+                                <i class="bi bi-exclamation-triangle"></i><br>
+                                <small>SAMO API</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function testSampleAPI() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Показываем процесс загрузки
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Тестирование...';
+    button.disabled = true;
+    
+    try {
+        // Тестируем health check
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Показываем результат
+            button.innerHTML = '<i class="bi bi-check-circle me-2"></i>Тест пройден';
+            button.className = 'btn btn-success ms-2';
+            
+            // Показываем детали
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alert.innerHTML = `
+                <h6><i class="bi bi-check-circle me-2"></i>Система функционирует</h6>
+                <p class="mb-2">API здоровье проверено успешно:</p>
+                <ul class="mb-2">
+                    <li>Приложение: ${data.services.application ? '✓ Работает' : '✗ Ошибка'}</li>
+                    <li>База данных: ${data.services.database ? '✓ Подключена' : '⚠ Не настроена'}</li>
+                    <li>SAMO API: ${data.services.samo_api ? '✓ Активен' : '⚠ Требует настройки'}</li>
+                </ul>
+                <small class="text-muted">Timestamp: ${data.timestamp}</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            button.parentElement.appendChild(alert);
+            
+        } else {
+            throw new Error('Health check failed');
+        }
+        
+    } catch (error) {
+        console.error('Test failed:', error);
+        button.innerHTML = '<i class="bi bi-x-circle me-2"></i>Ошибка теста';
+        button.className = 'btn btn-danger ms-2';
+    }
+    
+    // Возвращаем кнопку в исходное состояние через 3 секунды
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.className = 'btn btn-outline-success ms-2';
+        button.disabled = false;
+    }, 3000);
+}
+
+// Анимация карточек при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

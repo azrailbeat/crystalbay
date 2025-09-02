@@ -1,0 +1,497 @@
+{% extends "layout.html" %}
+
+{% block title %}Тестирование API - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-2">Тестирование API</h1>
+            <p class="text-muted mb-0">Тестирование SAMO API и WebAPI команд</p>
+        </div>
+        <div>
+            <button class="btn btn-success" onclick="testAllCommands()">
+                <i class="bi bi-play-fill me-2"></i>
+                Тестировать все
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- API Selector -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Выберите API:</strong></label>
+                        <select class="form-select" id="api-type" onchange="loadCommands()">
+                            <option value="samo">SAMO API</option>
+                            <option value="webapi" disabled>WebAPI (в разработке)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><strong>Команда:</strong></label>
+                        <select class="form-select" id="api-command" onchange="updateCommandInfo()">
+                            <option value="">Выберите команду...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button class="btn btn-primary" onclick="executeCommand()">
+                                <i class="bi bi-play me-2"></i>
+                                Выполнить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Command Info -->
+<div class="row mb-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Информация о команде
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="command-info">
+                    <p class="text-muted">Выберите команду для получения информации</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear me-2"></i>
+                    Параметры команды
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="command-parameters">
+                    <p class="text-muted">Параметры будут показаны после выбора команды</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Execution Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-terminal me-2"></i>
+                    Результаты выполнения
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearResults()">
+                    <i class="bi bi-trash me-2"></i>
+                    Очистить
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="execution-results">
+                    <p class="text-muted">Результаты команд будут отображены здесь</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// SAMO API команды
+const samoCommands = {
+    'SearchTour_CURRENCIES': {
+        name: 'Получить валюты',
+        description: 'Получение списка доступных валют для туров',
+        parameters: {},
+        category: 'Справочники'
+    },
+    'SearchTour_STATES': {
+        name: 'Получить страны',
+        description: 'Получение списка стран назначения',
+        parameters: {},
+        category: 'Справочники'
+    },
+    'SearchTour_TOWNFROMS': {
+        name: 'Города отправления',
+        description: 'Получение списка городов отправления',
+        parameters: {},
+        category: 'Справочники'
+    },
+    'SearchTour_TOWNS': {
+        name: 'Города назначения',
+        description: 'Получение списка городов назначения',
+        parameters: {},
+        category: 'Справочники'
+    },
+    'SearchTour_HOTELS': {
+        name: 'Получить отели',
+        description: 'Получение списка отелей',
+        parameters: {
+            'state_id': 'ID страны (опционально)',
+            'town_id': 'ID города (опционально)'
+        },
+        category: 'Отели'
+    },
+    'SearchTour_STARS': {
+        name: 'Звездность отелей',
+        description: 'Получение списка категорий звездности',
+        parameters: {},
+        category: 'Отели'
+    },
+    'SearchTour_MEALS': {
+        name: 'Типы питания',
+        description: 'Получение списка типов питания',
+        parameters: {},
+        category: 'Справочники'
+    },
+    'SearchTour_TOURS': {
+        name: 'Поиск туров',
+        description: 'Поиск туров по заданным параметрам',
+        parameters: {
+            'state_id': 'ID страны',
+            'town_from_id': 'ID города отправления',
+            'date_from': 'Дата вылета (YYYY-MM-DD)',
+            'nights': 'Количество ночей'
+        },
+        category: 'Туры'
+    },
+    'SearchTour_PROGRAMS': {
+        name: 'Программы туров',
+        description: 'Получение программ туров',
+        parameters: {},
+        category: 'Туры'
+    },
+    'SearchTour_PRICES': {
+        name: 'Цены туров',
+        description: 'Получение актуальных цен на туры',
+        parameters: {
+            'tour_id': 'ID тура (опционально)',
+            'currency': 'Валюта (опционально)'
+        },
+        category: 'Туры'
+    },
+    'SearchTour_ALL': {
+        name: 'Комплексный поиск',
+        description: 'Комплексный поиск туров со всеми данными',
+        parameters: {
+            'state_id': 'ID страны (опционально)',
+            'date_from': 'Дата от (опционально)',
+            'date_to': 'Дата до (опционально)'
+        },
+        category: 'Туры'
+    },
+    'NIGHTS': {
+        name: 'Количество ночей',
+        description: 'Получение доступных вариантов количества ночей',
+        parameters: {},
+        category: 'Справочники'
+    }
+};
+
+let currentResults = [];
+
+function loadCommands() {
+    const apiType = document.getElementById('api-type').value;
+    const commandSelect = document.getElementById('api-command');
+    
+    commandSelect.innerHTML = '<option value="">Выберите команду...</option>';
+    
+    if (apiType === 'samo') {
+        // Группируем команды по категориям
+        const categories = {};
+        Object.entries(samoCommands).forEach(([key, cmd]) => {
+            if (!categories[cmd.category]) {
+                categories[cmd.category] = [];
+            }
+            categories[cmd.category].push({key, ...cmd});
+        });
+        
+        // Добавляем опции по категориям
+        Object.entries(categories).forEach(([category, commands]) => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category;
+            
+            commands.forEach(cmd => {
+                const option = document.createElement('option');
+                option.value = cmd.key;
+                option.textContent = cmd.name;
+                optgroup.appendChild(option);
+            });
+            
+            commandSelect.appendChild(optgroup);
+        });
+    }
+}
+
+function updateCommandInfo() {
+    const command = document.getElementById('api-command').value;
+    const infoContainer = document.getElementById('command-info');
+    const paramsContainer = document.getElementById('command-parameters');
+    
+    if (!command || !samoCommands[command]) {
+        infoContainer.innerHTML = '<p class="text-muted">Выберите команду для получения информации</p>';
+        paramsContainer.innerHTML = '<p class="text-muted">Параметры будут показаны после выбора команды</p>';
+        return;
+    }
+    
+    const cmd = samoCommands[command];
+    
+    // Информация о команде
+    infoContainer.innerHTML = `
+        <h6>${cmd.name}</h6>
+        <p class="text-muted">${cmd.description}</p>
+        <div>
+            <span class="badge bg-secondary">${cmd.category}</span>
+            <span class="badge bg-primary">${command}</span>
+        </div>
+    `;
+    
+    // Параметры команды
+    const paramKeys = Object.keys(cmd.parameters);
+    if (paramKeys.length === 0) {
+        paramsContainer.innerHTML = '<p class="text-muted">Эта команда не требует параметров</p>';
+    } else {
+        let paramHTML = '<div class="row">';
+        paramKeys.forEach((param, index) => {
+            paramHTML += `
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">${param}</label>
+                    <input type="text" class="form-control form-control-sm" 
+                           id="param-${param}" 
+                           placeholder="${cmd.parameters[param]}">
+                </div>
+            `;
+        });
+        paramHTML += '</div>';
+        paramsContainer.innerHTML = paramHTML;
+    }
+}
+
+async function executeCommand() {
+    const apiType = document.getElementById('api-type').value;
+    const command = document.getElementById('api-command').value;
+    
+    if (!command) {
+        alert('Выберите команду для выполнения');
+        return;
+    }
+    
+    // Собираем параметры
+    const params = {};
+    if (samoCommands[command]) {
+        Object.keys(samoCommands[command].parameters).forEach(param => {
+            const input = document.getElementById(`param-${param}`);
+            if (input && input.value.trim()) {
+                params[param] = input.value.trim();
+            }
+        });
+    }
+    
+    // Показываем индикатор загрузки
+    const resultsContainer = document.getElementById('execution-results');
+    const loadingHTML = `
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-3"></div>
+                <div>Выполняется команда <strong>${command}</strong>...</div>
+            </div>
+        </div>
+    `;
+    resultsContainer.insertAdjacentHTML('afterbegin', loadingHTML);
+    
+    try {
+        const startTime = Date.now();
+        const response = await fetch(`/api/${apiType}/${command}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+        
+        const executionTime = Date.now() - startTime;
+        const data = await response.json();
+        
+        // Удаляем индикатор загрузки
+        const loadingElement = resultsContainer.querySelector('.alert-info');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+        
+        // Добавляем результат
+        displayResult(command, params, data, executionTime);
+        
+    } catch (error) {
+        // Удаляем индикатор загрузки
+        const loadingElement = resultsContainer.querySelector('.alert-info');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+        
+        displayResult(command, params, {
+            success: false,
+            error: error.message
+        }, 0);
+    }
+}
+
+function displayResult(command, params, data, executionTime) {
+    const timestamp = new Date().toLocaleTimeString('ru-RU');
+    const success = data.success;
+    
+    const resultHTML = `
+        <div class="border rounded p-3 mb-3 ${success ? 'border-success' : 'border-danger'}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h6 class="mb-1">
+                        <span class="badge ${success ? 'bg-success' : 'bg-danger'} me-2">
+                            ${success ? 'SUCCESS' : 'ERROR'}
+                        </span>
+                        ${command}
+                    </h6>
+                    <small class="text-muted">
+                        ${timestamp} • ${executionTime}ms
+                        ${Object.keys(params).length > 0 ? ' • ' + JSON.stringify(params) : ''}
+                    </small>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="this.parentElement.parentElement.remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            
+            <div class="bg-light p-2 rounded" style="max-height: 300px; overflow-y: auto;">
+                <pre class="mb-0 small">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+            
+            ${success && data.data ? `
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Записей: ${Array.isArray(data.data) ? data.data.length : 'Объект'}
+                    </small>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    document.getElementById('execution-results').insertAdjacentHTML('afterbegin', resultHTML);
+    
+    // Сохраняем результат
+    currentResults.unshift({
+        command,
+        params,
+        data,
+        timestamp: new Date(),
+        executionTime
+    });
+}
+
+async function testAllCommands() {
+    const basicCommands = [
+        'SearchTour_CURRENCIES',
+        'SearchTour_STATES', 
+        'SearchTour_TOWNFROMS',
+        'SearchTour_STARS',
+        'SearchTour_MEALS',
+        'NIGHTS'
+    ];
+    
+    if (!confirm(`Выполнить ${basicCommands.length} базовых команд SAMO API?`)) {
+        return;
+    }
+    
+    clearResults();
+    
+    const resultsContainer = document.getElementById('execution-results');
+    resultsContainer.innerHTML = `
+        <div class="alert alert-info">
+            <h5><i class="bi bi-play-fill me-2"></i>Автоматическое тестирование API</h5>
+            <div class="progress mt-2">
+                <div class="progress-bar" id="test-progress" style="width: 0%"></div>
+            </div>
+            <div class="mt-2">
+                <span id="test-status">Подготовка...</span>
+            </div>
+        </div>
+    `;
+    
+    for (let i = 0; i < basicCommands.length; i++) {
+        const command = basicCommands[i];
+        const progress = ((i + 1) / basicCommands.length) * 100;
+        
+        document.getElementById('test-progress').style.width = progress + '%';
+        document.getElementById('test-status').textContent = `Выполняется: ${command} (${i + 1}/${basicCommands.length})`;
+        
+        try {
+            const startTime = Date.now();
+            const response = await fetch(`/api/samo/${command}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+            
+            const executionTime = Date.now() - startTime;
+            const data = await response.json();
+            
+            displayResult(command, {}, data, executionTime);
+            
+            // Небольшая пауза между запросами
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+        } catch (error) {
+            displayResult(command, {}, {
+                success: false,
+                error: error.message
+            }, 0);
+        }
+    }
+    
+    // Удаляем прогресс-бар
+    document.querySelector('.alert-info').remove();
+    
+    // Показываем итоги
+    const successCount = currentResults.filter(r => r.data.success).length;
+    const totalCount = currentResults.length;
+    
+    const summaryHTML = `
+        <div class="alert alert-success">
+            <h5><i class="bi bi-check-circle me-2"></i>Тестирование завершено</h5>
+            <p class="mb-0">
+                Выполнено: <strong>${totalCount}</strong> команд<br>
+                Успешно: <strong>${successCount}</strong><br>
+                Ошибок: <strong>${totalCount - successCount}</strong>
+            </p>
+        </div>
+    `;
+    
+    document.getElementById('execution-results').insertAdjacentHTML('afterbegin', summaryHTML);
+}
+
+function clearResults() {
+    document.getElementById('execution-results').innerHTML = '<p class="text-muted">Результаты команд будут отображены здесь</p>';
+    currentResults = [];
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    loadCommands();
+});
+</script>
+{% endblock %}

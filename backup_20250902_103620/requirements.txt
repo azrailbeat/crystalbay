@@ -26,9 +26,3 @@ flask-login
 oauthlib
 pyjwt
 openai>=1.0.0
-flask
-flask-cors
-flask-sqlalchemy
-python-dotenv
-requests
-sqlalchemy
