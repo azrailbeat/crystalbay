@@ -1,0 +1,606 @@
+{% extends "layout.html" %}
+
+{% block title %}Поиск отелей - Crystal Bay Travel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Поиск отелей</h1>
+            <p class="text-muted mb-0">Найдите лучшие отели для вашего путешествия из Казахстана</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary" onclick="showAdvancedFilters()">
+                <i class="bi bi-funnel me-2"></i>
+                Расширенные фильтры
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search me-2"></i>
+                    Параметры поиска отелей
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="hotels-search-form">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Направление</label>
+                            <select class="form-select" id="destination" name="destination" required>
+                                <option value="">Выберите страну...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Город/Курорт</label>
+                            <select class="form-select" id="city" name="city">
+                                <option value="">Любой город</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Город отправления</label>
+                            <select class="form-select" id="departure-city" name="departure_city" required>
+                                <option value="">Выберите город...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Дата заезда</label>
+                            <input type="date" class="form-control" id="check-in" name="check_in" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Дата выезда</label>
+                            <input type="date" class="form-control" id="check-out" name="check_out" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Взрослых</label>
+                            <select class="form-select" id="adults" name="adults">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Детей</label>
+                            <select class="form-select" id="children" name="children">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Номеров</label>
+                            <select class="form-select" id="rooms" name="rooms">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Звездность</label>
+                            <select class="form-select" id="stars" name="stars">
+                                <option value="">Любая</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Питание</label>
+                            <select class="form-select" id="meal-type" name="meal_type">
+                                <option value="">Любое</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Валюта</label>
+                            <select class="form-select" id="currency" name="currency">
+                                <option value="KZT">KZT</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Цена за номер</label>
+                            <div class="d-flex">
+                                <input type="number" class="form-control me-2" id="price-from" name="price_from" placeholder="От">
+                                <input type="number" class="form-control" id="price-to" name="price_to" placeholder="До">
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-2"></i>
+                                    Найти отели
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Filters Modal -->
+<div class="modal fade" id="advancedFiltersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Расширенные фильтры поиска</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Удобства отеля</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="wifi" value="wifi">
+                            <label class="form-check-label" for="wifi">Wi-Fi</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="pool" value="pool">
+                            <label class="form-check-label" for="pool">Бассейн</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="spa" value="spa">
+                            <label class="form-check-label" for="spa">СПА</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="gym" value="gym">
+                            <label class="form-check-label" for="gym">Фитнес-центр</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="beach" value="beach">
+                            <label class="form-check-label" for="beach">Пляж</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Дополнительно</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="kids-club" value="kids_club">
+                            <label class="form-check-label" for="kids-club">Детский клуб</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="parking" value="parking">
+                            <label class="form-check-label" for="parking">Парковка</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="airport-transfer" value="airport_transfer">
+                            <label class="form-check-label" for="airport-transfer">Трансфер из аэропорта</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="animation" value="animation">
+                            <label class="form-check-label" for="animation">Анимация</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="conference" value="conference">
+                            <label class="form-check-label" for="conference">Конференц-зал</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="applyAdvancedFilters()">Применить фильтры</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-building me-2"></i>
+                    Результаты поиска отелей
+                </h5>
+                <div id="hotels-stats" class="text-muted"></div>
+            </div>
+            <div class="card-body">
+                <!-- Loading State -->
+                <div id="loading-state" class="text-center py-4" style="display: none;">
+                    <div class="spinner-border text-primary me-2" role="status"></div>
+                    <span>Поиск отелей...</span>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-5">
+                    <i class="bi bi-building text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="mt-3 text-muted">Введите параметры поиска</h6>
+                    <p class="text-muted">Выберите направление, даты и параметры проживания для поиска отелей</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="error-state" class="alert alert-danger" style="display: none;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="error-message"></span>
+                </div>
+                
+                <!-- Results -->
+                <div id="search-results" style="display: none;">
+                    <div class="row" id="hotels-container">
+                        <!-- Hotels will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let filtersData = {};
+let searchParams = {};
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadFilters();
+    setupSearchForm();
+    setMinDate();
+    setDefaultDeparture();
+});
+
+// Set default departure city to Almaty
+function setDefaultDeparture() {
+    // Будет установлено после загрузки данных
+}
+
+// Load all filter data
+async function loadFilters() {
+    try {
+        const response = await fetch('/api/tours/filters');
+        const data = await response.json();
+        
+        if (data.success) {
+            filtersData = data.filters;
+            populateFilters();
+            
+            // Set Almaty as default departure city
+            const departureSelect = document.getElementById('departure-city');
+            if (departureSelect) {
+                departureSelect.value = '1'; // Almaty
+            }
+            
+            if (data.demo_mode) {
+                showDemoNotification();
+            }
+        } else {
+            console.error('Failed to load filters:', data.error);
+        }
+    } catch (error) {
+        console.error('Error loading filters:', error);
+    }
+}
+
+// Populate filter dropdowns
+function populateFilters() {
+    // Destinations
+    if (filtersData.destinations) {
+        const destinationSelect = document.getElementById('destination');
+        destinationSelect.innerHTML = '<option value="">Выберите страну...</option>';
+        filtersData.destinations.forEach(dest => {
+            destinationSelect.innerHTML += `<option value="${dest.id}">${dest.name}</option>`;
+        });
+    }
+    
+    // Departure cities with regions
+    if (filtersData.departure_cities) {
+        const departureSelect = document.getElementById('departure-city');
+        departureSelect.innerHTML = '<option value="">Выберите город...</option>';
+        filtersData.departure_cities.forEach(city => {
+            const region = city.region ? ` (${city.region})` : '';
+            departureSelect.innerHTML += `<option value="${city.id}">${city.name}${region}</option>`;
+        });
+        // Set Almaty as default
+        departureSelect.value = '1';
+    }
+    
+    // Stars
+    if (filtersData.stars) {
+        const starsSelect = document.getElementById('stars');
+        starsSelect.innerHTML = '<option value="">Любая</option>';
+        filtersData.stars.forEach(star => {
+            starsSelect.innerHTML += `<option value="${star.id}">${star.name}</option>`;
+        });
+    }
+    
+    // Meals
+    if (filtersData.meals) {
+        const mealSelect = document.getElementById('meal-type');
+        mealSelect.innerHTML = '<option value="">Любое</option>';
+        filtersData.meals.forEach(meal => {
+            mealSelect.innerHTML += `<option value="${meal.id}">${meal.description}</option>`;
+        });
+    }
+    
+    // Currencies
+    if (filtersData.currencies) {
+        const currencySelect = document.getElementById('currency');
+        currencySelect.innerHTML = '';
+        filtersData.currencies.forEach(currency => {
+            const selected = currency.code === 'KZT' ? 'selected' : '';
+            currencySelect.innerHTML += `<option value="${currency.code}" ${selected}>${currency.name}</option>`;
+        });
+    }
+}
+
+// Setup search form
+function setupSearchForm() {
+    const form = document.getElementById('hotels-search-form');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        searchHotels();
+    });
+    
+    // Update checkout date when checkin changes
+    const checkinInput = document.getElementById('check-in');
+    const checkoutInput = document.getElementById('check-out');
+    
+    checkinInput.addEventListener('change', function() {
+        if (this.value) {
+            const checkinDate = new Date(this.value);
+            checkinDate.setDate(checkinDate.getDate() + 1);
+            checkoutInput.min = checkinDate.toISOString().split('T')[0];
+            
+            // Auto-set checkout to 7 days later if not set
+            if (!checkoutInput.value) {
+                checkinDate.setDate(checkinDate.getDate() + 6);
+                checkoutInput.value = checkinDate.toISOString().split('T')[0];
+            }
+        }
+    });
+}
+
+// Set minimum date to today
+function setMinDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('check-in').min = today;
+}
+
+// Search hotels
+async function searchHotels() {
+    const form = document.getElementById('hotels-search-form');
+    const formData = new FormData(form);
+    searchParams = Object.fromEntries(formData.entries());
+    
+    // Calculate nights
+    const checkin = new Date(searchParams.check_in);
+    const checkout = new Date(searchParams.check_out);
+    const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+    searchParams.nights = nights;
+    
+    // Show loading state
+    showLoadingState();
+    
+    try {
+        // Use tours search API for hotels (same data source)
+        const response = await fetch('/api/tours/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayHotels(data.tours, data.demo_mode);
+            updateSearchStats(data.count, data.execution_time);
+        } else {
+            showErrorState(data.error || 'Ошибка поиска отелей');
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        showErrorState('Ошибка соединения с сервером');
+    }
+}
+
+// Display hotels
+function displayHotels(hotels, demoMode) {
+    const container = document.getElementById('hotels-container');
+    
+    if (hotels.length === 0) {
+        showEmptyResults();
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    hotels.forEach(hotel => {
+        const hotelCard = createHotelCard(hotel, demoMode);
+        container.appendChild(hotelCard);
+    });
+    
+    hideAllStates();
+    document.getElementById('search-results').style.display = 'block';
+}
+
+// Create hotel card
+function createHotelCard(hotel, demoMode) {
+    const div = document.createElement('div');
+    div.className = 'col-lg-6 col-xl-4 mb-4';
+    
+    const demoLabel = demoMode ? '<span class="badge bg-info ms-2">ДЕМО</span>' : '';
+    const pricePerNight = hotel.nights > 0 ? Math.round(hotel.price / hotel.nights) : hotel.price;
+    
+    div.innerHTML = `
+        <div class="card h-100 hotel-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h6 class="card-title mb-0">${hotel.hotel_name}${demoLabel}</h6>
+                    <div class="text-end">
+                        ${generateStars(hotel.stars)}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>
+                        <span>${hotel.destination}, ${hotel.city}</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>
+                        <span>${hotel.nights} ночей</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-people text-primary me-2"></i>
+                        <span>${hotel.adults} взр. + ${hotel.children} дет.</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-cup-hot text-primary me-2"></i>
+                        <span>${hotel.meal_name}</span>
+                    </div>
+                </div>
+                
+                <div class="hotel-amenities mb-3">
+                    <small class="text-muted">
+                        <i class="bi bi-wifi me-1"></i>
+                        <i class="bi bi-water me-1"></i>
+                        <i class="bi bi-car-front me-1"></i>
+                        <i class="bi bi-cup-straw me-1"></i>
+                    </small>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-end">
+                    <div>
+                        <div class="h5 text-primary mb-0">${formatPrice(hotel.price)} ${hotel.currency}</div>
+                        <small class="text-muted">за весь период</small>
+                        <div class="small text-muted">${formatPrice(pricePerNight)} ${hotel.currency}/ночь</div>
+                    </div>
+                    <div class="d-grid gap-1">
+                        <button class="btn btn-outline-primary btn-sm" onclick="viewHotelDetails('${hotel.id}')">
+                            <i class="bi bi-eye me-1"></i>
+                            Подробнее
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="bookHotel('${hotel.id}')">
+                            <i class="bi bi-calendar-check me-1"></i>
+                            Забронировать
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return div;
+}
+
+// Generate stars display
+function generateStars(stars) {
+    if (!stars) return '';
+    
+    let starsHtml = '';
+    for (let i = 0; i < stars; i++) {
+        starsHtml += '<i class="bi bi-star-fill text-warning"></i>';
+    }
+    return starsHtml;
+}
+
+// Format price with thousands separator
+function formatPrice(price) {
+    if (!price) return '0';
+    return new Intl.NumberFormat('ru-RU').format(price);
+}
+
+// Hotel actions
+function viewHotelDetails(hotelId) {
+    // TODO: Implement hotel details modal
+    alert(`Детали отеля ${hotelId} - функция в разработке`);
+}
+
+function bookHotel(hotelId) {
+    // TODO: Implement hotel booking
+    alert(`Бронирование отеля ${hotelId} - функция в разработке`);
+}
+
+// Advanced filters
+function showAdvancedFilters() {
+    const modal = new bootstrap.Modal(document.getElementById('advancedFiltersModal'));
+    modal.show();
+}
+
+function applyAdvancedFilters() {
+    // TODO: Implement advanced filters logic
+    const modal = bootstrap.Modal.getInstance(document.getElementById('advancedFiltersModal'));
+    modal.hide();
+    
+    // Re-search with filters
+    searchHotels();
+}
+
+// UI State Management
+function showLoadingState() {
+    hideAllStates();
+    document.getElementById('loading-state').style.display = 'block';
+}
+
+function showErrorState(message) {
+    hideAllStates();
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-state').style.display = 'block';
+}
+
+function showEmptyResults() {
+    hideAllStates();
+    document.getElementById('empty-state').innerHTML = `
+        <i class="bi bi-building text-muted" style="font-size: 3rem;"></i>
+        <h6 class="mt-3 text-muted">Отели не найдены</h6>
+        <p class="text-muted">Попробуйте изменить параметры поиска или выбрать другие даты</p>
+    `;
+    document.getElementById('empty-state').style.display = 'block';
+}
+
+function hideAllStates() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    document.getElementById('search-results').style.display = 'none';
+}
+
+function updateSearchStats(count, executionTime) {
+    const stats = document.getElementById('hotels-stats');
+    stats.textContent = `Найдено: ${count} отелей (${executionTime ? executionTime.toFixed(2) + 'с' : ''})`;
+}
+
+function showDemoNotification() {
+    if (!document.querySelector('.demo-notification')) {
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-info demo-notification mt-3';
+        notification.innerHTML = `
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Демо режим:</strong> Отображаются демонстрационные данные отелей
+        `;
+        document.querySelector('.page-header').appendChild(notification);
+    }
+}
+</script>
+
+<style>
+.hotel-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hotel-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.hotel-amenities i {
+    color: #28a745;
+}
+</style>
+
+{% endblock %}

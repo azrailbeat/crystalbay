@@ -3,14 +3,14 @@
 Используются когда API недоступен из-за IP ограничений
 """
 
-# Валюты
+# Валюты - Казахстан (приоритет KZT)
 CURRENCIES_DATA = {
     "SearchTour_CURRENCIES": [
-        {"id": "1", "name": "KZT", "code": "KZT", "symbol": "₸"},
-        {"id": "2", "name": "USD", "code": "USD", "symbol": "$"},
-        {"id": "3", "name": "EUR", "code": "EUR", "symbol": "€"},
-        {"id": "4", "name": "RUB", "code": "RUB", "symbol": "₽"},
-        {"id": "5", "name": "UZS", "code": "UZS", "symbol": "сум"}
+        {"id": "1", "name": "Казахстанский тенге", "code": "KZT", "symbol": "₸", "default": True},
+        {"id": "2", "name": "Доллар США", "code": "USD", "symbol": "$"},
+        {"id": "3", "name": "Евро", "code": "EUR", "symbol": "€"},
+        {"id": "4", "name": "Российский рубль", "code": "RUB", "symbol": "₽"},
+        {"id": "5", "name": "Узбекский сум", "code": "UZS", "symbol": "сум"}
     ]
 }
 
@@ -30,19 +30,24 @@ STATES_DATA = {
     ]
 }
 
-# Города отправления
+# Города отправления - Казахстан
 TOWNFROMS_DATA = {
     "SearchTour_TOWNFROMS": [
-        {"id": "1", "name": "Алматы", "code": "ALA"},
-        {"id": "2", "name": "Нур-Султан", "code": "NQZ"},
-        {"id": "3", "name": "Шымкент", "code": "CIT"},
-        {"id": "4", "name": "Караганда", "code": "KGF"},
-        {"id": "5", "name": "Атырау", "code": "GUW"},
-        {"id": "6", "name": "Актау", "code": "SCO"},
-        {"id": "7", "name": "Павлодар", "code": "PWQ"},
-        {"id": "8", "name": "Семей", "code": "PLX"},
-        {"id": "9", "name": "Усть-Каменогорск", "code": "UKK"},
-        {"id": "10", "name": "Костанай", "code": "KSN"}
+        {"id": "1", "name": "Алматы", "code": "ALA", "airport": "ALA", "region": "Алматинская область"},
+        {"id": "2", "name": "Астана (Нур-Султан)", "code": "NQZ", "airport": "NQZ", "region": "Акмолинская область"},
+        {"id": "3", "name": "Шымкент", "code": "CIT", "airport": "CIT", "region": "Туркестанская область"},
+        {"id": "4", "name": "Караганда", "code": "KGF", "airport": "KGF", "region": "Карагандинская область"},
+        {"id": "5", "name": "Атырау", "code": "GUW", "airport": "GUW", "region": "Атырауская область"},
+        {"id": "6", "name": "Актау", "code": "SCO", "airport": "SCO", "region": "Мангистауская область"},
+        {"id": "7", "name": "Павлодар", "code": "PWQ", "airport": "PWQ", "region": "Павлодарская область"},
+        {"id": "8", "name": "Семей", "code": "PLX", "airport": "PLX", "region": "Восточно-Казахстанская область"},
+        {"id": "9", "name": "Усть-Каменогорск", "code": "UKK", "airport": "UKK", "region": "Восточно-Казахстанская область"},
+        {"id": "10", "name": "Костанай", "code": "KSN", "airport": "KSN", "region": "Костанайская область"},
+        {"id": "11", "name": "Актобе", "code": "AKX", "airport": "AKX", "region": "Актюбинская область"},
+        {"id": "12", "name": "Тараз", "code": "DMB", "airport": "DMB", "region": "Жамбылская область"},
+        {"id": "13", "name": "Уральск", "code": "URA", "airport": "URA", "region": "Западно-Казахстанская область"},
+        {"id": "14", "name": "Петропавловск", "code": "PPK", "airport": "PPK", "region": "Северо-Казахстанская область"},
+        {"id": "15", "name": "Кокшетау", "code": "KOV", "airport": "KOV", "region": "Акмолинская область"}
     ]
 }
 

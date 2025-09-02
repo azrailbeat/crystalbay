@@ -193,9 +193,15 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ url_for('tours_search') }}" class="nav-link {% if active_page == 'tours-search' %}active{% endif %}">
+                <a href="{{ url_for('tours_search') }}" class="nav-link {% if active_page == 'tours' %}active{% endif %}">
                     <i class="bi bi-search me-2"></i>
                     Поиск туров
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('hotels_search') }}" class="nav-link {% if active_page == 'hotels' %}active{% endif %}">
+                    <i class="bi bi-building me-2"></i>
+                    Поиск отелей
                 </a>
             </li>
             <li class="nav-item">

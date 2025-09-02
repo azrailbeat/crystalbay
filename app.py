@@ -95,12 +95,19 @@ def dashboard():
                              page_title='Дашборд',
                              stats={})
 
-@app.route('/tours-search')
+@app.route('/tours')
 def tours_search():
     """Поиск туров через SAMO API"""
     return render_template('tours_search.html',
-                         active_page='tours-search',
+                         active_page='tours',
                          page_title='Поиск туров')
+
+@app.route('/hotels')
+def hotels_search():
+    """Страница поиска отелей"""
+    return render_template('hotels_search.html',
+                         active_page='hotels',
+                         page_title='Поиск отелей')
 
 @app.route('/orders')
 def orders():
