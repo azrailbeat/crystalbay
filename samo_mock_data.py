@@ -224,10 +224,117 @@ def get_mock_data(action: str) -> dict:
         'SearchTour_MEALS': MEALS_DATA,
         'NIGHTS': NIGHTS_DATA,
         'SearchTour_HOTELS': HOTELS_DATA,
-        'SearchTour_ALL': DEMO_TOURS
+        'SearchTour_ALL': DEMO_TOURS,
+        'GetOrders': DEMO_ORDERS
     }
     
     return data_map.get(action, {})
+
+# Демо заявки для системы
+DEMO_ORDERS = {
+    "GetOrders": [
+        {
+            "id": "ORD-001",
+            "order_number": "CB-2025-001",
+            "customer_name": "Иван Петров",
+            "customer_phone": "+7 777 123 4567",
+            "customer_email": "ivan.petrov@email.kz",
+            "tour_name": "Crystal Sunset Resort - Турция",
+            "destination": "Турция",
+            "hotel_name": "Crystal Sunset Resort",
+            "check_in_date": "2025-09-15",
+            "nights": 7,
+            "adults": 2,
+            "children": 0,
+            "total_price": 450000,
+            "currency": "KZT",
+            "status": "new",
+            "created_at": "2025-09-02T10:30:00Z",
+            "updated_at": "2025-09-02T10:30:00Z",
+            "notes": "Предпочитает номер с видом на море"
+        },
+        {
+            "id": "ORD-002",
+            "order_number": "CB-2025-002",
+            "customer_name": "Айгуль Нурланова",
+            "customer_phone": "+7 701 234 5678",
+            "customer_email": "aigul.n@gmail.com",
+            "tour_name": "Royal Paradise Hotel - Египет",
+            "destination": "Египет",
+            "hotel_name": "Royal Paradise Hotel",
+            "check_in_date": "2025-09-20",
+            "nights": 10,
+            "adults": 2,
+            "children": 1,
+            "total_price": 380000,
+            "currency": "KZT",
+            "status": "processing",
+            "created_at": "2025-09-01T14:15:00Z",
+            "updated_at": "2025-09-02T09:00:00Z",
+            "notes": "Семейный отдых с ребенком 8 лет"
+        },
+        {
+            "id": "ORD-003",
+            "order_number": "CB-2025-003",
+            "customer_name": "Дмитрий Казанцев",
+            "customer_phone": "+7 702 345 6789",
+            "customer_email": "d.kazantsev@mail.ru",
+            "tour_name": "Emirates Palace Resort - ОАЭ",
+            "destination": "ОАЭ",
+            "hotel_name": "Emirates Palace Resort",
+            "check_in_date": "2025-10-01",
+            "nights": 5,
+            "adults": 2,
+            "children": 0,
+            "total_price": 720000,
+            "currency": "KZT",
+            "status": "confirmed",
+            "created_at": "2025-08-30T16:45:00Z",
+            "updated_at": "2025-09-01T11:30:00Z",
+            "notes": "VIP отдых, требуется трансфер класса люкс"
+        },
+        {
+            "id": "ORD-004",
+            "order_number": "CB-2025-004",
+            "customer_name": "Марина Сидорова",
+            "customer_phone": "+7 705 456 7890",
+            "customer_email": "marina.sidorova@yahoo.com",
+            "tour_name": "Tropical Island Resort - Мальдивы",
+            "destination": "Мальдивы",
+            "hotel_name": "Tropical Island Resort",
+            "check_in_date": "2025-10-10",
+            "nights": 7,
+            "adults": 2,
+            "children": 0,
+            "total_price": 1200000,
+            "currency": "KZT",
+            "status": "paid",
+            "created_at": "2025-08-25T12:00:00Z",
+            "updated_at": "2025-08-28T10:15:00Z",
+            "notes": "Медовый месяц, бунгало над водой"
+        },
+        {
+            "id": "ORD-005",
+            "order_number": "CB-2025-005",
+            "customer_name": "Алексей Иванов",
+            "customer_phone": "+7 707 567 8901",
+            "customer_email": "a.ivanov@gmail.com",
+            "tour_name": "Thai Beach Hotel - Таиланд",
+            "destination": "Таиланд",
+            "hotel_name": "Thai Beach Hotel",
+            "check_in_date": "2025-09-25",
+            "nights": 9,
+            "adults": 2,
+            "children": 2,
+            "total_price": 520000,
+            "currency": "KZT",
+            "status": "cancelled",
+            "created_at": "2025-08-20T09:30:00Z",
+            "updated_at": "2025-08-22T14:00:00Z",
+            "notes": "Отменено по просьбе клиента - изменились планы"
+        }
+    ]
+}
 
 def create_mock_response(action: str, success: bool = True) -> dict:
     """Создать mock ответ в формате SAMO API"""

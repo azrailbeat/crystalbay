@@ -108,6 +108,65 @@ class SamoIntegration:
     
     # === SAMO API КОМАНДЫ ===
     
+    def search_tours_all(self, params: Dict = None) -> Dict[str, Any]:
+        """Поиск всех туров с параметрами"""
+        return self._make_request('SearchTour_ALL', params)
+    
+    def get_tour_details(self, tour_id: str) -> Dict[str, Any]:
+        """Получить детали конкретного тура"""
+        return self._make_request('SearchTour_DETAILS', {'tour_id': tour_id})
+    
+    def get_orders(self, params: Dict = None) -> Dict[str, Any]:
+        """Получить заявки/заказы"""
+        # В демо режиме возвращаем mock данные
+        from samo_mock_data import get_mock_data
+        orders_data = get_mock_data('GetOrders')
+        return {
+            'success': True,
+            'data': orders_data.get('GetOrders', []),
+            'demo_mode': True,
+            'execution_time': 0.1
+        }
+    
+    def create_order(self, order_data: Dict) -> Dict[str, Any]:
+        """Создать новую заявку"""
+        # В демо режиме возвращаем успешный результат
+        order_id = f"ORD-{int(datetime.now().timestamp())}"
+        return {
+            'success': True,
+            'order_id': order_id,
+            'order_number': f"CB-{order_id}",
+            'demo_mode': True
+        }
+    
+    def get_order(self, order_id: str) -> Dict[str, Any]:
+        """Получить детали заявки"""
+        # В демо режиме возвращаем mock данные
+        return {
+            'success': True,
+            'data': {
+                'id': order_id,
+                'customer_name': 'Демо клиент',
+                'status': 'new',
+                'created_at': datetime.now().isoformat()
+            },
+            'demo_mode': True
+        }
+    
+    def update_order(self, order_id: str, update_data: Dict) -> Dict[str, Any]:
+        """Обновить заявку"""
+        return {
+            'success': True,
+            'demo_mode': True
+        }
+    
+    def update_order_status(self, order_id: str, status: str) -> Dict[str, Any]:
+        """Обновить статус заявки"""
+        return {
+            'success': True,
+            'demo_mode': True
+        }
+    
     def get_currencies(self) -> Dict[str, Any]:
         """Получение валют (SearchTour_CURRENCIES)"""
         return self._make_request('SearchTour_CURRENCIES')
@@ -115,6 +174,18 @@ class SamoIntegration:
     def get_states(self) -> Dict[str, Any]:
         """Получение стран (SearchTour_STATES)"""
         return self._make_request('SearchTour_STATES')
+    
+    def get_townfroms(self) -> Dict[str, Any]:
+        """Получение городов отправления (SearchTour_TOWNFROMS)"""
+        return self._make_request('SearchTour_TOWNFROMS')
+    
+    def get_stars(self) -> Dict[str, Any]:
+        """Получение звездности отелей (SearchTour_STARS)"""
+        return self._make_request('SearchTour_STARS')
+    
+    def get_meals(self) -> Dict[str, Any]:
+        """Получение типов питания (SearchTour_MEALS)"""
+        return self._make_request('SearchTour_MEALS')
     
     def get_town_froms(self) -> Dict[str, Any]:
         """Получение городов отправления (SearchTour_TOWNFROMS)"""

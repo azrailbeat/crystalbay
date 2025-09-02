@@ -286,6 +286,16 @@ def internal_error(error):
                          error_code=500,
                          error_message="Внутренняя ошибка сервера"), 500
 
+# === ADDITIONAL API ROUTES ===
+
+# Register tours and orders API routes
+try:
+    from tours_api import register_tours_api
+    register_tours_api(app)
+    logger.info("Tours API routes registered successfully")
+except Exception as e:
+    logger.error(f"Failed to register tours API routes: {e}")
+
 # === STARTUP ===
 
 if __name__ == '__main__':
