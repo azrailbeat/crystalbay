@@ -128,56 +128,76 @@ def register_tours_api(app):
     
     @app.route('/api/tours/filters', methods=['GET'])
     def api_get_tour_filters():
-        """Get tour search filters data"""
+        """Get tour search filters data with real SAMO parameters"""
         try:
-            from samo_integration import SamoIntegration
-            samo = SamoIntegration()
+            from samo_parameters_loader import SamoParametersLoader
             
-            filters_data = {}
+            # Загружаем все параметры из SAMO API
+            loader = SamoParametersLoader()
+            parameters = loader.get_all_search_parameters()
             
-            # Валюты
-            currencies_result = samo.get_currencies()
-            if currencies_result.get('success'):
-                filters_data['currencies'] = currencies_result.get('data', {}).get('SearchTour_CURRENCIES', [])
+            # Формируем ответ с приоритетами для Казахстана
+            kz_priorities = parameters.get('kazakhstan_priorities', {})
             
-            # Страны
-            states_result = samo.get_states()
-            if states_result.get('success'):
-                filters_data['destinations'] = states_result.get('data', {}).get('SearchTour_STATES', [])
-            
-            # Города отправления
-            townfroms_result = samo.get_townfroms()
-            if townfroms_result.get('success'):
-                filters_data['departure_cities'] = townfroms_result.get('data', {}).get('SearchTour_TOWNFROMS', [])
-            
-            # Звезды отелей
-            stars_result = samo.get_stars()
-            if stars_result.get('success'):
-                filters_data['stars'] = stars_result.get('data', {}).get('SearchTour_STARS', [])
-            
-            # Типы питания
-            meals_result = samo.get_meals()
-            if meals_result.get('success'):
-                filters_data['meals'] = meals_result.get('data', {}).get('SearchTour_MEALS', [])
-            
-            # Ночи (генерируем локально)
-            filters_data['nights'] = [
-                {"nights": str(i), "name": f"{i} {'ночь' if i == 1 else 'ночи' if i < 5 else 'ночей'}"} 
-                for i in range(1, 22)
-            ]
+            filters_data = {
+                'currencies': kz_priorities.get('currencies', parameters.get('currencies', [])),
+                'destinations': kz_priorities.get('destinations', parameters.get('destinations', [])),
+                'departure_cities': kz_priorities.get('departure_cities', parameters.get('departure_cities', [])),
+                'stars': parameters.get('stars', []),
+                'meals': parameters.get('meals', []),
+                'hotels': parameters.get('hotels', [])[:50],  # Ограничиваем для производительности
+                'loaded_at': parameters.get('loaded_at'),
+                'error': parameters.get('error'),
+                'total_counts': {
+                    'currencies': len(parameters.get('currencies', [])),
+                    'destinations': len(parameters.get('destinations', [])),
+                    'departure_cities': len(parameters.get('departure_cities', [])),
+                    'stars': len(parameters.get('stars', [])),
+                    'meals': len(parameters.get('meals', [])),
+                    'hotels': len(parameters.get('hotels', []))
+                }
+            }
             
             return jsonify({
                 'success': True,
                 'filters': filters_data,
-                'demo_mode': currencies_result.get('demo_mode', False)
+                'kazakhstan_market': True  # Маркер для фронтенда
             })
             
         except Exception as e:
-            logger.error(f"Get tour filters error: {e}")
+            logger.error(f"Error loading tour filters: {e}")
+            
+            # Возвращаем базовые фильтры
+            fallback_filters = {
+                'currencies': [
+                    {'id': 'KZT', 'code': 'KZT', 'name': 'Казахстанский тенге', 'rate': 1},
+                    {'id': 'USD', 'code': 'USD', 'name': 'Доллар США', 'rate': 450}
+                ],
+                'destinations': [
+                    {'id': '1', 'name': 'Вьетнам', 'code': 'VN'}
+                ],
+                'departure_cities': [
+                    {'id': '1', 'name': 'Алматы', 'code': 'ALA'},
+                    {'id': '2', 'name': 'Астана', 'code': 'NQZ'}
+                ],
+                'stars': [
+                    {'id': '3', 'name': '3 звезды', 'value': '3'},
+                    {'id': '4', 'name': '4 звезды', 'value': '4'},
+                    {'id': '5', 'name': '5 звезд', 'value': '5'}
+                ],
+                'meals': [
+                    {'id': 'BB', 'name': 'Завтрак', 'code': 'BB'},
+                    {'id': 'AI', 'name': 'Все включено', 'code': 'AI'}
+                ],
+                'hotels': [],
+                'error': f'Ошибка загрузки параметров: {str(e)}'
+            }
+            
             return jsonify({
                 'success': False,
-                'error': str(e),
-                'filters': {}
+                'filters': fallback_filters,
+                'error': str(e)
+            }), 500
             }), 500
     
     @app.route('/api/tours/details/<tour_id>', methods=['GET'])

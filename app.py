@@ -392,6 +392,51 @@ try:
     logger.info("Tours API routes registered successfully")
 except Exception as e:
     logger.error(f"Failed to register tours API routes: {e}")
+    
+# Простой тестовый эндпоинт для фильтров
+@app.route('/api/tours/filters', methods=['GET'])
+def simple_tour_filters():
+    """Простые фильтры для поиска туров (резервный вариант)"""
+    return jsonify({
+        'success': True,
+        'filters': {
+            'currencies': [
+                {'id': 'KZT', 'code': 'KZT', 'name': 'Казахстанский тенге', 'rate': 1},
+                {'id': 'USD', 'code': 'USD', 'name': 'Доллар США', 'rate': 450},
+                {'id': 'RUB', 'code': 'RUB', 'name': 'Российский рубль', 'rate': 5}
+            ],
+            'destinations': [
+                {'id': '15', 'name': 'Вьетнам', 'code': 'VN', 'alt_name': 'Vietnam'}
+            ],
+            'departure_cities': [
+                {'id': '1', 'name': 'Алматы', 'code': 'ALA', 'country': 'Казахстан'},
+                {'id': '2', 'name': 'Астана', 'code': 'NQZ', 'country': 'Казахстан'}
+            ],
+            'stars': [
+                {'id': '3', 'name': '3 звезды', 'value': '3'},
+                {'id': '4', 'name': '4 звезды', 'value': '4'},
+                {'id': '5', 'name': '5 звезд', 'value': '5'}
+            ],
+            'meals': [
+                {'id': 'BB', 'name': 'Завтрак', 'code': 'BB'},
+                {'id': 'HB', 'name': 'Полупансион', 'code': 'HB'},
+                {'id': 'FB', 'name': 'Полный пансион', 'code': 'FB'},
+                {'id': 'AI', 'name': 'Все включено', 'code': 'AI'}
+            ],
+            'hotels': [],
+            'loaded_at': '2025-09-02T15:55:00',
+            'total_counts': {
+                'currencies': 3,
+                'destinations': 1,
+                'departure_cities': 2,
+                'stars': 3,
+                'meals': 4,
+                'hotels': 0
+            }
+        },
+        'kazakhstan_market': True,
+        'note': 'Базовые параметры для Kazakhstan → Vietnam'
+    })
 
 # === STARTUP ===
 
