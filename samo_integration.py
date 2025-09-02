@@ -118,15 +118,25 @@ class SamoIntegration:
     
     def get_orders(self, params: Dict = None) -> Dict[str, Any]:
         """Получить заявки/заказы"""
-        # В демо режиме возвращаем mock данные
-        from samo_mock_data import get_mock_data
-        orders_data = get_mock_data('GetOrders')
-        return {
-            'success': True,
-            'data': orders_data.get('GetOrders', []),
-            'demo_mode': True,
-            'execution_time': 0.1
-        }
+        try:
+            # В демо режиме возвращаем mock данные
+            from samo_mock_data import DEMO_ORDERS
+            orders_data = DEMO_ORDERS.get('GetOrders', []) if isinstance(DEMO_ORDERS, dict) else []
+            
+            return {
+                'success': True,
+                'data': orders_data,
+                'demo_mode': True,
+                'execution_time': 0.1
+            }
+        except Exception as e:
+            logger.error(f"Error getting orders: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'data': [],
+                'demo_mode': True
+            }
     
     def create_order(self, order_data: Dict) -> Dict[str, Any]:
         """Создать новую заявку"""

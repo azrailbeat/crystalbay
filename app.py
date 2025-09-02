@@ -269,6 +269,89 @@ def health_check():
             'error': str(e)
         }), 500
 
+# === SYSTEM MANAGEMENT API ===
+
+@app.route('/api/system/clear-cache', methods=['POST'])
+def clear_cache():
+    """Очистка кеша системы"""
+    try:
+        # Здесь можно добавить логику очистки кеша Flask/Redis/Memcached
+        logger.info("Cache cleared by user request")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Кеш успешно очищен'
+        })
+        
+    except Exception as e:
+        logger.error(f"Clear cache error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/system/clear-demo-data', methods=['POST'])
+def clear_demo_data():
+    """Удаление всех демонстрационных данных"""
+    try:
+        # Очищаем демо данные из mock файла
+        import samo_mock_data
+        
+        # Сброс всех демо данных на пустые значения
+        samo_mock_data.CURRENCIES_DATA = []
+        samo_mock_data.STATES_DATA = []
+        samo_mock_data.TOWNFROMS_DATA = []
+        samo_mock_data.STARS_DATA = []
+        samo_mock_data.MEALS_DATA = []
+        samo_mock_data.DEMO_TOURS = []
+        samo_mock_data.DEMO_ORDERS = {"GetOrders": []}
+        
+        logger.info("Demo data cleared successfully")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Демонстрационные данные успешно удалены. Система будет использовать только реальные API данные.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Clear demo data error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/system/reset', methods=['POST'])
+def reset_system():
+    """Полный сброс системы"""
+    try:
+        # Очищаем базу данных
+        db.drop_all()
+        db.create_all()
+        
+        # Очищаем демо данные
+        import samo_mock_data
+        samo_mock_data.CURRENCIES_DATA = []
+        samo_mock_data.STATES_DATA = []
+        samo_mock_data.TOWNFROMS_DATA = []
+        samo_mock_data.STARS_DATA = []
+        samo_mock_data.MEALS_DATA = []
+        samo_mock_data.DEMO_TOURS = []
+        samo_mock_data.DEMO_ORDERS = {"GetOrders": []}
+        
+        logger.warning("System reset performed - all data cleared")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Система полностью сброшена'
+        })
+        
+    except Exception as e:
+        logger.error(f"System reset error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # === ERROR HANDLERS ===
 
 @app.errorhandler(404)

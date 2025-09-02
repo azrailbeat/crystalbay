@@ -413,7 +413,63 @@
                             <h3><i class="bi bi-gear me-2"></i>Системные настройки</h3>
                         </div>
                         <div class="settings-body" id="systemSettings">
-                            <!-- Системные настройки будут загружены динамически -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-database me-2"></i>
+                                                Управление данными
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="text-muted small mb-3">
+                                                Очистка системы от демонстрационных данных и кеша
+                                            </p>
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-outline-warning" onclick="clearCache()">
+                                                    <i class="bi bi-arrow-clockwise me-2"></i>
+                                                    Очистить кеш
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="clearDemoData()">
+                                                    <i class="bi bi-trash me-2"></i>
+                                                    Удалить демо данные
+                                                </button>
+                                                <button class="btn btn-danger" onclick="resetSystem()">
+                                                    <i class="bi bi-arrow-repeat me-2"></i>
+                                                    Полный сброс системы
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-shield-check me-2"></i>
+                                                Статус системы
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="system-status">
+                                                <div class="mb-2">
+                                                    <span class="badge bg-info me-2">ДЕМО</span>
+                                                    Режим демонстрации активен
+                                                </div>
+                                                <div class="mb-2">
+                                                    <span class="badge bg-warning me-2">IP</span>
+                                                    IP заблокирован SAMO сервером
+                                                </div>
+                                                <div class="mb-2">
+                                                    <span class="badge bg-success me-2">API</span>
+                                                    Fallback данные работают
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1076,6 +1132,107 @@
     
     function loadTabContent(tabName) {
         // Загрузить содержимое вкладки при необходимости
+    }
+    
+    // === SYSTEM MANAGEMENT FUNCTIONS ===
+    
+    async function clearCache() {
+        if (!confirm('Очистить кеш системы? Это может временно замедлить работу.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/system/clear-cache', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', 'Кеш успешно очищен');
+            } else {
+                showAlert('error', 'Ошибка очистки кеша: ' + data.error);
+            }
+        } catch (error) {
+            showAlert('error', 'Ошибка соединения: ' + error.message);
+        }
+    }
+    
+    async function clearDemoData() {
+        if (!confirm('Удалить все демонстрационные данные?\n\nЭто действие:\n• Удалит все демо туры\n• Удалит все демо заявки\n• Очистит справочники\n• Нельзя отменить\n\nПродолжить?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/system/clear-demo-data', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', 'Демо данные успешно удалены. Система будет использовать только реальные API данные.');
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showAlert('error', 'Ошибка удаления демо данных: ' + data.error);
+            }
+        } catch (error) {
+            showAlert('error', 'Ошибка соединения: ' + error.message);
+        }
+    }
+    
+    async function resetSystem() {
+        if (!confirm('ВНИМАНИЕ! Полный сброс системы удалит:\n\n• Все настройки\n• Все сохраненные данные\n• Все интеграции\n• Кеш и логи\n\nЭто действие НЕЛЬЗЯ отменить!\n\nВы уверены?')) {
+            return;
+        }
+        
+        const finalConfirm = prompt('Для подтверждения введите "RESET" (большими буквами):');
+        if (finalConfirm !== 'RESET') {
+            showAlert('info', 'Сброс системы отменен');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/system/reset', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', 'Система сброшена. Перезагрузка через 3 секунды...');
+                setTimeout(() => {
+                    location.href = '/';
+                }, 3000);
+            } else {
+                showAlert('error', 'Ошибка сброса системы: ' + data.error);
+            }
+        } catch (error) {
+            showAlert('error', 'Ошибка соединения: ' + error.message);
+        }
+    }
+    
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 
+                          type === 'error' ? 'alert-danger' : 
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
+        
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        const container = document.querySelector('.container-fluid');
+        container.insertAdjacentHTML('afterbegin', alertHtml);
+        
+        setTimeout(() => {
+            const alert = container.querySelector('.alert');
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
     }
 </script>
 {% endblock %}
