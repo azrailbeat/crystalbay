@@ -41,15 +41,19 @@ class SamoOrdersIntegration:
                 for currency in currencies_result['data']:
                     currencies[currency.get('code', 'RUB')] = currency.get('rate', 1)
             
-            # 2. Получаем состояния заявок
+            # 2. Получаем состояния заявок  
             states_result = self.samo_api._make_request('SearchTour_STATES', {
                 'action': 'SearchTour_STATES'
             })
             
             order_states = {}
             if states_result.get('success') and states_result.get('data'):
-                for state in states_result['data']:
-                    order_states[state.get('id', '')] = state.get('name', '')
+                data = states_result['data']
+                if isinstance(data, dict) and 'SearchTour_STATES' in data:
+                    states_list = data['SearchTour_STATES']
+                    if isinstance(states_list, list):
+                        for state in states_list:
+                            order_states[state.get('id', '')] = state.get('name', '')
             
             # 3. Получаем города отправления
             towns_result = self.samo_api._make_request('SearchTour_TOWNFROMS', {
@@ -58,8 +62,12 @@ class SamoOrdersIntegration:
             
             departure_cities = {}
             if towns_result.get('success') and towns_result.get('data'):
-                for town in towns_result['data']:
-                    departure_cities[town.get('id', '')] = town.get('name', '')
+                data = towns_result['data']
+                if isinstance(data, dict) and 'SearchTour_TOWNFROMS' in data:
+                    towns_list = data['SearchTour_TOWNFROMS']
+                    if isinstance(towns_list, list):
+                        for town in towns_list:
+                            departure_cities[town.get('id', '')] = town.get('name', '')
             
             # 4. Получаем отели
             hotels_result = self.samo_api._make_request('SearchTour_HOTELS', {
@@ -68,11 +76,15 @@ class SamoOrdersIntegration:
             
             hotels_data = {}
             if hotels_result.get('success') and hotels_result.get('data'):
-                for hotel in hotels_result['data']:
-                    hotels_data[hotel.get('id', '')] = {
-                        'name': hotel.get('name', ''),
-                        'stars': hotel.get('stars', ''),
-                        'city': hotel.get('city', '')
+                data = hotels_result['data']
+                if isinstance(data, dict) and 'SearchTour_HOTELS' in data:
+                    hotels_list = data['SearchTour_HOTELS']
+                    if isinstance(hotels_list, list):
+                        for hotel in hotels_list:
+                            hotels_data[hotel.get('id', '')] = {
+                                'name': hotel.get('name', ''),
+                                'stars': hotel.get('stars', ''),
+                                'city': hotel.get('city', '')
                     }
             
             # 5. Получаем цены туров (основа для заявок)

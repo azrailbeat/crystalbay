@@ -260,18 +260,23 @@ function displaySearchResults(results) {
         return;
     }
     
-    // Обрабатываем результаты (результат может содержать разные разделы)
+    // Обрабатываем результаты с реального SAMO API
     let tours = [];
     
-    // Ищем туры в результатах
-    if (results.SearchTour_ALL) {
+    // Проверяем различные форматы ответа SAMO API
+    if (results.groups && Array.isArray(results.groups)) {
+        // Новый формат SAMO API с группами
+        tours = results.groups;
+    } else if (results.SearchTour_ALL) {
         tours = Array.isArray(results.SearchTour_ALL) ? results.SearchTour_ALL : [results.SearchTour_ALL];
     } else if (Array.isArray(results)) {
         tours = results;
+    } else if (results.data && Array.isArray(results.data)) {
+        tours = results.data;
     } else {
-        // Пытаемся найти массив туров в любом поле
+        // Ищем массив туров в любом поле
         Object.values(results).forEach(value => {
-            if (Array.isArray(value) && value.length > 0) {
+            if (Array.isArray(value) && value.length > 0 && !tours.length) {
                 tours = value;
             }
         });

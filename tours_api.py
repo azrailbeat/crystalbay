@@ -62,17 +62,32 @@ def register_tours_api(app):
             result = samo.search_tours_all(api_params)
             
             if result.get('success'):
-                tours = result.get('data', {}).get('SearchTour_ALL', [])
+                data = result.get('data', {})
+                tours = []
+                
+                # Обрабатываем различные форматы ответа SAMO API
+                if isinstance(data, dict):
+                    if 'groups' in data and isinstance(data['groups'], list):
+                        tours = data['groups']
+                    elif 'SearchTour_ALL' in data:
+                        tours_data = data['SearchTour_ALL']
+                        tours = tours_data if isinstance(tours_data, list) else [tours_data]
+                    else:
+                        # Ищем массивы в данных
+                        for key, value in data.items():
+                            if isinstance(value, list) and value:
+                                tours = value
+                                break
                 
                 # Обработка данных туров для фронтенда
                 processed_tours = []
-                for tour in tours:
+                for tour in tours if isinstance(tours, list) else []:
                     processed_tour = {
-                        'id': tour.get('id'),
-                        'hotel_name': tour.get('hotel_name'),
-                        'destination': tour.get('state_name'),
-                        'city': tour.get('city'),
-                        'stars': tour.get('stars'),
+                        'id': tour.get('id', tour.get('hotelId', '')),
+                        'hotel_name': tour.get('name', tour.get('hotel_name', tour.get('nameAlt', 'Отель'))),
+                        'destination': tour.get('state_name', tour.get('country', 'Вьетнам')),
+                        'city': tour.get('city', tour.get('resort', '')),
+                        'stars': tour.get('stars', tour.get('category', 0)),
                         'nights': tour.get('nights'),
                         'adults': tour.get('adults'),
                         'children': tour.get('children'),
