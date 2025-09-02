@@ -14,19 +14,19 @@ CURRENCIES_DATA = {
     ]
 }
 
-# Страны и направления
+# Страны и направления - приоритет Вьетнам
 STATES_DATA = {
     "SearchTour_STATES": [
-        {"id": "1", "name": "Турция", "code": "TR"},
-        {"id": "2", "name": "Египет", "code": "EG"},
-        {"id": "3", "name": "ОАЭ", "code": "AE"},
-        {"id": "4", "name": "Мальдивы", "code": "MV"},
-        {"id": "5", "name": "Таиланд", "code": "TH"},
-        {"id": "6", "name": "Грузия", "code": "GE"},
-        {"id": "7", "name": "Узбекистан", "code": "UZ"},
-        {"id": "8", "name": "Киргизия", "code": "KG"},
-        {"id": "9", "name": "Шри-Ланка", "code": "LK"},
-        {"id": "10", "name": "Индия", "code": "IN"}
+        {"id": "1", "name": "Вьетнам", "code": "VN", "priority": True},
+        {"id": "2", "name": "Турция", "code": "TR"},
+        {"id": "3", "name": "Таиланд", "code": "TH"},
+        {"id": "4", "name": "ОАЭ", "code": "AE"},
+        {"id": "5", "name": "Египет", "code": "EG"},
+        {"id": "6", "name": "Мальдивы", "code": "MV"},
+        {"id": "7", "name": "Грузия", "code": "GE"},
+        {"id": "8", "name": "Узбекистан", "code": "UZ"},
+        {"id": "9", "name": "Киргизия", "code": "KG"},
+        {"id": "10", "name": "Шри-Ланка", "code": "LK"}
     ]
 }
 

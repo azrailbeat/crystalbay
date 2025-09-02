@@ -109,6 +109,13 @@ def hotels_search():
                          active_page='hotels',
                          page_title='Поиск отелей')
 
+@app.route('/vietnam')
+def vietnam_search():
+    """Специальная страница поиска туров во Вьетнам"""
+    return render_template('vietnam_search.html',
+                         active_page='vietnam',
+                         page_title='Туры во Вьетнам')
+
 @app.route('/orders')
 def orders():
     """Управление заявками"""
