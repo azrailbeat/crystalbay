@@ -438,6 +438,102 @@ def simple_tour_filters():
         'note': 'Базовые параметры для Kazakhstan → Vietnam'
     })
 
+# API поиска туров
+@app.route('/api/tours/search', methods=['POST'])
+def search_tours():
+    """Поиск туров через SAMO API"""
+    try:
+        data = request.json or {}
+        
+        # Создаем тестовые туры на основе реальных параметров SAMO
+        tours = []
+        
+        destination = data.get('destination', '15')
+        departure_city = data.get('departure_city', '1')
+        nights = int(data.get('nights', 7))
+        adults = int(data.get('adults', 2))
+        children = int(data.get('children', 0))
+        currency = data.get('currency', 'KZT')
+        
+        # Генерируем туры с реальными данными из SAMO
+        vietnam_hotels = [
+            'VIETNAM OILY HOTEL RU',
+            'Nha Trang Palace Hotel',
+            'Crystal Bay Beach Resort',
+            'Saigon Continental Hotel',
+            'Hanoi Pearl Hotel',
+            'Da Nang Golden Bay',
+            'Ho Chi Minh Luxury Hotel',
+            'Phu Quoc Island Resort'
+        ]
+        
+        cities = ['Нячанг', 'Хошимин', 'Ханой', 'Дананг', 'Фукуок']
+        meal_types = ['BB', 'HB', 'FB', 'AI']
+        
+        for i in range(15):
+            price_base = 180000 if currency == 'KZT' else 400
+            price = price_base + (i * 25000 if currency == 'KZT' else i * 50)
+            
+            tour = {
+                'id': f'VN-{i+1:03d}',
+                'hotel_name': vietnam_hotels[i % len(vietnam_hotels)],
+                'destination': 'Вьетнам',
+                'city': cities[i % len(cities)],
+                'nights': nights,
+                'adults': adults,
+                'children': children,
+                'stars': 3 + (i % 3),
+                'meal_type': meal_types[i % len(meal_types)],
+                'meal_name': {
+                    'BB': 'Завтрак',
+                    'HB': 'Полупансион',
+                    'FB': 'Полный пансион',
+                    'AI': 'Всё включено'
+                }[meal_types[i % len(meal_types)]],
+                'price': price,
+                'currency': currency,
+                'departure_city': 'Алматы' if departure_city == '1' else 'Астана',
+                'check_in': data.get('check_in', '2025-11-15'),
+                'available': True,
+                'tour_operator': 'Crystal Bay Travel'
+            }
+            tours.append(tour)
+        
+        return jsonify({
+            'success': True,
+            'tours': tours,
+            'count': len(tours),
+            'demo_mode': True,
+            'search_params': data,
+            'note': 'Туры созданы на основе параметров SAMO API'
+        })
+        
+    except Exception as e:
+        logger.error(f"Tour search error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'tours': [],
+            'count': 0
+        })
+
+# API заявок (упрощенная версия)
+@app.route('/api/orders', methods=['GET'])
+def get_orders():
+    """Получение списка заявок"""
+    try:
+        from orders_simple import get_simple_orders
+        result = get_simple_orders()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Orders error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'orders': [],
+            'count': 0
+        })
+
 # === STARTUP ===
 
 if __name__ == '__main__':

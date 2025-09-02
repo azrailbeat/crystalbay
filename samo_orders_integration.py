@@ -38,8 +38,12 @@ class SamoOrdersIntegration:
             
             currencies = {}
             if currencies_result.get('success') and currencies_result.get('data'):
-                for currency in currencies_result['data']:
-                    currencies[currency.get('code', 'RUB')] = currency.get('rate', 1)
+                data = currencies_result['data']
+                if isinstance(data, dict) and 'SearchTour_CURRENCIES' in data:
+                    currencies_list = data['SearchTour_CURRENCIES']
+                    if isinstance(currencies_list, list):
+                        for currency in currencies_list:
+                            currencies[currency.get('code', 'RUB')] = currency.get('rate', 1)
             
             # 2. Получаем состояния заявок  
             states_result = self.samo_api._make_request('SearchTour_STATES', {

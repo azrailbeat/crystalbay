@@ -1,0 +1,458 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Search Form -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search me-2"></i>
+                    Параметры поиска отелей
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="hotel-search-form">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Направление</label>
+                            <select class="form-select" id="destination" name="destination" required>
+                                <option value="">Выберите страну...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Город/Курорт</label>
+                            <select class="form-select" id="city" name="city">
+                                <option value="">Любой город</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Город отправления</label>
+                            <select class="form-select" id="departure_city" name="departure_city" required>
+                                <option value="">Выберите город...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Дата заезда</label>
+                            <input type="date" class="form-control" id="check_in" name="check_in" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Дата выезда</label>
+                            <input type="date" class="form-control" id="check_out" name="check_out" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Взрослых</label>
+                            <select class="form-select" id="adults" name="adults">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Детей</label>
+                            <select class="form-select" id="children" name="children">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Номеров</label>
+                            <select class="form-select" id="rooms" name="rooms">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Звездность</label>
+                            <select class="form-select" id="stars" name="stars">
+                                <option value="">Любая</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Питание</label>
+                            <select class="form-select" id="meal" name="meal">
+                                <option value="">Любое</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Валюта</label>
+                            <select class="form-select" id="currency" name="currency">
+                                <option value="">Загрузка...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Цена за номер</label>
+                            <div class="input-group">
+                                <span class="input-group-text">От</span>
+                                <input type="number" class="form-control" id="price_from" name="price_from" placeholder="0">
+                                <span class="input-group-text">До</span>
+                                <input type="number" class="form-control" id="price_to" name="price_to" placeholder="∞">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg me-2">
+                                <i class="bi bi-search me-2"></i>
+                                Найти отели
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="resetHotelForm()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                Сбросить
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-building me-2"></i>
+                    Результаты поиска отелей
+                </h5>
+                <div id="hotels-count" class="text-muted"></div>
+            </div>
+            <div class="card-body p-0">
+                <div id="hotels-results">
+                    <div class="text-center p-5 text-muted" id="hotels-initial-message">
+                        <i class="bi bi-building" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <div class="mt-3">Введите параметры поиска и нажмите "Найти отели"</div>
+                        <div class="mt-2">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                Поиск отелей для путешествий из Казахстана
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let hotelSearchData = {};
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Hotels search page loaded');
+    loadHotelFilters();
+});
+
+// Загрузка фильтров для поиска отелей
+async function loadHotelFilters() {
+    console.log('Loading hotel search filters...');
+    
+    try {
+        const response = await fetch('/api/tours/filters', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        const filters = result.filters || {};
+        
+        console.log('Hotel filters loaded:', {
+            currencies: filters.currencies?.length || 0,
+            destinations: filters.destinations?.length || 0,
+            departure_cities: filters.departure_cities?.length || 0,
+            stars: filters.stars?.length || 0,
+            meals: filters.meals?.length || 0
+        });
+        
+        // Заполняем селекты
+        populateHotelSelect('currency', filters.currencies || [], 'code', 'name');
+        populateHotelSelect('destination', filters.destinations || [], 'id', 'name');
+        populateHotelSelect('departure_city', filters.departure_cities || [], 'id', 'name');
+        populateHotelSelect('stars', filters.stars || [], 'value', 'name');
+        populateHotelSelect('meal', filters.meals || [], 'code', 'name');
+        
+        // Устанавливаем значения по умолчанию для Казахстана
+        if (result.kazakhstan_market) {
+            document.getElementById('currency').value = 'KZT';
+            
+            // Вьетнам как направление по умолчанию
+            const vietnam = filters.destinations?.find(d => 
+                d.name.toLowerCase().includes('вьетнам') || d.code === 'VN'
+            );
+            if (vietnam) {
+                document.getElementById('destination').value = vietnam.id;
+            }
+            
+            // Алматы как город отправления по умолчанию
+            const almaty = filters.departure_cities?.find(c => 
+                c.name.toLowerCase().includes('алматы')
+            );
+            if (almaty) {
+                document.getElementById('departure_city').value = almaty.id;
+            }
+        }
+        
+        updateHotelLoadInfo(filters.total_counts, filters.loaded_at);
+        
+    } catch (error) {
+        console.error('Error loading hotel filters:', error);
+        showHotelError('Ошибка загрузки параметров поиска: ' + error.message);
+    }
+}
+
+function populateHotelSelect(selectId, data, valueField, textField, suffix = '') {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    if (!data || data.length === 0) {
+        select.innerHTML = '<option value="">Нет данных</option>';
+        return;
+    }
+    
+    let html = '<option value="">Выберите...</option>';
+    data.forEach(item => {
+        const value = item[valueField] || '';
+        const text = (item[textField] || 'Без названия') + suffix;
+        html += `<option value="${value}">${text}</option>`;
+    });
+    
+    select.innerHTML = html;
+}
+
+function updateHotelLoadInfo(counts, loadedAt) {
+    const initialMessage = document.getElementById('hotels-initial-message');
+    if (initialMessage && counts) {
+        const loadTime = loadedAt ? new Date(loadedAt).toLocaleTimeString('ru-RU') : '';
+        initialMessage.innerHTML = `
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+            <div class="mt-3"><strong>Параметры поиска отелей загружены</strong></div>
+            <div class="mt-2">
+                <small>
+                    <i class="bi bi-info-circle me-1"></i>
+                    Система настроена для поиска отелей из Казахстана
+                </small>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">
+                    Загружено: ${counts.currencies || 0} валют, ${counts.destinations || 0} направлений, 
+                    ${counts.departure_cities || 0} городов ${loadTime ? `(${loadTime})` : ''}
+                </small>
+            </div>
+        `;
+    }
+}
+
+// Поиск отелей
+async function searchHotels(formData) {
+    console.log('Searching hotels...');
+    
+    const searchParams = {
+        destination: formData.get('destination'),
+        city: formData.get('city'),
+        departure_city: formData.get('departure_city'),
+        check_in: formData.get('check_in'),
+        check_out: formData.get('check_out'),
+        adults: formData.get('adults'),
+        children: formData.get('children'),
+        rooms: formData.get('rooms'),
+        stars: formData.get('stars'),
+        meal: formData.get('meal'),
+        currency: formData.get('currency'),
+        price_from: formData.get('price_from'),
+        price_to: formData.get('price_to')
+    };
+    
+    // Удаляем пустые параметры
+    Object.keys(searchParams).forEach(key => {
+        if (!searchParams[key]) {
+            delete searchParams[key];
+        }
+    });
+    
+    try {
+        // Используем API поиска туров для отелей
+        const response = await fetch('/api/samo/SearchTour_HOTELS', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayHotelResults(data.data);
+        } else {
+            showHotelError('Ошибка поиска: ' + data.error);
+        }
+        
+    } catch (error) {
+        console.error('Hotel search error:', error);
+        showHotelError('Ошибка выполнения поиска: ' + error.message);
+    }
+}
+
+function displayHotelResults(results) {
+    const container = document.getElementById('hotels-results');
+    const countContainer = document.getElementById('hotels-count');
+    
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center p-5 text-muted">
+                <i class="bi bi-exclamation-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                <div class="mt-3">По вашему запросу отели не найдены</div>
+                <div class="mt-2">Попробуйте изменить параметры поиска</div>
+            </div>
+        `;
+        countContainer.textContent = '';
+        return;
+    }
+    
+    // Обрабатываем результаты
+    let hotels = [];
+    
+    if (results.SearchTour_HOTELS && Array.isArray(results.SearchTour_HOTELS)) {
+        hotels = results.SearchTour_HOTELS;
+    } else if (Array.isArray(results)) {
+        hotels = results;
+    } else {
+        Object.values(results).forEach(value => {
+            if (Array.isArray(value) && value.length > 0 && !hotels.length) {
+                hotels = value;
+            }
+        });
+    }
+    
+    countContainer.textContent = `Найдено: ${hotels.length} отелей`;
+    
+    if (hotels.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info m-3">
+                <h5>Данные получены, но отели не найдены</h5>
+                <p>Получен ответ от SAMO API, но отели по указанным критериям отсутствуют.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Отображаем отели
+    let html = '<div class="row p-3">';
+    
+    hotels.slice(0, 20).forEach((hotel, index) => {
+        html += `
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${hotel.name || hotel.hotel_name || 'Отель ' + (index + 1)}</h6>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                ${hotel.city || hotel.destination || 'Не указано'}
+                            </small>
+                        </div>
+                        
+                        ${hotel.stars ? `
+                            <div class="mb-2">
+                                ${'★'.repeat(parseInt(hotel.stars))}
+                                <span class="text-muted">${'☆'.repeat(5 - parseInt(hotel.stars))}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="text-muted small">Категория</div>
+                                <strong>${hotel.category || hotel.stars || '-'}</strong>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-muted small">Тип</div>
+                                <strong>${hotel.type || 'Отель'}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <button class="btn btn-primary btn-sm w-100" onclick="selectHotel(${index})">
+                            <i class="bi bi-plus me-1"></i>
+                            Выбрать отель
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    if (hotels.length > 20) {
+        html += `
+            <div class="alert alert-info m-3">
+                Показано первые 20 отелей из ${hotels.length} найденных.
+                Уточните параметры поиска для более точных результатов.
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    hotelSearchData.hotels = hotels;
+}
+
+function selectHotel(hotelIndex) {
+    const hotel = hotelSearchData.hotels[hotelIndex];
+    if (!hotel) return;
+    
+    // Переходим на страницу создания заявки с предзаполненными данными
+    const params = new URLSearchParams({
+        hotel_data: JSON.stringify(hotel)
+    });
+    
+    window.location.href = '/orders?' + params.toString();
+}
+
+function showHotelError(message) {
+    const container = document.getElementById('hotels-results');
+    container.innerHTML = `
+        <div class="alert alert-danger m-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function resetHotelForm() {
+    document.getElementById('hotel-search-form').reset();
+    document.getElementById('hotels-results').innerHTML = `
+        <div class="text-center p-5 text-muted">
+            <i class="bi bi-building" style="font-size: 3rem; opacity: 0.3;"></i>
+            <div class="mt-3">Введите параметры поиска и нажмите "Найти отели"</div>
+        </div>
+    `;
+    document.getElementById('hotels-count').textContent = '';
+}
+
+// Обработка формы поиска отелей
+document.getElementById('hotel-search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    searchHotels(formData);
+});
+</script>
+{% endblock %}
