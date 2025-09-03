@@ -71,12 +71,16 @@ def index():
         }
         
         if samo_api:
-            health = samo_api.health_check()
-            if health.get('samo_api_available'):
-                stats['api_status'] = 'connected'
-                stats['currencies_count'] = 3
-            else:
-                stats['api_status'] = 'requires_production'
+            try:
+                health = samo_api.health_check()
+                if health.get('samo_api_available'):
+                    stats['api_status'] = 'connected'
+                    stats['currencies_count'] = 3
+                else:
+                    stats['api_status'] = 'requires_production'
+            except Exception as e:
+                logger.error(f"Health check error: {e}")
+                stats['api_status'] = 'error'
         
         return render_template('dashboard.html',
                              active_page='dashboard',
@@ -154,7 +158,7 @@ def samo_api_proxy(action):
         else:
             params = request.get_json() or {}
         
-        result = samo_api.execute_command(action, params) if samo_api else {'success': False, 'error': 'SAMO API not initialized'}
+        result = samo_api._make_request(action, params) if samo_api else {'success': False, 'error': 'SAMO API not initialized'}
         return jsonify(result)
         
     except Exception as e:
