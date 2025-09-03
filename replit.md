@@ -42,9 +42,9 @@ The application follows a modular, service-oriented architecture, designed for c
 - **OpenAI GPT-4o**: Utilized for AI-powered chat automation and intelligent processing.
 
 ## Production Status (September 3, 2025):
-- **Production Server**: 46.250.234.89 ✓ ACTIVE (видно в browser URL)
-- **External IP Changed**: 35.237.1.69 ⚠️ BLOCKED (новый IP для исходящих запросов)
-- **Previous External IP**: 46.250.234.89 ✓ WHITELISTED in SAMO API  
-- **OAuth Token**: Valid ✓
-- **Root Cause**: Server external IP changed, SAMO API blocks new IP
-- **Solution**: Add IP 35.237.1.69 to SAMO API whitelist
+- **Production Server**: 46.250.234.89 ✓ ACTIVE (confirmed in browser URL)
+- **Outgoing IP**: 34.73.252.47 ⚠️ BLOCKED by SAMO API
+- **OAuth Token**: Valid ✓ (27bd59a7ac67...)
+- **Root Cause**: Outgoing requests use different IP than server IP
+- **Solution**: Add IP 34.73.252.47 to SAMO API whitelist
+- **System Status**: Ready for production, waiting for IP whitelist update

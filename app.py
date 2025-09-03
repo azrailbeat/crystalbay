@@ -690,14 +690,15 @@ def search_tours_universal():
         # SAMO API недоступен - показываем только ошибку
         app.logger.error(f"SAMO API недоступен, возвращаем ошибку согласно требованиям")
         
+        current_ip = os.popen('curl -s ifconfig.me 2>/dev/null').read().strip()
         return jsonify({
             'tours': [],
             'count': 0,
             'success': False,
-            'error': 'SAMO API заблокировал новый IP сервера. Требуется обновление whitelist.',
-            'current_ip': os.popen('curl -s ifconfig.me 2>/dev/null').read().strip(),
-            'required_ip': '35.237.1.69',
-            'old_ip': '46.250.234.89',
+            'error': f'SAMO API заблокировал IP {current_ip}. Нужно добавить в whitelist.',
+            'current_ip': current_ip,
+            'required_ip': current_ip,
+            'server_ip': '46.250.234.89',
             'samo_status': 'blocked'
         })
         

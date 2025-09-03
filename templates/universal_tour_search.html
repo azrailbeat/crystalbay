@@ -443,13 +443,14 @@ function displaySearchResults(apiResponse) {
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Требуется обновление whitelist в SAMO API</strong>
                     <div class="mt-2">
-                        <p><strong>Причина:</strong> Внешний IP сервера изменился с <code>46.250.234.89</code> на <code>35.237.1.69</code></p>
-                        <p><strong>Решение:</strong> Обратитесь к администратору SAMO API для добавления нового IP <code>35.237.1.69</code> в whitelist</p>
+                        <p><strong>Причина:</strong> Исходящий IP сервера <code>${apiResponse.current_ip}</code> заблокирован в SAMO API</p>
+                        <p><strong>Решение:</strong> Обратитесь к администратору SAMO API для добавления IP в whitelist</p>
                         <div class="mt-2 p-2 bg-light rounded">
                             <small class="text-muted">
                                 <strong>Для администратора SAMO API:</strong><br>
-                                Добавить в whitelist: <code>35.237.1.69</code><br>
-                                OAuth токен: <code>${apiResponse.current_ip ? apiResponse.current_ip : 'действующий'}</code>
+                                Добавить в whitelist: <code>${apiResponse.current_ip}</code><br>
+                                Сервер работает на: <code>${apiResponse.server_ip || '46.250.234.89'}</code><br>
+                                OAuth токен действующий ✓
                             </small>
                         </div>
                         <p class="small text-success mt-2">✓ Система настроена корректно, ожидает обновления whitelist</p>
