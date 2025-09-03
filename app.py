@@ -820,6 +820,11 @@ def kazakhstan_vietnam_search():
     """Поиск туров из Казахстана во Вьетнам"""
     return render_template("kazakhstan_vietnam_search.html", active_page="tours", page_title="Казахстан → Вьетнам")
 
+@app.route("/universal-tours")
+def universal_tour_search():
+    """Универсальный поиск туров между всеми доступными городами SAMO"""
+    return render_template("universal_tour_search.html", active_page="tours", page_title="Универсальный поиск туров")
+
 
 # Справочные данные SAMO API
 @app.route('/api/samo/reference-data', methods=['GET'])

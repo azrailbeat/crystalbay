@@ -1,0 +1,611 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Заголовок страницы -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="h2 mb-0">🌍 Универсальный поиск туров</h1>
+                <p class="text-muted mb-0">Поиск туров между всеми доступными городами SAMO API</p>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="loadAllCities()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Обновить города
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="resetForm()">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Сброс
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма поиска -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-search me-2"></i>
+                        Параметры поиска
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="universal-search-form">
+                        <div class="row g-3">
+                            <!-- Города отправления -->
+                            <div class="col-md-6">
+                                <label for="departure-city" class="form-label">
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    Город отправления
+                                </label>
+                                <select class="form-select" id="departure-city" name="departure_city" required>
+                                    <option value="">Загрузка городов...</option>
+                                </select>
+                                <div class="form-text">Выберите город отправления из доступных в SAMO</div>
+                            </div>
+
+                            <!-- Направления -->
+                            <div class="col-md-6">
+                                <label for="destination" class="form-label">
+                                    <i class="bi bi-map me-1"></i>
+                                    Направление
+                                </label>
+                                <select class="form-select" id="destination" name="destination" required>
+                                    <option value="">Загрузка направлений...</option>
+                                </select>
+                                <div class="form-text">Выберите страну или регион назначения</div>
+                            </div>
+
+                            <!-- Даты -->
+                            <div class="col-md-3">
+                                <label for="check-in" class="form-label">
+                                    <i class="bi bi-calendar-check me-1"></i>
+                                    Дата заезда
+                                </label>
+                                <input type="date" class="form-control" id="check-in" name="checkin_date" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="nights" class="form-label">
+                                    <i class="bi bi-moon me-1"></i>
+                                    Ночей
+                                </label>
+                                <select class="form-select" id="nights" name="nights">
+                                    <option value="">Любое количество</option>
+                                    <option value="3">3 ночи</option>
+                                    <option value="7" selected>7 ночей</option>
+                                    <option value="10">10 ночей</option>
+                                    <option value="14">14 ночей</option>
+                                </select>
+                            </div>
+
+                            <!-- Гости -->
+                            <div class="col-md-3">
+                                <label for="adults" class="form-label">
+                                    <i class="bi bi-people me-1"></i>
+                                    Взрослых
+                                </label>
+                                <select class="form-select" id="adults" name="adults">
+                                    <option value="1">1 взрослый</option>
+                                    <option value="2" selected>2 взрослых</option>
+                                    <option value="3">3 взрослых</option>
+                                    <option value="4">4 взрослых</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="children" class="form-label">
+                                    <i class="bi bi-heart me-1"></i>
+                                    Детей
+                                </label>
+                                <select class="form-select" id="children" name="children">
+                                    <option value="0" selected>Без детей</option>
+                                    <option value="1">1 ребенок</option>
+                                    <option value="2">2 детей</option>
+                                    <option value="3">3 детей</option>
+                                </select>
+                            </div>
+
+                            <!-- Дополнительные фильтры -->
+                            <div class="col-md-4">
+                                <label for="currency" class="form-label">
+                                    <i class="bi bi-currency-exchange me-1"></i>
+                                    Валюта
+                                </label>
+                                <select class="form-select" id="currency" name="currency">
+                                    <option value="USD">💵 Доллар США</option>
+                                    <option value="EUR">💶 Евро</option>
+                                    <option value="RUB">₽ Российский рубль</option>
+                                    <option value="KZT" selected>₸ Казахстанский тенге</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="stars" class="form-label">
+                                    <i class="bi bi-star me-1"></i>
+                                    Звезды отеля
+                                </label>
+                                <select class="form-select" id="stars" name="stars">
+                                    <option value="">Любые</option>
+                                    <option value="3">⭐⭐⭐ 3 звезды</option>
+                                    <option value="4">⭐⭐⭐⭐ 4 звезды</option>
+                                    <option value="5">⭐⭐⭐⭐⭐ 5 звезд</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="meals" class="form-label">
+                                    <i class="bi bi-cup-hot me-1"></i>
+                                    Питание
+                                </label>
+                                <select class="form-select" id="meals" name="meals">
+                                    <option value="">Любое</option>
+                                    <option value="BB">🥐 Завтрак</option>
+                                    <option value="HB">🍽️ Полупансион</option>
+                                    <option value="FB">🍴 Полный пансион</option>
+                                    <option value="AI">🎉 Всё включено</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-search me-2"></i>
+                                    Найти туры
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetForm()">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                    Сброс
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статус загрузки -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div id="loading-status" class="alert alert-info d-none">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Поиск туров через SAMO API...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Результаты поиска -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-task me-2"></i>
+                        Результаты поиска
+                    </h5>
+                    <div id="results-count" class="badge bg-primary"></div>
+                </div>
+                <div class="card-body">
+                    <div id="search-results">
+                        <div class="text-center p-5 text-muted">
+                            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <div class="mt-3">Введите параметры поиска и нажмите "Найти туры"</div>
+                            <div class="mt-2">Система поддерживает поиск между всеми городами SAMO API</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Глобальные переменные
+let searchData = {
+    tours: [],
+    cities: [],
+    destinations: []
+};
+
+// Загрузка всех доступных городов и направлений
+async function loadAllCities() {
+    try {
+        console.log('Загружаю все доступные города и направления...');
+        
+        // Показываем индикатор загрузки
+        document.getElementById('departure-city').innerHTML = '<option value="">Загрузка городов...</option>';
+        document.getElementById('destination').innerHTML = '<option value="">Загрузка направлений...</option>';
+        
+        const response = await fetch('/api/tours/filters');
+        const data = await response.json();
+        
+        if (data.success || data.filters) {
+            // Загружаем города отправления
+            const departureCities = data.filters?.departure_cities?.SearchTour_TOWNFROMS || 
+                                  data.filters?.departure_cities || [];
+            populateSelect('departure-city', departureCities, 'id', 'name');
+            
+            // Загружаем направления
+            const destinations = data.filters?.destinations?.SearchTour_STATES || 
+                               data.filters?.destinations || [];
+            populateSelect('destination', destinations, 'id', 'name');
+            
+            // Сохраняем данные
+            searchData.cities = departureCities;
+            searchData.destinations = destinations;
+            
+            console.log(`Загружено городов: ${departureCities.length}, направлений: ${destinations.length}`);
+            
+            if (departureCities.length === 0 && destinations.length === 0) {
+                showMessage('warning', 'SAMO API недоступен. Используются города по умолчанию.');
+                loadDefaultCities();
+            }
+        } else {
+            console.warn('Не удалось загрузить города:', data.error);
+            loadDefaultCities();
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки городов:', error);
+        loadDefaultCities();
+    }
+}
+
+// Загрузка городов по умолчанию
+function loadDefaultCities() {
+    // Популярные города отправления
+    const defaultCities = [
+        {id: '1344', name: '🇰🇿 Алматы'},
+        {id: '2', name: '🇰🇿 Астана'},
+        {id: '1', name: '🇷🇺 Москва'},
+        {id: '3', name: '🇷🇺 Санкт-Петербург'},
+        {id: '4', name: '🇷🇺 Екатеринбург'},
+        {id: '5', name: '🇷🇺 Новосибирск'},
+        {id: '6', name: '🇺🇦 Киев'},
+        {id: '7', name: '🇺🇦 Одесса'},
+        {id: '8', name: '🇧🇾 Минск'},
+        {id: '9', name: '🇦🇿 Баку'},
+        {id: '10', name: '🇦🇲 Ереван'}
+    ];
+    
+    // Популярные направления
+    const defaultDestinations = [
+        {id: '15', name: '🇻🇳 Вьетнам'},
+        {id: '1', name: '🇹🇷 Турция'},
+        {id: '2', name: '🇪🇬 Египет'},
+        {id: '3', name: '🇬🇷 Греция'},
+        {id: '4', name: '🇪🇸 Испания'},
+        {id: '5', name: '🇮🇹 Италия'},
+        {id: '6', name: '🇹🇭 Таиланд'},
+        {id: '7', name: '🇦🇪 ОАЭ'},
+        {id: '8', name: '🇨🇾 Кипр'},
+        {id: '9', name: '🇲🇦 Марокко'},
+        {id: '10', name: '🇹🇳 Тунис'},
+        {id: '11', name: '🇲🇻 Мальдивы'},
+        {id: '12', name: '🇸🇨 Сейшелы'},
+        {id: '13', name: '🇲🇺 Маврикий'},
+        {id: '14', name: '🇯🇴 Иордания'},
+        {id: '16', name: '🇮🇳 Индия (Гоа)'},
+        {id: '17', name: '🇱🇰 Шри-Ланка'},
+        {id: '18', name: '🇮🇩 Индонезия'},
+        {id: '19', name: '🇲🇾 Малайзия'},
+        {id: '20', name: '🇵🇭 Филиппины'}
+    ];
+    
+    populateSelect('departure-city', defaultCities, 'id', 'name', '1344');
+    populateSelect('destination', defaultDestinations, 'id', 'name', '15');
+    
+    searchData.cities = defaultCities;
+    searchData.destinations = defaultDestinations;
+}
+
+// Заполнение select элемента
+function populateSelect(selectId, items, valueField, textField, defaultValue = '') {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    let html = '<option value="">Выберите...</option>';
+    
+    if (Array.isArray(items) && items.length > 0) {
+        items.forEach(item => {
+            const value = item[valueField] || item.id || item.code;
+            const text = item[textField] || item.name || item.title || value;
+            const selected = value === defaultValue ? 'selected' : '';
+            html += `<option value="${value}" ${selected}>${text}</option>`;
+        });
+    }
+    
+    select.innerHTML = html;
+}
+
+// Поиск туров
+async function searchTours(formData) {
+    try {
+        document.getElementById('loading-status').classList.remove('d-none');
+        
+        const searchParams = {};
+        for (let [key, value] of formData.entries()) {
+            if (value) searchParams[key] = value;
+        }
+        
+        // Добавляем обязательные параметры для SAMO API
+        searchParams.TOWNFROMINC = searchParams.departure_city;
+        searchParams.STATEINC = searchParams.destination;
+        searchParams.CURRENCYINC = searchParams.currency || 'USD';
+        
+        console.log('Параметры поиска:', searchParams);
+        
+        const response = await fetch('/api/tours/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displaySearchResults(data);
+        
+    } catch (error) {
+        console.error('Ошибка поиска:', error);
+        showError('Ошибка выполнения поиска: ' + error.message);
+    } finally {
+        document.getElementById('loading-status').classList.add('d-none');
+    }
+}
+
+// Отображение результатов
+function displaySearchResults(apiResponse) {
+    const container = document.getElementById('search-results');
+    const countContainer = document.getElementById('results-count');
+    
+    const tours = apiResponse.tours || [];
+    const count = apiResponse.count || 0;
+    
+    countContainer.textContent = count > 0 ? `${count} туров` : '';
+    
+    if (!tours || tours.length === 0) {
+        if (apiResponse.requires_production) {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Требуется production сервер:</strong> SAMO API доступен только на production сервере.
+                    <br><small class="text-muted">IP: 46.250.234.89</small>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="text-center p-5 text-muted">
+                    <i class="bi bi-exclamation-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <div class="mt-3">По вашему запросу туры не найдены</div>
+                    <div class="mt-2">Попробуйте изменить параметры поиска</div>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    // Отображаем туры
+    let html = '<div class="row">';
+    
+    tours.slice(0, 50).forEach((tour, index) => {
+        html += createTourCard(tour, index);
+    });
+    
+    html += '</div>';
+    
+    if (tours.length > 50) {
+        html += `
+            <div class="alert alert-info mt-3">
+                Показано первые 50 туров из ${tours.length} найденных.
+                Уточните параметры поиска для более точных результатов.
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    searchData.tours = tours;
+}
+
+// Создание карточки тура
+function createTourCard(tour, index) {
+    const hotelName = tour.hotel_name || tour.name || `Тур ${index + 1}`;
+    const destination = tour.destination || tour.city || 'Направление не указано';
+    const stars = tour.stars || 0;
+    
+    return `
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card h-100 tour-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="card-title mb-0">${hotelName}</h6>
+                        <div class="text-end">
+                            ${stars > 0 ? '⭐'.repeat(stars) : ''}
+                            <div class="badge bg-success mt-1">${destination}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="row text-center small">
+                            <div class="col-4">
+                                <div class="text-muted">Ночей</div>
+                                <strong>${tour.nights || '-'}</strong>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">Питание</div>
+                                <strong>${tour.meal || '-'}</strong>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">Взрослых</div>
+                                <strong>${tour.adults || '2'}</strong>
+                            </div>
+                        </div>
+                        
+                        ${tour.price ? `
+                            <div class="text-center mt-3">
+                                <h5 class="text-primary mb-0">
+                                    ${formatPrice(tour.price, tour.currency)}
+                                </h5>
+                                <small class="text-muted">за тур</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-primary btn-sm w-100" onclick="bookTour(${index})">
+                        <i class="bi bi-plus me-1"></i>
+                        Создать заявку
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Форматирование цены
+function formatPrice(price, currency = 'USD') {
+    if (!price) return '-';
+    return new Intl.NumberFormat('ru-RU', {
+        style: 'currency',
+        currency: currency || 'USD',
+        minimumFractionDigits: 0
+    }).format(price);
+}
+
+// Показать сообщение
+function showMessage(type, message) {
+    const container = document.getElementById('search-results');
+    const alertClass = type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    container.innerHTML = `
+        <div class="alert ${alertClass}">
+            <i class="bi bi-info-circle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+// Показать ошибку
+function showError(message) {
+    const container = document.getElementById('search-results');
+    container.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+// Сброс формы
+function resetForm() {
+    document.getElementById('universal-search-form').reset();
+    document.getElementById('search-results').innerHTML = `
+        <div class="text-center p-5 text-muted">
+            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+            <div class="mt-3">Введите параметры поиска и нажмите "Найти туры"</div>
+        </div>
+    `;
+    document.getElementById('results-count').textContent = '';
+}
+
+// Бронирование тура
+function bookTour(tourIndex) {
+    const tour = searchData.tours[tourIndex];
+    if (!tour) return;
+    
+    // Переходим на страницу заявок с предзаполненными данными
+    const params = new URLSearchParams({
+        tour_data: JSON.stringify(tour)
+    });
+    
+    window.location.href = '/orders?' + params.toString();
+}
+
+// Обработка формы поиска
+document.getElementById('universal-search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Валидация
+    if (!formData.get('departure_city')) {
+        alert('Выберите город отправления');
+        return;
+    }
+    
+    if (!formData.get('destination')) {
+        alert('Выберите направление');
+        return;
+    }
+    
+    if (!formData.get('checkin_date')) {
+        alert('Выберите дату заезда');
+        return;
+    }
+    
+    // Выполняем поиск
+    searchTours(formData);
+});
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Устанавливаем минимальную дату (завтра)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('check-in').min = tomorrow.toISOString().split('T')[0];
+    
+    // Загружаем города и направления
+    loadAllCities();
+});
+</script>
+
+<style>
+.tour-card {
+    transition: all 0.3s ease;
+}
+
+.tour-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--crystal-blue);
+    box-shadow: 0 0 0 0.2rem rgba(52, 144, 220, 0.25);
+}
+
+.btn-primary {
+    background-color: var(--crystal-blue);
+    border-color: var(--crystal-blue);
+}
+
+.btn-primary:hover {
+    background-color: var(--crystal-dark);
+    border-color: var(--crystal-dark);
+}
+
+#loading-status {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+{% endblock %}
