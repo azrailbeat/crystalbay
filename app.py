@@ -801,6 +801,11 @@ def tour_search_advanced():
     """Расширенный поиск туров"""
     return render_template("tour_search_advanced.html", active_page="tours", page_title="Поиск туров")
 
+@app.route("/kazakhstan-vietnam")
+def kazakhstan_vietnam_search():
+    """Поиск туров из Казахстана во Вьетнам"""
+    return render_template("kazakhstan_vietnam_search.html", active_page="tours", page_title="Казахстан → Вьетнам")
+
 
 # Справочные данные SAMO API
 @app.route('/api/samo/reference-data', methods=['GET'])
