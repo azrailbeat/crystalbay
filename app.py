@@ -4,6 +4,7 @@ Crystal Bay Travel - SAMO API Integration Platform
 """
 
 import os
+import time
 import logging
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
@@ -845,4 +846,60 @@ def get_samo_reference_data():
         }
     }
     return jsonify({'success': True, 'reference_data': reference_data, 'market': 'Kazakhstan → Vietnam'})
+
+@app.route('/health', methods=['GET'])
+def production_health_check():
+    """Health check endpoint для production мониторинга"""
+    try:
+        status = {
+            'status': 'healthy',
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'services': {
+                'flask_app': 'running',
+                'database': 'unknown',
+                'samo_api': 'unknown'
+            },
+            'version': '1.0.0',
+            'environment': 'production' if os.environ.get('FLASK_ENV') == 'production' else 'development'
+        }
+        
+        # Проверка базы данных
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            status['services']['database'] = 'connected'
+        except Exception as e:
+            status['services']['database'] = f'error: {str(e)[:50]}'
+            status['status'] = 'degraded'
+        
+        # Проверка SAMO API
+        if samo_api:
+            try:
+                health = samo_api.health_check()
+                if health.get('samo_api_available'):
+                    status['services']['samo_api'] = 'connected'
+                else:
+                    status['services']['samo_api'] = 'blocked_ip'
+            except Exception as e:
+                status['services']['samo_api'] = f'error: {str(e)[:50]}'
+        else:
+            status['services']['samo_api'] = 'not_initialized'
+        
+        # Проверка предзагруженных данных
+        preloader = get_preloader()
+        if preloader:
+            preload_status = preloader.get_preload_status()
+            status['preload'] = {
+                'loaded': preload_status.get('is_loaded', False),
+                'hotels_count': preload_status.get('hotels_count', 0),
+                'success_rate': f"{preload_status.get('success_count', 0)}/{preload_status.get('total_requests', 0)}"
+            }
+        
+        return jsonify(status), 200 if status['status'] == 'healthy' else 503
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        }), 500
 
