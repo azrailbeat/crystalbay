@@ -44,7 +44,7 @@ db = SQLAlchemy(app, model_class=Base)
 try:
     from models import *
     from samo_integration import SamoIntegration
-    # from webapi_integration import WebAPIIntegration
+    # 
 except ImportError as e:
     logger.warning(f"Import warning: {e}")
 
@@ -645,10 +645,8 @@ if __name__ == '__main__':
         # Проверяем API подключения
         logger.info("Checking API connections...")
         samo_health = samo_api.health_check() if samo_api else False
-        webapi_health = False  # webapi.health_check() if webapi else False
         
         logger.info(f"SAMO API: {'✓' if samo_health else '✗'}")
-        logger.info(f"WebAPI: {'✓' if webapi_health else '✗'}")
         
         logger.info("Crystal Bay Travel started successfully!")
     
