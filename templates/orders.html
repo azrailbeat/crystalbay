@@ -224,11 +224,16 @@ async function loadOrders() {
         const data = await response.json();
         
         if (data.success) {
-            currentOrders = data.data;
+            // Проверяем что data.data это массив
+            const orders = Array.isArray(data.data) ? data.data : [];
+            currentOrders = orders;
             displayOrders(currentOrders);
             document.getElementById('orders-count').textContent = `Найдено: ${currentOrders.length} заявок`;
         } else {
             showError('Ошибка загрузки заявок: ' + data.error);
+            // Показываем пустой список при ошибке
+            currentOrders = [];
+            displayOrders(currentOrders);
         }
         
     } catch (error) {
@@ -239,6 +244,12 @@ async function loadOrders() {
 
 function displayOrders(orders) {
     const container = document.getElementById('orders-list');
+    
+    // Проверяем что orders это массив
+    if (!Array.isArray(orders)) {
+        console.error('Orders is not an array:', orders);
+        orders = [];
+    }
     
     if (orders.length === 0) {
         container.innerHTML = `
