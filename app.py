@@ -657,3 +657,36 @@ if __name__ == '__main__':
 def production_status():
     """Production status page"""
     return render_template("production_status.html", active_page="production-status", page_title="Production Status")
+
+@app.route("/reference-data")
+def reference_data_page():
+    """Справочные данные SAMO"""
+    return render_template("reference_data.html", active_page="reference-data", page_title="Справочные данные")
+
+
+# Справочные данные SAMO API
+@app.route('/api/samo/reference-data', methods=['GET'])
+def get_samo_reference_data():
+    """Предустановленные справочные данные для Kazakhstan → Vietnam"""
+    reference_data = {
+        'departure_cities': {
+            'almaty': {'id': '1344', 'name': 'Алматы', 'country': 'Kazakhstan'},
+            'astana': {'id': '2', 'name': 'Астана', 'country': 'Kazakhstan'}
+        },
+        'currencies': {
+            'KZT': {'id': 'KZT', 'name': 'Казахский тенге', 'symbol': '₸'},
+            'USD': {'id': 'USD', 'name': 'Доллар США', 'symbol': '$'},
+            'RUB': {'id': 'RUB', 'name': 'Российский рубль', 'symbol': '₽'}
+        },
+        'destinations': {
+            'vietnam': {'id': '15', 'name': 'Вьетнам', 'region': 'Asia'}
+        },
+        'parameters': {
+            'TOWNFROMINC': '1344',
+            'STATEINC': '15', 
+            'CURRENCYINC': 'KZT',
+            'LANG': 'ru'
+        }
+    }
+    return jsonify({'success': True, 'reference_data': reference_data, 'market': 'Kazakhstan → Vietnam'})
+

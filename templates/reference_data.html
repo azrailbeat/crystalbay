@@ -1,0 +1,364 @@
+{% extends "layout.html" %}
+
+{% block extra_head %}
+<style>
+.reference-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+}
+
+.reference-item h6 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.reference-value {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.875rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-success { background-color: #28a745; }
+.status-warning { background-color: #ffc107; }
+.status-error { background-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block title %}Справочные данные{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">Справочные данные SAMO</h1>
+                    <p class="text-muted mb-0">Предустановленные обозначения и коды для Kazakhstan → Vietnam</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="loadLiveData()">
+                        <i class="bi bi-cloud-download"></i> Загрузить с production
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="refreshData()">
+                        <i class="bi bi-arrow-clockwise"></i> Обновить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статус загрузки -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <span class="status-indicator status-success"></span>
+                        <span class="me-3"><strong>Статус:</strong> Справочные данные загружены</span>
+                        <span class="text-muted"><strong>Рынок:</strong> Kazakhstan → Vietnam</span>
+                        <span class="ms-auto text-muted" id="last-updated">Обновлено: сейчас</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основные справочники -->
+    <div class="row">
+        <!-- Города отправления -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-geo-alt text-primary"></i>
+                        Города отправления (Kazakhstan)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="departure-cities-content">
+                        <div class="reference-item">
+                            <h6>Алматы</h6>
+                            <div class="reference-value">ID: 1344, Country: Kazakhstan</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>Астана</h6>
+                            <div class="reference-value">ID: 2, Country: Kazakhstan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Валюты -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-currency-exchange text-success"></i>
+                        Валюты (KZT приоритет)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="currencies-content">
+                        <div class="reference-item">
+                            <h6>Казахский тенге ₸</h6>
+                            <div class="reference-value">ID: KZT, Priority: 1</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>Доллар США $</h6>
+                            <div class="reference-value">ID: USD, Priority: 2</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>Российский рубль ₽</h6>
+                            <div class="reference-value">ID: RUB, Priority: 3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Направления -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-airplane text-info"></i>
+                        Направления
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="destinations-content">
+                        <div class="reference-item">
+                            <h6>Вьетнам</h6>
+                            <div class="reference-value">ID: 15, Region: Asia</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAMO Параметры -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear text-warning"></i>
+                        SAMO API Параметры
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="parameters-content">
+                        <div class="reference-item">
+                            <h6>TOWNFROMINC</h6>
+                            <div class="reference-value">1344 (Алматы по умолчанию)</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>STATEINC</h6>
+                            <div class="reference-value">15 (Вьетнам)</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>CURRENCYINC</h6>
+                            <div class="reference-value">KZT (Казахский тенге)</div>
+                        </div>
+                        <div class="reference-item">
+                            <h6>LANG</h6>
+                            <div class="reference-value">ru (Русский)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Техническая информация -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle text-secondary"></i>
+                        Техническая информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>API Endpoint:</strong><br>
+                            <code>/api/samo/reference-data</code>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Production Server:</strong><br>
+                            <code>46.250.234.89</code>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>OAuth Token:</strong><br>
+                            <code>27bd59a7ac... (настроен)</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модал для загрузки live данных -->
+<div class="modal fade" id="loadDataModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Загрузка данных с production SAMO API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loading-progress">
+                    <div class="text-center mb-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                    <p class="text-center">Подключение к production SAMO API...</p>
+                </div>
+                <div id="loading-results" style="display: none;">
+                    <!-- Результаты загрузки будут здесь -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="apply-data-btn" style="display: none;">
+                    Применить данные
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function refreshData() {
+    try {
+        const response = await fetch('/api/samo/reference-data');
+        const data = await response.json();
+        
+        if (data.success) {
+            updateLastUpdated();
+            showSuccess('Справочные данные обновлены');
+        } else {
+            showError('Ошибка обновления: ' + data.error);
+        }
+    } catch (error) {
+        showError('Ошибка загрузки: ' + error.message);
+    }
+}
+
+async function loadLiveData() {
+    const modal = new bootstrap.Modal(document.getElementById('loadDataModal'));
+    modal.show();
+    
+    document.getElementById('loading-progress').style.display = 'block';
+    document.getElementById('loading-results').style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/samo/preload', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        document.getElementById('loading-progress').style.display = 'none';
+        document.getElementById('loading-results').style.display = 'block';
+        
+        let resultsHTML = '<div class="alert alert-info">';
+        
+        if (data.success) {
+            resultsHTML += `<h6>Загрузка завершена</h6>`;
+            resultsHTML += `<p>Успешно: ${data.success_count}/${data.total_count} справочников</p>`;
+            resultsHTML += '<ul class="mb-0">';
+            
+            for (const [name, result] of Object.entries(data.loaded_data || {})) {
+                const status = result.success ? '✅' : '❌';
+                resultsHTML += `<li>${status} ${name}</li>`;
+            }
+            
+            resultsHTML += '</ul>';
+            document.getElementById('apply-data-btn').style.display = 'inline-block';
+        } else {
+            resultsHTML += `<h6>Ошибка загрузки</h6>`;
+            resultsHTML += `<p>${data.error}</p>`;
+            if (data.production_ip) {
+                resultsHTML += `<p><strong>Требуется production сервер:</strong> ${data.production_ip}</p>`;
+            }
+        }
+        
+        resultsHTML += '</div>';
+        document.getElementById('loading-results').innerHTML = resultsHTML;
+        
+    } catch (error) {
+        document.getElementById('loading-progress').style.display = 'none';
+        document.getElementById('loading-results').style.display = 'block';
+        document.getElementById('loading-results').innerHTML = `
+            <div class="alert alert-danger">
+                <h6>Ошибка подключения</h6>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function updateLastUpdated() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    document.getElementById('last-updated').textContent = `Обновлено: ${timeString}`;
+}
+
+function showSuccess(message) {
+    // Простая реализация уведомлений
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 m-3 alert alert-success alert-dismissible';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+function showError(message) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 m-3 alert alert-danger alert-dismissible';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    updateLastUpdated();
+});
+</script>
+{% endblock %}
