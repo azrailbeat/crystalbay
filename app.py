@@ -486,12 +486,12 @@ def get_tour_filters():
                 'filters': {}
             })
         
-        # Получаем все необходимые данные через SAMO API
-        currencies_result = samo_api._make_request('SearchTour_CURRENCIES', {})
-        destinations_result = samo_api._make_request('SearchTour_STATES', {})
-        cities_result = samo_api._make_request('SearchTour_TOWNFROMS', {})
-        stars_result = samo_api._make_request('SearchTour_STARS', {})
-        meals_result = samo_api._make_request('SearchTour_MEALS', {})
+        # Получаем все необходимые данные через SAMO API с правильными параметрами
+        currencies_result = samo_api.get_currencies()
+        destinations_result = samo_api.get_states()
+        cities_result = samo_api.get_departure_cities()
+        stars_result = samo_api.get_stars()
+        meals_result = samo_api.get_meals()
         
         # Проверяем успешность запросов
         failed_requests = []
