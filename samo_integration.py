@@ -42,18 +42,18 @@ class SamoIntegration:
                 'samo_action': 'api',
                 'oauth_token': self.oauth_token,
                 'type': 'json',
-                'action': action
+                'action': action,
+                'LANG': 'ru'
             }
             
-            # Добавляем стандартные параметры для Kazakhstan → Vietnam (на основе production данных)
+            # Добавляем стандартные параметры для Kazakhstan → Vietnam
             default_params = {
-                'TOWNFROMINC': '1344',  # Алматы (реальный ID с production сервера)
+                'TOWNFROMINC': '1344',  # Алматы
                 'STATEINC': '15',       # Вьетнам
-                'CURRENCYINC': 'KZT',   # Казахский тенге
-                'LANG': 'ru'            # Русский язык
+                'CURRENCYINC': 'KZT'    # Казахский тенге
             }
             
-            # Объединяем стандартные и переданные параметры
+            # Объединяем все параметры
             if params:
                 url_params.update(default_params)
                 url_params.update(params)

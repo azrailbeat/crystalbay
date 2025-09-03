@@ -439,13 +439,18 @@ function displaySearchResults(apiResponse) {
     if (!tours || tours.length === 0) {
         if (apiResponse.samo_status === 'blocked') {
             container.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-circle me-2"></i>
-                    <strong>SAMO API заблокирован</strong>
-                    <div class="mt-2 small">
-                        <div>Текущий сервер: <code>${apiResponse.current_ip}</code></div>
-                        <div>Требуется сервер: <code>${apiResponse.required_ip}</code></div>
-                        <div class="text-muted mt-1">IP адрес заблокирован в SAMO API. Необходимо развернуть на правильном сервере.</div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>SAMO API требует обновления</strong>
+                    <div class="mt-2">
+                        <p>Система работает на production сервере <code>46.250.234.89</code>, но SAMO API возвращает ошибку 403.</p>
+                        <p><strong>Возможные причины:</strong></p>
+                        <ul class="small mb-2">
+                            <li>OAuth токен устарел или недействителен</li>
+                            <li>Изменились настройки доступа в SAMO API</li>
+                            <li>Требуется обновление whitelist IP адресов</li>
+                        </ul>
+                        <p class="small text-muted">Обратитесь к администратору SAMO API для проверки токена и настроек доступа.</p>
                     </div>
                 </div>
             `;
