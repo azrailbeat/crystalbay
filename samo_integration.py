@@ -45,12 +45,12 @@ class SamoIntegration:
                 'action': action
             }
             
-            # Добавляем стандартные параметры для Kazakhstan → Vietnam
+            # Добавляем стандартные параметры для Kazakhstan → Vietnam (на основе production данных)
             default_params = {
-                'TOWNFROMINC': '1,2',  # Алматы, Астана
-                'STATEINC': '15',      # Вьетнам
-                'CURRENCYINC': 'KZT',  # Казахский тенге
-                'LANG': 'ru'           # Русский язык
+                'TOWNFROMINC': '1344',  # Алматы (реальный ID с production сервера)
+                'STATEINC': '15',       # Вьетнам
+                'CURRENCYINC': 'KZT',   # Казахский тенге
+                'LANG': 'ru'            # Русский язык
             }
             
             # Объединяем стандартные и переданные параметры

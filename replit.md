@@ -17,17 +17,17 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ### System Status:
 - **SAMO Token**: Configured and valid ✓
-- **Production Server**: IP 46.250.234.89 working with real SAMO data ✓
-- **Real Vietnam Hotels**: "VIETNAM OILY HOTEL RU" from Crystal Bay Vietnam partner ✓
+- **Production Server**: IP 46.250.234.89 working with real SAMO data ✓ CONFIRMED
+- **Real Almaty Data**: ID 1344 "Алматы" from production server ✓ LIVE
+- **Kazakhstan Cities**: Real departure cities working on production ✓
 - **Demo Data**: Completely removed ✓
-- **Kazakhstan Config**: Almaty/Astana as primary departure cities ✓
-- **Vietnam Focus**: Priority destination configured ✓
+- **SAMO API Parameters**: TOWNFROMINC properly configured for all commands ✓
 - **JavaScript Fixes**: Applied for real SAMO API response format ✓
 
 ### Production vs Development:
-- **Development IP** (34.139.221.108): Blocked, returns demo data ⚠️
-- **Production Server** (46.250.234.89): Working, returns real SAMO data ✅
-- **Real API Commands Working**: SearchTour_MEALS, SearchTour_STARS, SearchTour_TOURS ✅
+- **Development IP** (34.139.221.108): Blocked, returns 403 errors ⚠️
+- **Production Server** (46.250.234.89): WORKING with real data ✅ CONFIRMED
+- **Real API Commands Working**: SearchTour_TOWNFROMS ✅ CONFIRMED, others require deployment
 
 ## Recent Changes (August 2025)
 
