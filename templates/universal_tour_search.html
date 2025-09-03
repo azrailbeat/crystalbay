@@ -431,16 +431,16 @@ function displaySearchResults(apiResponse) {
 
 // Создание карточки тура
 function createTourCard(tour, index) {
-    const hotelName = tour.hotel_name || tour.name || tour.hotelName || `Тур ${index + 1}`;
-    const destination = tour.destination || tour.city || tour.stateName || 'Направление не указано';
-    const stars = tour.stars || tour.hotelStars || 0;
-    const nights = tour.nights || tour.night || '-';
-    const meal = tour.meal || tour.mealName || '-';
-    const adults = tour.adults || tour.adult || '2';
+    const hotelName = tour.hotelName || tour.hotel_name || tour.name || `Тур ${index + 1}`;
+    const destination = tour.stateName || tour.destination || tour.city || 'Направление не указано';
+    const stars = tour.hotelStars || tour.stars || 0;
+    const nights = tour.night || tour.nights || '-';
+    const meal = tour.mealName || tour.meal || '-';
+    const adults = tour.adult || tour.adults || '2';
     
     // Цена может быть в разных полях
-    const price = tour.price || tour.priceTotal || tour.cost || tour.amount;
-    const currency = tour.currency || tour.currencyCode || 'USD';
+    const price = tour.priceTotal || tour.price || tour.cost || tour.amount;
+    const currency = tour.currencyCode || tour.currency || 'USD';
     
     return `
         <div class="col-lg-6 col-xl-4 mb-4">

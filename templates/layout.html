@@ -192,22 +192,11 @@
                     Дашборд
                 </a>
             </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle {% if active_page == 'tours' %}active{% endif %}" href="#" id="toursDropdown" role="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-map me-2"></i>
+            <li class="nav-item">
+                <a href="{{ url_for('universal_tour_search') }}" class="nav-link {% if active_page == 'tours' %}active{% endif %}">
+                    <i class="bi bi-search me-2"></i>
                     Поиск туров
                 </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url_for('universal_tour_search') }}">
-                        <i class="bi bi-globe me-2"></i>Все направления
-                    </a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('kazakhstan_vietnam_search') }}">
-                        <i class="bi bi-geo-alt me-2"></i>Казахстан → Вьетнам
-                    </a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('tours_search') }}">
-                        <i class="bi bi-search me-2"></i>Расширенный поиск
-                    </a></li>
-                </ul>
             </li>
             <li class="nav-item">
                 <a href="{{ url_for('hotels_search') }}" class="nav-link {% if active_page == 'hotels' %}active{% endif %}">

@@ -810,16 +810,7 @@ def reference_data_page():
     """Справочные данные SAMO"""
     return render_template("reference_data.html", active_page="reference-data", page_title="Справочные данные")
 
-@app.route("/tour-search")
-def tour_search_advanced():
-    """Расширенный поиск туров"""
-    return render_template("tour_search_advanced.html", active_page="tours", page_title="Поиск туров")
-
-@app.route("/kazakhstan-vietnam")
-def kazakhstan_vietnam_search():
-    """Поиск туров из Казахстана во Вьетнам"""
-    return render_template("kazakhstan_vietnam_search.html", active_page="tours", page_title="Казахстан → Вьетнам")
-
+@app.route("/tours")
 @app.route("/universal-tours")
 def universal_tour_search():
     """Универсальный поиск туров между всеми доступными городами SAMO"""
@@ -842,20 +833,14 @@ def api_universal_tour_search():
         
         app.logger.info(f"Поиск туров: {data}")
         
-        # Пока SAMO API недоступен, возвращаем демо-туры
-        from demo_tours_data import get_demo_tours_data, filter_demo_tours
-        
-        all_demo_tours = get_demo_tours_data()
-        demo_tours = filter_demo_tours(
-            all_demo_tours, 
-            data.get('departure_city'), 
-            data.get('destination')
-        )
+        # SAMO API недоступен на development - используем SAMO структуру данных для демо
+        demo_tours = create_samo_compatible_demo_tours(data)
         
         return jsonify({
             'tours': demo_tours,
             'count': len(demo_tours),
-            'message': 'SAMO API недоступен. Показаны демо-туры для тестирования интерфейса.',
+            'message': 'Development сервер. Данные для демонстрации интерфейса.',
+            'search_params': search_params,
             'requires_production': True,
             'success': True
         })
@@ -868,6 +853,94 @@ def api_universal_tour_search():
             'count': 0,
             'success': False
         }), 500
+
+def create_samo_compatible_demo_tours(search_data):
+    """Создает демо-туры в формате совместимом с SAMO API"""
+    departure_city = search_data.get('departure_city', '1344')
+    destination = search_data.get('destination', '15')
+    nights = search_data.get('nights', '7')
+    adults = search_data.get('adults', '2')
+    currency = search_data.get('currency', 'KZT')
+    
+    # Маппинг направлений
+    destination_names = {
+        '15': 'Вьетнам',
+        '1': 'Турция', 
+        '2': 'Египет',
+        '6': 'Таиланд',
+        '7': 'ОАЭ',
+        '3': 'Греция',
+        '4': 'Испания',
+        '5': 'Италия'
+    }
+    
+    destination_name = destination_names.get(destination, 'Экзотическое направление')
+    
+    # Базовые туры с правильной структурой SAMO
+    base_tours = [
+        {
+            'id': 1,
+            'hotelName': f'Premium Hotel {destination_name}',
+            'stateName': destination_name,
+            'townName': 'Популярный курорт',
+            'hotelStars': 5,
+            'night': int(nights) if nights else 7,
+            'mealName': 'Завтрак',
+            'adult': int(adults) if adults else 2,
+            'priceTotal': 450000 if currency == 'KZT' else 1200,
+            'currencyCode': currency,
+            'programName': f'Люкс тур в {destination_name}',
+            'checkIn': search_data.get('checkin_date', '2025-09-04')
+        },
+        {
+            'id': 2,
+            'hotelName': f'Comfort Resort {destination_name}',
+            'stateName': destination_name,
+            'townName': 'Курортная зона',
+            'hotelStars': 4,
+            'night': int(nights) if nights else 7,
+            'mealName': 'Полупансион',
+            'adult': int(adults) if adults else 2,
+            'priceTotal': 320000 if currency == 'KZT' else 850,
+            'currencyCode': currency,
+            'programName': f'Комфорт тур в {destination_name}',
+            'checkIn': search_data.get('checkin_date', '2025-09-04')
+        },
+        {
+            'id': 3,
+            'hotelName': f'Budget Hotel {destination_name}',
+            'stateName': destination_name,
+            'townName': 'Центральный район',
+            'hotelStars': 3,
+            'night': int(nights) if nights else 7,
+            'mealName': 'Завтрак',
+            'adult': int(adults) if adults else 2,
+            'priceTotal': 180000 if currency == 'KZT' else 450,
+            'currencyCode': currency,
+            'programName': f'Эконом тур в {destination_name}',
+            'checkIn': search_data.get('checkin_date', '2025-09-04')
+        }
+    ]
+    
+    # Фильтруем по звездам если указано
+    stars_filter = search_data.get('stars')
+    if stars_filter:
+        base_tours = [t for t in base_tours if t['hotelStars'] >= int(stars_filter)]
+    
+    # Фильтруем по питанию если указано  
+    meal_filter = search_data.get('meals')
+    if meal_filter:
+        meal_mapping = {
+            'BB': 'Завтрак',
+            'HB': 'Полупансион', 
+            'FB': 'Полный пансион',
+            'AI': 'Всё включено'
+        }
+        target_meal = meal_mapping.get(meal_filter)
+        if target_meal:
+            base_tours = [t for t in base_tours if t['mealName'] == target_meal]
+    
+    return base_tours
 
 
 # Справочные данные SAMO API
