@@ -158,7 +158,15 @@ def samo_api_proxy(action):
         else:
             params = request.get_json() or {}
         
-        result = samo_api._make_request(action, params) if samo_api else {'success': False, 'error': 'SAMO API not initialized'}
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'action': action
+            })
+        
+        # Выполняем запрос через SAMO API
+        result = samo_api._make_request(action, params)
         return jsonify(result)
         
     except Exception as e:
@@ -167,6 +175,82 @@ def samo_api_proxy(action):
             'success': False,
             'error': str(e),
             'action': action
+        }), 500
+
+# Дополнительные endpoints для тестирования
+@app.route('/api/samo/test', methods=['POST'])
+def samo_test_endpoint():
+    """Endpoint для тестирования SAMO API"""
+    try:
+        data = request.get_json() or {}
+        action = data.get('action', 'SearchTour_CURRENCIES')
+        
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'action': action
+            })
+        
+        result = samo_api._make_request(action, data)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"SAMO test error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/samo/health', methods=['GET'])
+def samo_health_endpoint():
+    """Проверка здоровья SAMO API"""
+    try:
+        if not samo_api:
+            return jsonify({
+                'samo_api_available': False,
+                'error': 'SAMO API не инициализирован'
+            })
+        
+        result = samo_api.health_check()
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"SAMO health check error: {e}")
+        return jsonify({
+            'samo_api_available': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/samo/execute', methods=['POST'])
+def samo_execute_endpoint():
+    """Выполнение команд SAMO API"""
+    try:
+        data = request.get_json() or {}
+        action = data.get('action')
+        params = data.get('params', {})
+        
+        if not action:
+            return jsonify({
+                'success': False,
+                'error': 'Не указана команда для выполнения'
+            })
+        
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'action': action
+            })
+        
+        result = samo_api._make_request(action, params)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"SAMO execute error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 # @app.route('/api/webapi/<action>', methods=['GET', 'POST'])  
