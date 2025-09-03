@@ -44,7 +44,7 @@ db = SQLAlchemy(app, model_class=Base)
 try:
     from models import *
     from samo_integration import SamoIntegration
-    # 
+    from samo_data_preloader import initialize_preloader, get_preloader, preload_samo_data
 except ImportError as e:
     logger.warning(f"Import warning: {e}")
 
@@ -52,6 +52,19 @@ except ImportError as e:
 try:
     samo_api = SamoIntegration()
     logger.info("SAMO API integration initialized successfully")
+    
+    # Предварительная загрузка всех данных SAMO API
+    logger.info("🚀 Запускаю предварительную загрузку данных SAMO API...")
+    try:
+        preload_result = preload_samo_data(samo_api)
+        if preload_result.get('success_count', 0) > 0:
+            logger.info(f"✅ Предварительная загрузка завершена: {preload_result.get('success_count')}/{preload_result.get('total_requests')} запросов")
+            logger.info(f"🏨 Загружено отелей: {len(preload_result.get('hotels_list', []))}")
+        else:
+            logger.warning("⚠️ Предварительная загрузка не удалась - будут использоваться значения по умолчанию")
+    except Exception as e:
+        logger.error(f"❌ Ошибка предварительной загрузки: {e}")
+        
 except Exception as e:
     logger.error(f"SAMO API initialization failed: {e}")
     samo_api = None

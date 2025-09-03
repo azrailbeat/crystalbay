@@ -1,254 +1,221 @@
 #!/usr/bin/env python3
 """
-SAMO API Data Preloader для Crystal Bay Travel
-Загружает все справочные данные с production SAMO API
+SAMO API Data Preloader
+Предварительная загрузка всех справочных данных из SAMO API при запуске приложения
 """
 
 import json
 import logging
 import time
-from typing import Dict, List, Any
-from samo_integration import SamoAPIIntegration
+from typing import Dict, Any, Optional
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class SamoDataPreloader:
-    """Загрузчик всех справочных данных SAMO API"""
+    """Предзагрузчик справочных данных из SAMO API"""
     
-    def __init__(self):
-        self.samo_api = SamoAPIIntegration()
-        self.reference_data = {}
+    def __init__(self, samo_api):
+        self.samo_api = samo_api
+        self.preloaded_data = {}
+        self.last_preload_time = None
+        self.preload_duration = None
         
-        # Все справочные команды SAMO API
-        self.reference_commands = {
-            # Основные справочники для поиска туров
-            'currencies': 'SearchTour_CURRENCIES',
-            'states': 'SearchTour_STATES', 
-            'departure_cities': 'SearchTour_TOWNFROMS',
-            'destination_cities': 'SearchTour_TOWNS',
-            'hotels': 'SearchTour_HOTELS',
-            'star_ratings': 'SearchTour_STARS',
-            'meal_types': 'SearchTour_MEALS',
-            'tours': 'SearchTour_TOURS',
-            'programs': 'SearchTour_PROGRAMS',
-            'program_groups': 'SearchTour_PROGRAM_GROUPS',
-            'tour_types': 'SearchTour_TOUR_TYPES',
-            'tour_groups': 'SearchTour_TOUR_GROUPS',
-            'product_types': 'SearchTour_PRODUCT_TYPES',
-            'hotel_types': 'SearchTour_HOTEL_TYPES',
-            'nights': 'SearchTour_NIGHTS',
-            'adult_options': 'SearchTour_ADULT',
-            'child_options': 'SearchTour_CHILD',
-            
-            # Дополнительные справочники
-            'insurance_types': 'Insures_INSURETYPES',
-            'insurance_states': 'Insures_STATES',
-            'payment_variants': 'PayVariant_List',
-            'currency_rates': 'Currency_RATES',
-            'best_offers': 'TheBest_ALL',
-            
-            # Справочники для бронирования
-            'booking_states': 'Booking_GetStates',
-            'people_documents': 'Booking_GetPeopleDocuments'
+    def preload_all_reference_data(self) -> Dict[str, Any]:
+        """
+        Выполняет SearchTour_ALL и загружает все справочные данные
+        для казахстанского рынка (Алматы ID: 1344 → Вьетнам ID: 15)
+        """
+        start_time = time.time()
+        logger.info("🚀 Начинаю предварительную загрузку всех данных SAMO API...")
+        
+        # Параметры для казахстанского рынка
+        kazakhstan_params = {
+            'TOWNFROMINC': '1344',  # Алматы
+            'STATEINC': '15'        # Вьетнам
         }
-    
-    def load_all_reference_data(self) -> Dict[str, Any]:
-        """Загрузка всех справочных данных"""
-        logger.info("🚀 Начинаем загрузку всех справочных данных SAMO API...")
         
-        total_commands = len(self.reference_commands)
-        completed = 0
-        
-        for data_type, command in self.reference_commands.items():
-            try:
-                logger.info(f"📥 Загружаем {data_type} ({command})...")
-                
-                result = self.samo_api._make_request(command, {})
+        try:
+            # 1. Основной запрос SearchTour_ALL для получения всех данных
+            logger.info("📋 Загружаю SearchTour_ALL для всех отелей и туров...")
+            all_tours_result = self.samo_api._make_request('SearchTour_ALL', kazakhstan_params)
+            
+            # 2. Параллельная загрузка всех справочников
+            reference_requests = {
+                'currencies': ('SearchTour_CURRENCIES', kazakhstan_params),
+                'states': ('SearchTour_STATES', kazakhstan_params),
+                'towns_from': ('SearchTour_TOWNFROMS', kazakhstan_params),
+                'stars': ('SearchTour_STARS', kazakhstan_params),
+                'meals': ('SearchTour_MEALS', kazakhstan_params),
+                'hotels': ('SearchTour_HOTELS', {**kazakhstan_params, 'STATEINC': '15'}),
+                'programs': ('SearchTour_PROGRAMS', kazakhstan_params),
+                'nights': ('NIGHTS', kazakhstan_params)
+            }
+            
+            reference_data = {}
+            success_count = 0
+            
+            for key, (command, params) in reference_requests.items():
+                logger.info(f"📊 Загружаю {command}...")
+                result = self.samo_api._make_request(command, params)
                 
                 if result.get('success'):
-                    self.reference_data[data_type] = {
-                        'command': command,
-                        'data': result.get('data', {}),
-                        'loaded_at': time.strftime('%Y-%m-%d %H:%M:%S'),
-                        'status': 'success'
-                    }
-                    logger.info(f"✅ {data_type} загружен успешно")
+                    reference_data[key] = result.get('data', {})
+                    success_count += 1
+                    logger.info(f"✅ {command} загружен успешно")
                 else:
-                    self.reference_data[data_type] = {
-                        'command': command,
-                        'error': result.get('error', 'Unknown error'),
-                        'loaded_at': time.strftime('%Y-%m-%d %H:%M:%S'),
-                        'status': 'failed'
-                    }
-                    logger.warning(f"⚠️ {data_type} не загружен: {result.get('error')}")
-                
-                completed += 1
-                logger.info(f"📊 Прогресс: {completed}/{total_commands} ({completed/total_commands*100:.1f}%)")
-                
-                # Небольшая пауза между запросами
-                time.sleep(0.5)
-                
-            except Exception as e:
-                logger.error(f"❌ Ошибка загрузки {data_type}: {e}")
-                self.reference_data[data_type] = {
-                    'command': command,
-                    'error': str(e),
-                    'loaded_at': time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'status': 'error'
-                }
-        
-        return self.reference_data
-    
-    def get_kazakhstan_specific_data(self) -> Dict[str, Any]:
-        """Получение данных специфичных для Казахстана"""
-        logger.info("🇰🇿 Загружаем данные для казахстанского рынка...")
-        
-        kazakhstan_data = {}
-        
-        # Города отправления Казахстана
-        if 'departure_cities' in self.reference_data and self.reference_data['departure_cities']['status'] == 'success':
-            cities_data = self.reference_data['departure_cities']['data']
-            if 'SearchTour_TOWNFROMS' in cities_data:
-                all_cities = cities_data['SearchTour_TOWNFROMS']
-                
-                # Фильтруем казахстанские города
-                kz_cities = []
-                for city in all_cities:
-                    if 'KAZAKHSTAN' in city.get('stateFromNameAlt', '').upper() or \
-                       'КАЗАХСТАН' in city.get('stateFromName', ''):
-                        kz_cities.append(city)
-                
-                kazakhstan_data['departure_cities'] = kz_cities
-                logger.info(f"✅ Найдено {len(kz_cities)} казахстанских городов отправления")
-        
-        # Валюты с приоритетом KZT
-        if 'currencies' in self.reference_data and self.reference_data['currencies']['status'] == 'success':
-            currencies_data = self.reference_data['currencies']['data']
-            if 'SearchTour_CURRENCIES' in currencies_data:
-                all_currencies = currencies_data['SearchTour_CURRENCIES']
-                
-                # Приоритет KZT, потом остальные
-                kzt_currency = None
-                other_currencies = []
-                
-                for currency in all_currencies:
-                    if currency.get('name') == 'KZT':
-                        kzt_currency = currency
-                    else:
-                        other_currencies.append(currency)
-                
-                ordered_currencies = []
-                if kzt_currency:
-                    ordered_currencies.append(kzt_currency)
-                ordered_currencies.extend(other_currencies)
-                
-                kazakhstan_data['currencies'] = ordered_currencies
-                logger.info(f"✅ Настроен приоритет валют (KZT первая)")
-        
-        return kazakhstan_data
-    
-    def save_reference_data(self, filename: str = 'samo_reference_data.json'):
-        """Сохранение справочных данных в файл"""
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(self.reference_data, f, ensure_ascii=False, indent=2)
+                    logger.warning(f"⚠️ {command} не удалось загрузить: {result.get('error')}")
+                    reference_data[key] = {}
             
-            logger.info(f"💾 Справочные данные сохранены в {filename}")
-            return True
+            # 3. Обработка результатов SearchTour_ALL
+            tours_data = {}
+            hotels_list = []
+            
+            if all_tours_result.get('success'):
+                tours_data = all_tours_result.get('data', {})
+                
+                # Извлекаем список отелей из данных туров
+                if 'SearchTour_ALL' in tours_data and isinstance(tours_data['SearchTour_ALL'], list):
+                    for tour in tours_data['SearchTour_ALL']:
+                        if isinstance(tour, dict) and 'hotel_name' in tour:
+                            hotel_info = {
+                                'id': tour.get('hotel_id', ''),
+                                'name': tour.get('hotel_name', ''),
+                                'stars': tour.get('stars', 0),
+                                'city': tour.get('city', ''),
+                                'country': tour.get('country', 'Вьетнам')
+                            }
+                            if hotel_info not in hotels_list:
+                                hotels_list.append(hotel_info)
+                
+                logger.info(f"🏨 Найдено {len(hotels_list)} уникальных отелей")
+                success_count += 1
+            else:
+                logger.warning(f"⚠️ SearchTour_ALL не удалось загрузить: {all_tours_result.get('error')}")
+            
+            # 4. Формирование итогового результата
+            self.preloaded_data = {
+                'reference_data': reference_data,
+                'tours_data': tours_data,
+                'hotels_list': hotels_list,
+                'kazakhstan_params': kazakhstan_params,
+                'success_count': success_count,
+                'total_requests': len(reference_requests) + 1,
+                'load_time': time.time() - start_time,
+                'loaded_at': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+            self.last_preload_time = time.time()
+            self.preload_duration = self.preloaded_data['load_time']
+            
+            logger.info(f"🎉 Предварительная загрузка завершена!")
+            logger.info(f"📈 Успешно: {success_count}/{len(reference_requests) + 1} запросов")
+            logger.info(f"⏱️ Время загрузки: {self.preload_duration:.2f} секунд")
+            logger.info(f"🏨 Загружено отелей: {len(hotels_list)}")
+            
+            return self.preloaded_data
             
         except Exception as e:
-            logger.error(f"❌ Ошибка сохранения данных: {e}")
-            return False
+            logger.error(f"❌ Ошибка при предварительной загрузке: {e}")
+            return {
+                'reference_data': {},
+                'tours_data': {},
+                'hotels_list': [],
+                'error': str(e),
+                'load_time': time.time() - start_time,
+                'success_count': 0
+            }
     
-    def get_data_summary(self) -> Dict[str, Any]:
-        """Сводка загруженных данных"""
-        summary = {
-            'total_commands': len(self.reference_commands),
-            'successful_loads': 0,
-            'failed_loads': 0,
-            'error_loads': 0,
-            'details': {}
-        }
+    def get_preloaded_data(self, data_type: str) -> Dict[str, Any]:
+        """Получить предзагруженные данные по типу"""
+        if not self.preloaded_data:
+            logger.warning("Данные не были предварительно загружены")
+            return {}
         
-        for data_type, data_info in self.reference_data.items():
-            status = data_info.get('status', 'unknown')
-            
-            if status == 'success':
-                summary['successful_loads'] += 1
-                # Подсчитываем записи в данных
-                data_content = data_info.get('data', {})
-                record_count = 0
-                for key, value in data_content.items():
-                    if isinstance(value, list):
-                        record_count += len(value)
-                
-                summary['details'][data_type] = {
-                    'status': 'success',
-                    'records': record_count,
-                    'command': data_info.get('command')
-                }
-            
-            elif status == 'failed':
-                summary['failed_loads'] += 1
-                summary['details'][data_type] = {
-                    'status': 'failed',
-                    'error': data_info.get('error'),
-                    'command': data_info.get('command')
-                }
-            
-            else:
-                summary['error_loads'] += 1
-                summary['details'][data_type] = {
-                    'status': 'error',
-                    'error': data_info.get('error'),
-                    'command': data_info.get('command')
-                }
-        
-        return summary
-
-def main():
-    """Основная функция загрузки данных"""
-    print("🎯 SAMO API Data Preloader для Crystal Bay Travel")
-    print("=" * 60)
-    
-    preloader = SamoDataPreloader()
-    
-    # Загружаем все справочные данные
-    reference_data = preloader.load_all_reference_data()
-    
-    # Получаем казахстанские данные
-    kz_data = preloader.get_kazakhstan_specific_data()
-    
-    # Сохраняем данные
-    preloader.save_reference_data()
-    
-    # Выводим сводку
-    summary = preloader.get_data_summary()
-    
-    print("\n📊 СВОДКА ЗАГРУЗКИ ДАННЫХ:")
-    print(f"✅ Успешно загружено: {summary['successful_loads']}")
-    print(f"⚠️ Не удалось загрузить: {summary['failed_loads']}")
-    print(f"❌ Ошибки: {summary['error_loads']}")
-    print(f"📝 Всего команд: {summary['total_commands']}")
-    
-    print("\n🎯 ДЕТАЛИ ЗАГРУЖЕННЫХ ДАННЫХ:")
-    for data_type, details in summary['details'].items():
-        status_icon = "✅" if details['status'] == 'success' else "⚠️" if details['status'] == 'failed' else "❌"
-        if details['status'] == 'success':
-            print(f"{status_icon} {data_type}: {details['records']} записей ({details['command']})")
+        if data_type == 'all':
+            return self.preloaded_data
+        elif data_type in ['reference_data', 'tours_data', 'hotels_list']:
+            return self.preloaded_data.get(data_type, {})
         else:
-            print(f"{status_icon} {data_type}: {details['error']}")
+            return self.preloaded_data.get('reference_data', {}).get(data_type, {})
     
-    if kz_data:
-        print(f"\n🇰🇿 ДАННЫЕ ДЛЯ КАЗАХСТАНА:")
-        if 'departure_cities' in kz_data:
-            print(f"🏙️ Города отправления: {len(kz_data['departure_cities'])}")
-        if 'currencies' in kz_data:
-            print(f"💰 Валюты (KZT приоритет): {len(kz_data['currencies'])}")
+    def get_hotels_for_destination(self, destination_id: str = '15') -> list:
+        """Получить список отелей для конкретного направления"""
+        hotels = self.preloaded_data.get('hotels_list', [])
+        if destination_id == '15':  # Вьетнам
+            return hotels
+        return []
     
-    print(f"\n💾 Данные сохранены в: samo_reference_data.json")
-    print("🚀 Готово для интеграции в систему!")
+    def get_currencies_list(self) -> list:
+        """Получить список валют"""
+        currencies_data = self.preloaded_data.get('reference_data', {}).get('currencies', {})
+        if 'SearchTour_CURRENCIES' in currencies_data:
+            return currencies_data['SearchTour_CURRENCIES']
+        
+        # Значения по умолчанию для казахстанского рынка
+        return [
+            {'id': 'KZT', 'name': '₸ Казахстанский тенге'},
+            {'id': 'USD', 'name': '💵 Доллар США'},
+            {'id': 'RUB', 'name': '₽ Российский рубль'}
+        ]
+    
+    def get_departure_cities_list(self) -> list:
+        """Получить список городов отправления"""
+        towns_data = self.preloaded_data.get('reference_data', {}).get('towns_from', {})
+        if 'SearchTour_TOWNFROMS' in towns_data:
+            return towns_data['SearchTour_TOWNFROMS']
+        
+        # Значения по умолчанию для Казахстана
+        return [
+            {'id': '1344', 'name': '🇰🇿 Алматы'},
+            {'id': '2', 'name': '🇰🇿 Астана'}
+        ]
+    
+    def get_destinations_list(self) -> list:
+        """Получить список направлений"""
+        states_data = self.preloaded_data.get('reference_data', {}).get('states', {})
+        if 'SearchTour_STATES' in states_data:
+            return states_data['SearchTour_STATES']
+        
+        # Значения по умолчанию для Вьетнама
+        return [
+            {'id': '15', 'name': '🇻🇳 Вьетнам'}
+        ]
+    
+    def is_data_fresh(self, max_age_minutes: int = 30) -> bool:
+        """Проверить, свежие ли предзагруженные данные"""
+        if not self.last_preload_time:
+            return False
+        
+        age_minutes = (time.time() - self.last_preload_time) / 60
+        return age_minutes <= max_age_minutes
+    
+    def get_preload_status(self) -> Dict[str, Any]:
+        """Получить статус предварительной загрузки"""
+        return {
+            'is_loaded': bool(self.preloaded_data),
+            'load_time': self.preload_duration,
+            'loaded_at': self.preloaded_data.get('loaded_at'),
+            'success_count': self.preloaded_data.get('success_count', 0),
+            'total_requests': self.preloaded_data.get('total_requests', 0),
+            'hotels_count': len(self.preloaded_data.get('hotels_list', [])),
+            'is_fresh': self.is_data_fresh(),
+            'age_minutes': (time.time() - self.last_preload_time) / 60 if self.last_preload_time else None
+        }
 
-if __name__ == "__main__":
-    main()
+# Глобальный экземпляр предзагрузчика
+_preloader_instance = None
+
+def initialize_preloader(samo_api):
+    """Инициализация глобального экземпляра предзагрузчика"""
+    global _preloader_instance
+    _preloader_instance = SamoDataPreloader(samo_api)
+    return _preloader_instance
+
+def get_preloader():
+    """Получить глобальный экземпляр предзагрузчика"""
+    return _preloader_instance
+
+def preload_samo_data(samo_api):
+    """Удобная функция для предварительной загрузки данных"""
+    preloader = initialize_preloader(samo_api)
+    return preloader.preload_all_reference_data()
