@@ -537,59 +537,7 @@ def get_tour_filters():
             'filters': {}
         })
 
-# API поиска туров через SAMO
-@app.route('/api/tours/search', methods=['POST'])
-def search_tours():
-    """Поиск туров через SAMO API"""
-    try:
-        if not samo_api:
-            return jsonify({
-                'success': False,
-                'error': 'SAMO API не инициализирован',
-                'tours': [],
-                'count': 0
-            })
-        
-        data = request.json or {}
-        
-        # Выполняем реальный поиск через SAMO API
-        result = samo_api._make_request('SearchTour_ALL', data)
-        
-        if not result.get('success'):
-            return jsonify({
-                'success': False,
-                'error': result.get('error', 'SAMO API недоступен'),
-                'tours': [],
-                'count': 0,
-                'requires_production': result.get('requires_production', False)
-            })
-        
-        # Обрабатываем данные туров из SAMO API
-        tours_data = result.get('data', {})
-        tours = []
-        
-        # Извлекаем туры из ответа SAMO
-        if isinstance(tours_data, dict) and 'SearchTour_ALL' in tours_data:
-            tours = tours_data['SearchTour_ALL']
-        elif isinstance(tours_data, list):
-            tours = tours_data
-        
-        return jsonify({
-            'success': True,
-            'tours': tours,
-            'count': len(tours),
-            'search_params': data,
-            'loaded_from': 'SAMO_API'
-        })
-        
-    except Exception as e:
-        logger.error(f"Tour search error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'tours': [],
-            'count': 0
-        })
+# Старая функция search_tours удалена - используется новая в разделе TOUR SEARCH API
 
 # API заявок через SAMO
 @app.route('/api/orders', methods=['GET'])
@@ -636,6 +584,193 @@ def get_orders():
 
 # === STARTUP ===
 
+# === TOUR SEARCH API ===
+
+@app.route('/api/tours/search', methods=['POST'])
+def search_tours():
+    """Поиск туров через SAMO API"""
+    try:
+        data = request.get_json() or {}
+        
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован'
+            })
+        
+        # Формируем параметры поиска
+        search_params = {
+            'TOWNFROMINC': data.get('departure_city', '1344'),  # Алматы
+            'STATEINC': data.get('destination', '15'),          # Вьетнам
+            'CURRENCYINC': data.get('currency', 'KZT'),         # Тенге
+            'CHECKIN': data.get('checkin_date', ''),
+            'NIGHTS': data.get('nights', ''),
+            'ADULT': data.get('adults', '2'),
+            'CHILD': data.get('children', '0'),
+            'HOTEL': data.get('hotel', ''),
+            'STARS': data.get('stars', ''),
+            'MEALS': data.get('meals', '')
+        }
+        
+        # Удаляем пустые параметры
+        search_params = {k: v for k, v in search_params.items() if v}
+        
+        result = samo_api._make_request('SearchTour_TOURS', search_params)
+        
+        if result.get('success'):
+            tours_data = result.get('data', {})
+            tours_list = []
+            
+            # Обрабатываем результаты
+            if 'SearchTour_TOURS' in tours_data:
+                raw_tours = tours_data['SearchTour_TOURS']
+                if isinstance(raw_tours, list):
+                    for tour in raw_tours:
+                        processed_tour = {
+                            'id': tour.get('id', ''),
+                            'name': tour.get('name', 'Тур'),
+                            'hotel': tour.get('hotel', ''),
+                            'destination': tour.get('destination', 'Вьетнам'),
+                            'nights': tour.get('nights', 7),
+                            'price': tour.get('price', 0),
+                            'currency': tour.get('currency', 'KZT'),
+                            'stars': tour.get('stars', 4),
+                            'meals': tour.get('meals', 'BB'),
+                            'departure_date': tour.get('departure_date', ''),
+                            'available': tour.get('available', True)
+                        }
+                        tours_list.append(processed_tour)
+            
+            return jsonify({
+                'success': True,
+                'tours': tours_list,
+                'total_found': len(tours_list),
+                'search_params': search_params
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Туры не найдены'),
+                'requires_production': True,
+                'production_ip': '46.250.234.89'
+            })
+            
+    except Exception as e:
+        logger.error(f"Search tours error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/tours/hotels', methods=['GET', 'POST'])
+def search_hotels():
+    """Поиск отелей через SAMO API"""
+    try:
+        if request.method == 'POST':
+            data = request.get_json() or {}
+        else:
+            data = request.args.to_dict()
+        
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован'
+            })
+        
+        search_params = {
+            'STATEINC': data.get('destination', '15'),  # Вьетнам
+            'STARS': data.get('stars', ''),
+            'CURRENCYINC': data.get('currency', 'KZT')
+        }
+        
+        search_params = {k: v for k, v in search_params.items() if v}
+        
+        result = samo_api._make_request('SearchTour_HOTELS', search_params)
+        
+        if result.get('success'):
+            hotels_data = result.get('data', {})
+            hotels_list = []
+            
+            if 'SearchTour_HOTELS' in hotels_data:
+                raw_hotels = hotels_data['SearchTour_HOTELS']
+                if isinstance(raw_hotels, list):
+                    for hotel in raw_hotels:
+                        processed_hotel = {
+                            'id': hotel.get('id', ''),
+                            'name': hotel.get('name', 'Отель'),
+                            'destination': hotel.get('destination', 'Вьетнам'),
+                            'stars': hotel.get('stars', 4),
+                            'description': hotel.get('description', ''),
+                            'location': hotel.get('location', '')
+                        }
+                        hotels_list.append(processed_hotel)
+            
+            return jsonify({
+                'success': True,
+                'hotels': hotels_list,
+                'total_found': len(hotels_list)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Отели не найдены'),
+                'requires_production': True
+            })
+            
+    except Exception as e:
+        logger.error(f"Search hotels error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/tours/prices', methods=['POST'])  
+def search_prices():
+    """Поиск цен на туры через SAMO API"""
+    try:
+        data = request.get_json() or {}
+        
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован'
+            })
+        
+        price_params = {
+            'TOWNFROMINC': data.get('departure_city', '1344'),
+            'STATEINC': data.get('destination', '15'),
+            'CURRENCYINC': data.get('currency', 'KZT'),
+            'CHECKIN': data.get('checkin_date', ''),
+            'NIGHTS': data.get('nights', ''),
+            'ADULT': data.get('adults', '2'),
+            'CHILD': data.get('children', '0'),
+            'HOTEL': data.get('hotel_id', '')
+        }
+        
+        price_params = {k: v for k, v in price_params.items() if v}
+        
+        result = samo_api._make_request('SearchTour_PRICES', price_params)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'prices': result.get('data', {}),
+                'search_params': price_params
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Цены не найдены'),
+                'requires_production': True
+            })
+            
+    except Exception as e:
+        logger.error(f"Search prices error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     with app.app_context():
         # Создаем таблицы
@@ -660,6 +795,11 @@ def production_status():
 def reference_data_page():
     """Справочные данные SAMO"""
     return render_template("reference_data.html", active_page="reference-data", page_title="Справочные данные")
+
+@app.route("/tour-search")
+def tour_search_advanced():
+    """Расширенный поиск туров"""
+    return render_template("tour_search_advanced.html", active_page="tours", page_title="Поиск туров")
 
 
 # Справочные данные SAMO API
