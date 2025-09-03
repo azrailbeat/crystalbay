@@ -328,7 +328,7 @@ function populateSelect(selectId, items, valueField, textField, defaultValue = '
         items.forEach(item => {
             const value = item[valueField] || item.id || item.code;
             const text = item[textField] || item.name || item.title || value;
-            const selected = value === defaultValue ? 'selected' : '';
+            const selected = (value == defaultValue) ? 'selected' : '';
             html += `<option value="${value}" ${selected}>${text}</option>`;
         });
     }
@@ -431,9 +431,16 @@ function displaySearchResults(apiResponse) {
 
 // Создание карточки тура
 function createTourCard(tour, index) {
-    const hotelName = tour.hotel_name || tour.name || `Тур ${index + 1}`;
-    const destination = tour.destination || tour.city || 'Направление не указано';
-    const stars = tour.stars || 0;
+    const hotelName = tour.hotel_name || tour.name || tour.hotelName || `Тур ${index + 1}`;
+    const destination = tour.destination || tour.city || tour.stateName || 'Направление не указано';
+    const stars = tour.stars || tour.hotelStars || 0;
+    const nights = tour.nights || tour.night || '-';
+    const meal = tour.meal || tour.mealName || '-';
+    const adults = tour.adults || tour.adult || '2';
+    
+    // Цена может быть в разных полях
+    const price = tour.price || tour.priceTotal || tour.cost || tour.amount;
+    const currency = tour.currency || tour.currencyCode || 'USD';
     
     return `
         <div class="col-lg-6 col-xl-4 mb-4">
@@ -442,7 +449,7 @@ function createTourCard(tour, index) {
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <h6 class="card-title mb-0">${hotelName}</h6>
                         <div class="text-end">
-                            ${stars > 0 ? '⭐'.repeat(stars) : ''}
+                            ${stars > 0 ? '⭐'.repeat(parseInt(stars)) : ''}
                             <div class="badge bg-success mt-1">${destination}</div>
                         </div>
                     </div>
@@ -451,27 +458,37 @@ function createTourCard(tour, index) {
                         <div class="row text-center small">
                             <div class="col-4">
                                 <div class="text-muted">Ночей</div>
-                                <strong>${tour.nights || '-'}</strong>
+                                <strong>${nights}</strong>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted">Питание</div>
-                                <strong>${tour.meal || '-'}</strong>
+                                <strong>${meal}</strong>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted">Взрослых</div>
-                                <strong>${tour.adults || '2'}</strong>
+                                <strong>${adults}</strong>
                             </div>
                         </div>
                         
-                        ${tour.price ? `
+                        ${price ? `
                             <div class="text-center mt-3">
                                 <h5 class="text-primary mb-0">
-                                    ${formatPrice(tour.price, tour.currency)}
+                                    ${formatPrice(price, currency)}
                                 </h5>
                                 <small class="text-muted">за тур</small>
                             </div>
-                        ` : ''}
+                        ` : `
+                            <div class="text-center mt-3">
+                                <div class="text-muted">Цена уточняется</div>
+                            </div>
+                        `}
                     </div>
+                    
+                    ${tour.description || tour.programName ? `
+                        <div class="mb-2">
+                            <small class="text-muted">${tour.description || tour.programName}</small>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div class="card-footer bg-transparent">

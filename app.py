@@ -825,6 +825,50 @@ def universal_tour_search():
     """Универсальный поиск туров между всеми доступными городами SAMO"""
     return render_template("universal_tour_search.html", active_page="tours", page_title="Универсальный поиск туров")
 
+@app.route('/api/tours/search', methods=['POST'])
+def api_universal_tour_search():
+    """API endpoint для универсального поиска туров"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Нет данных для поиска', 'success': False}), 400
+        
+        # Проверяем обязательные параметры
+        if not data.get('departure_city') or not data.get('destination'):
+            return jsonify({
+                'error': 'Укажите город отправления и направление',
+                'success': False
+            }), 400
+        
+        app.logger.info(f"Поиск туров: {data}")
+        
+        # Пока SAMO API недоступен, возвращаем демо-туры
+        from demo_tours_data import get_demo_tours_data, filter_demo_tours
+        
+        all_demo_tours = get_demo_tours_data()
+        demo_tours = filter_demo_tours(
+            all_demo_tours, 
+            data.get('departure_city'), 
+            data.get('destination')
+        )
+        
+        return jsonify({
+            'tours': demo_tours,
+            'count': len(demo_tours),
+            'message': 'SAMO API недоступен. Показаны демо-туры для тестирования интерфейса.',
+            'requires_production': True,
+            'success': True
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Ошибка поиска туров: {e}")
+        return jsonify({
+            'error': str(e),
+            'tours': [],
+            'count': 0,
+            'success': False
+        }), 500
+
 
 # Справочные данные SAMO API
 @app.route('/api/samo/reference-data', methods=['GET'])
