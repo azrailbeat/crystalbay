@@ -687,19 +687,17 @@ def search_tours_universal():
                         'source': f'SAMO_API_{method}'
                     })
         
-        # Если SAMO API не работает, показываем работающие туры для демонстрации
-        app.logger.warning(f"SAMO API недоступен, показываем рабочие туры для демонстрации")
-        
-        # Создаем рабочие туры для показа функциональности
-        working_tours = create_working_tours(data)
+        # SAMO API недоступен - показываем только ошибку
+        app.logger.error(f"SAMO API недоступен, возвращаем ошибку согласно требованиям")
         
         return jsonify({
-            'tours': working_tours,
-            'count': len(working_tours),
-            'success': True,
-            'message': 'Система работает. На production сервере 46.250.234.89 будут загружены реальные туры.',
-            'current_server': os.popen('curl -s ifconfig.me 2>/dev/null').read().strip(),
-            'target_server': '46.250.234.89'
+            'tours': [],
+            'count': 0,
+            'success': False,
+            'error': 'SAMO API недоступен. Требуется доступ с IP 46.250.234.89.',
+            'current_ip': os.popen('curl -s ifconfig.me 2>/dev/null').read().strip(),
+            'required_ip': '46.250.234.89',
+            'samo_status': 'blocked'
         })
         
     except Exception as e:
@@ -711,66 +709,7 @@ def search_tours_universal():
             'success': False
         }), 500
 
-def create_working_tours(search_data):
-    """Создает рабочие туры для демонстрации функциональности"""
-    destination = search_data.get('destination', '15') 
-    nights = search_data.get('nights', '7')
-    adults = search_data.get('adults', '2')
-    currency = search_data.get('currency', 'KZT')
-    
-    destinations = {
-        '15': 'Вьетнам', '1': 'Турция', '2': 'Египет', '6': 'Таиланд', '7': 'ОАЭ',
-        '3': 'Греция', '4': 'Испания', '5': 'Италия'
-    }
-    
-    destination_name = destinations.get(destination, 'Экзотическое направление')
-    
-    tours = [
-        {
-            'id': 1,
-            'hotelName': f'Crystal Bay Resort {destination_name}',
-            'stateName': destination_name,
-            'townName': 'Популярный курорт',
-            'hotelStars': 5,
-            'night': int(nights),
-            'mealName': 'Всё включено',
-            'adult': int(adults),
-            'priceTotal': 450000 if currency == 'KZT' else 1200,
-            'currencyCode': currency,
-            'programName': f'Премиум тур в {destination_name}',
-            'checkIn': search_data.get('checkin_date', '2025-09-04')
-        },
-        {
-            'id': 2,
-            'hotelName': f'Comfort Hotel {destination_name}',
-            'stateName': destination_name,
-            'townName': 'Центральный район',
-            'hotelStars': 4,
-            'night': int(nights),
-            'mealName': 'Полупансион',
-            'adult': int(adults),
-            'priceTotal': 320000 if currency == 'KZT' else 850,
-            'currencyCode': currency,
-            'programName': f'Комфорт тур в {destination_name}',
-            'checkIn': search_data.get('checkin_date', '2025-09-04')
-        },
-        {
-            'id': 3,
-            'hotelName': f'Budget Inn {destination_name}',
-            'stateName': destination_name,
-            'townName': 'Экономный вариант',
-            'hotelStars': 3,
-            'night': int(nights),
-            'mealName': 'Завтрак',
-            'adult': int(adults),
-            'priceTotal': 180000 if currency == 'KZT' else 450,
-            'currencyCode': currency,
-            'programName': f'Эконом тур в {destination_name}',
-            'checkIn': search_data.get('checkin_date', '2025-09-04')
-        }
-    ]
-    
-    return tours
+# Удалена функция create_working_tours - система работает только с реальными данными SAMO API
 
 @app.route('/api/tours/hotels', methods=['GET', 'POST'])
 def search_hotels():

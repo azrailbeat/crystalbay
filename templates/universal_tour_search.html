@@ -437,20 +437,24 @@ function displaySearchResults(apiResponse) {
     countContainer.textContent = count > 0 ? `${count} туров` : '';
     
     if (!tours || tours.length === 0) {
-        if (apiResponse.requires_production) {
+        if (apiResponse.samo_status === 'blocked') {
             container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Требуется production сервер:</strong> SAMO API доступен только на production сервере.
-                    <br><small class="text-muted">IP: ${apiResponse.production_ip}</small>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    <strong>SAMO API заблокирован</strong>
+                    <div class="mt-2 small">
+                        <div>Текущий сервер: <code>${apiResponse.current_ip}</code></div>
+                        <div>Требуется сервер: <code>${apiResponse.required_ip}</code></div>
+                        <div class="text-muted mt-1">IP адрес заблокирован в SAMO API. Необходимо развернуть на правильном сервере.</div>
+                    </div>
                 </div>
             `;
-        } else if (apiResponse.samo_error) {
+        } else if (apiResponse.samo_error || !apiResponse.success) {
             container.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Ошибка SAMO API:</strong> ${apiResponse.error}
-                    <br><small class="text-muted">Проверьте OAuth токен и whitelist IP</small>
+                    <strong>Ошибка SAMO API:</strong> ${apiResponse.error || 'Неизвестная ошибка'}
+                    <br><small class="text-muted">Проверьте OAuth токен и доступность API</small>
                 </div>
             `;
         } else {

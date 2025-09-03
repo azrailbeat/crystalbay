@@ -7,7 +7,7 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Data integrity requirement: ONLY authentic data from SAMO API - no mock, demo, placeholder, or fallback data. System shows errors when API unavailable.
+Data integrity requirement: ONLY authentic data from SAMO API - no mock, demo, placeholder, or fallback data. System shows errors when API unavailable. СТРОГО: никаких работающих туров или демо данных.
 Market focus: Kazakhstan travelers (Almaty, Astana) to Vietnam destinations.
 Currency priority: Kazakhstan Tenge (KZT) as default currency.
 Production deployment: System designed for production server (IP: 46.250.234.89) with SAMO API access.
