@@ -694,9 +694,10 @@ def search_tours_universal():
             'tours': [],
             'count': 0,
             'success': False,
-            'error': 'SAMO API недоступен. Требуется доступ с IP 46.250.234.89.',
+            'error': 'SAMO API заблокировал новый IP сервера. Требуется обновление whitelist.',
             'current_ip': os.popen('curl -s ifconfig.me 2>/dev/null').read().strip(),
-            'required_ip': '46.250.234.89',
+            'required_ip': '35.237.1.69',
+            'old_ip': '46.250.234.89',
             'samo_status': 'blocked'
         })
         

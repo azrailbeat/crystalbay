@@ -40,3 +40,11 @@ The application follows a modular, service-oriented architecture, designed for c
 - **Bootstrap 5**: The CSS framework for the frontend UI.
 - **PostgreSQL**: The relational database used for data storage.
 - **OpenAI GPT-4o**: Utilized for AI-powered chat automation and intelligent processing.
+
+## Production Status (September 3, 2025):
+- **Production Server**: 46.250.234.89 ✓ ACTIVE (видно в browser URL)
+- **External IP Changed**: 35.237.1.69 ⚠️ BLOCKED (новый IP для исходящих запросов)
+- **Previous External IP**: 46.250.234.89 ✓ WHITELISTED in SAMO API  
+- **OAuth Token**: Valid ✓
+- **Root Cause**: Server external IP changed, SAMO API blocks new IP
+- **Solution**: Add IP 35.237.1.69 to SAMO API whitelist

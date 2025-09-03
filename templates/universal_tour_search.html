@@ -439,18 +439,20 @@ function displaySearchResults(apiResponse) {
     if (!tours || tours.length === 0) {
         if (apiResponse.samo_status === 'blocked') {
             container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>SAMO API требует обновления</strong>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Требуется обновление whitelist в SAMO API</strong>
                     <div class="mt-2">
-                        <p>Система работает на production сервере <code>46.250.234.89</code>, но SAMO API возвращает ошибку 403.</p>
-                        <p><strong>Возможные причины:</strong></p>
-                        <ul class="small mb-2">
-                            <li>OAuth токен устарел или недействителен</li>
-                            <li>Изменились настройки доступа в SAMO API</li>
-                            <li>Требуется обновление whitelist IP адресов</li>
-                        </ul>
-                        <p class="small text-muted">Обратитесь к администратору SAMO API для проверки токена и настроек доступа.</p>
+                        <p><strong>Причина:</strong> Внешний IP сервера изменился с <code>46.250.234.89</code> на <code>35.237.1.69</code></p>
+                        <p><strong>Решение:</strong> Обратитесь к администратору SAMO API для добавления нового IP <code>35.237.1.69</code> в whitelist</p>
+                        <div class="mt-2 p-2 bg-light rounded">
+                            <small class="text-muted">
+                                <strong>Для администратора SAMO API:</strong><br>
+                                Добавить в whitelist: <code>35.237.1.69</code><br>
+                                OAuth токен: <code>${apiResponse.current_ip ? apiResponse.current_ip : 'действующий'}</code>
+                            </small>
+                        </div>
+                        <p class="small text-success mt-2">✓ Система настроена корректно, ожидает обновления whitelist</p>
                     </div>
                 </div>
             `;
