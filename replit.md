@@ -108,11 +108,11 @@ curl --location --request POST 'https://booking.crystalbay.com/export/default.ph
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Data integrity requirement: Use only authentic data from SAMO API, no placeholders or mock data.
+Data integrity requirement: ONLY authentic data from SAMO API - no mock, demo, placeholder, or fallback data.
 Market focus: Kazakhstan travelers (Almaty, Astana) to Vietnam destinations.
 Currency priority: Kazakhstan Tenge (KZT) as default currency.
-Production deployment: Docker-containerized system ready for deployment on external server with comprehensive cleanup and error handling.
-API Requirements: Real SAMO API integration only, no demo fallbacks.
+Production deployment: System designed for production server (IP: 46.250.234.89) with SAMO API access.
+API Requirements: Real SAMO API integration exclusively - system shows errors when API unavailable instead of demo data.
 
 ## System Architecture
 

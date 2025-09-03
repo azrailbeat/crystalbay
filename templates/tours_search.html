@@ -367,7 +367,7 @@ function displaySearchResults(apiResponse) {
                 <i class="bi bi-exclamation-circle" style="font-size: 3rem; opacity: 0.3;"></i>
                 <div class="mt-3">По вашему запросу туры не найдены</div>
                 <div class="mt-2">Попробуйте изменить параметры поиска</div>
-                ${apiResponse.demo_mode ? '<div class="mt-2"><small class="text-warning">⚠️ Демо режим - данные тестовые</small></div>' : ''}
+
             </div>
         `;
         return;
@@ -391,11 +391,11 @@ function displaySearchResults(apiResponse) {
         `;
     }
     
-    if (apiResponse.demo_mode) {
+    if (apiResponse.requires_production) {
         html = `
             <div class="alert alert-warning m-3">
                 <i class="bi bi-exclamation-triangle me-2"></i>
-                <strong>Демо режим:</strong> Показаны тестовые данные. На продакшн сервере будут реальные туры.
+                <strong>Требуется production сервер:</strong> SAMO API доступен только на production сервере (IP: 46.250.234.89).
             </div>
         ` + html;
     }

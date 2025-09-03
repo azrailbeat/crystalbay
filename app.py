@@ -51,11 +51,10 @@ except ImportError as e:
 # Initialize integrations
 try:
     samo_api = SamoIntegration()
-    # webapi = WebAPIIntegration()
+    logger.info("SAMO API integration initialized successfully")
 except Exception as e:
-    logger.warning(f"Integration warning: {e}")
+    logger.error(f"SAMO API initialization failed: {e}")
     samo_api = None
-    # webapi = None
 
 # === MAIN ROUTES ===
 
@@ -393,119 +392,112 @@ try:
 except Exception as e:
     logger.error(f"Failed to register tours API routes: {e}")
     
-# Простой тестовый эндпоинт для фильтров
+# API фильтров через SAMO
 @app.route('/api/tours/filters', methods=['GET'])
-def simple_tour_filters():
-    """Простые фильтры для поиска туров (резервный вариант)"""
-    return jsonify({
-        'success': True,
-        'filters': {
-            'currencies': [
-                {'id': 'KZT', 'code': 'KZT', 'name': 'Казахстанский тенге', 'rate': 1},
-                {'id': 'USD', 'code': 'USD', 'name': 'Доллар США', 'rate': 450},
-                {'id': 'RUB', 'code': 'RUB', 'name': 'Российский рубль', 'rate': 5}
-            ],
-            'destinations': [
-                {'id': '15', 'name': 'Вьетнам', 'code': 'VN', 'alt_name': 'Vietnam'}
-            ],
-            'departure_cities': [
-                {'id': '1', 'name': 'Алматы', 'code': 'ALA', 'country': 'Казахстан'},
-                {'id': '2', 'name': 'Астана', 'code': 'NQZ', 'country': 'Казахстан'}
-            ],
-            'stars': [
-                {'id': '3', 'name': '3 звезды', 'value': '3'},
-                {'id': '4', 'name': '4 звезды', 'value': '4'},
-                {'id': '5', 'name': '5 звезд', 'value': '5'}
-            ],
-            'meals': [
-                {'id': 'BB', 'name': 'Завтрак', 'code': 'BB'},
-                {'id': 'HB', 'name': 'Полупансион', 'code': 'HB'},
-                {'id': 'FB', 'name': 'Полный пансион', 'code': 'FB'},
-                {'id': 'AI', 'name': 'Все включено', 'code': 'AI'}
-            ],
-            'hotels': [],
-            'loaded_at': '2025-09-02T15:55:00',
-            'total_counts': {
-                'currencies': 3,
-                'destinations': 1,
-                'departure_cities': 2,
-                'stars': 3,
-                'meals': 4,
-                'hotels': 0
-            }
-        },
-        'kazakhstan_market': True,
-        'note': 'Базовые параметры для Kazakhstan → Vietnam'
-    })
+def get_tour_filters():
+    """Получение фильтров поиска туров через SAMO API"""
+    try:
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'filters': {}
+            })
+        
+        # Получаем все необходимые данные через SAMO API
+        currencies_result = samo_api._make_request('SearchTour_CURRENCIES', {})
+        destinations_result = samo_api._make_request('SearchTour_STATES', {})
+        cities_result = samo_api._make_request('SearchTour_TOWNFROMS', {})
+        stars_result = samo_api._make_request('SearchTour_STARS', {})
+        meals_result = samo_api._make_request('SearchTour_MEALS', {})
+        
+        # Проверяем успешность запросов
+        failed_requests = []
+        if not currencies_result.get('success'):
+            failed_requests.append('currencies')
+        if not destinations_result.get('success'):
+            failed_requests.append('destinations')
+        if not cities_result.get('success'):
+            failed_requests.append('cities')
+        if not stars_result.get('success'):
+            failed_requests.append('stars')
+        if not meals_result.get('success'):
+            failed_requests.append('meals')
+        
+        if failed_requests:
+            return jsonify({
+                'success': False,
+                'error': f'SAMO API недоступен для: {", ".join(failed_requests)}',
+                'failed_requests': failed_requests,
+                'requires_production': True
+            })
+        
+        # Если все запросы успешны, формируем ответ
+        return jsonify({
+            'success': True,
+            'filters': {
+                'currencies': currencies_result.get('data', {}),
+                'destinations': destinations_result.get('data', {}),
+                'departure_cities': cities_result.get('data', {}),
+                'stars': stars_result.get('data', {}),
+                'meals': meals_result.get('data', {}),
+                'hotels': []
+            },
+            'loaded_from': 'SAMO_API',
+            'production_ready': True
+        })
+        
+    except Exception as e:
+        logger.error(f"Tour filters error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'filters': {}
+        })
 
-# API поиска туров
+# API поиска туров через SAMO
 @app.route('/api/tours/search', methods=['POST'])
 def search_tours():
     """Поиск туров через SAMO API"""
     try:
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'tours': [],
+                'count': 0
+            })
+        
         data = request.json or {}
         
-        # Создаем тестовые туры на основе реальных параметров SAMO
+        # Выполняем реальный поиск через SAMO API
+        result = samo_api._make_request('SearchTour_ALL', data)
+        
+        if not result.get('success'):
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'SAMO API недоступен'),
+                'tours': [],
+                'count': 0,
+                'requires_production': result.get('requires_production', False)
+            })
+        
+        # Обрабатываем данные туров из SAMO API
+        tours_data = result.get('data', {})
         tours = []
         
-        destination = data.get('destination', '15')
-        departure_city = data.get('departure_city', '1')
-        nights = int(data.get('nights', 7))
-        adults = int(data.get('adults', 2))
-        children = int(data.get('children', 0))
-        currency = data.get('currency', 'KZT')
-        
-        # Генерируем туры с реальными данными из SAMO
-        vietnam_hotels = [
-            'VIETNAM OILY HOTEL RU',
-            'Nha Trang Palace Hotel',
-            'Crystal Bay Beach Resort',
-            'Saigon Continental Hotel',
-            'Hanoi Pearl Hotel',
-            'Da Nang Golden Bay',
-            'Ho Chi Minh Luxury Hotel',
-            'Phu Quoc Island Resort'
-        ]
-        
-        cities = ['Нячанг', 'Хошимин', 'Ханой', 'Дананг', 'Фукуок']
-        meal_types = ['BB', 'HB', 'FB', 'AI']
-        
-        for i in range(15):
-            price_base = 180000 if currency == 'KZT' else 400
-            price = price_base + (i * 25000 if currency == 'KZT' else i * 50)
-            
-            tour = {
-                'id': f'VN-{i+1:03d}',
-                'hotel_name': vietnam_hotels[i % len(vietnam_hotels)],
-                'destination': 'Вьетнам',
-                'city': cities[i % len(cities)],
-                'nights': nights,
-                'adults': adults,
-                'children': children,
-                'stars': 3 + (i % 3),
-                'meal_type': meal_types[i % len(meal_types)],
-                'meal_name': {
-                    'BB': 'Завтрак',
-                    'HB': 'Полупансион',
-                    'FB': 'Полный пансион',
-                    'AI': 'Всё включено'
-                }[meal_types[i % len(meal_types)]],
-                'price': price,
-                'currency': currency,
-                'departure_city': 'Алматы' if departure_city == '1' else 'Астана',
-                'check_in': data.get('check_in', '2025-11-15'),
-                'available': True,
-                'tour_operator': 'Crystal Bay Travel'
-            }
-            tours.append(tour)
+        # Извлекаем туры из ответа SAMO
+        if isinstance(tours_data, dict) and 'SearchTour_ALL' in tours_data:
+            tours = tours_data['SearchTour_ALL']
+        elif isinstance(tours_data, list):
+            tours = tours_data
         
         return jsonify({
             'success': True,
             'tours': tours,
             'count': len(tours),
-            'demo_mode': True,
             'search_params': data,
-            'note': 'Туры созданы на основе параметров SAMO API'
+            'loaded_from': 'SAMO_API'
         })
         
     except Exception as e:
@@ -517,14 +509,40 @@ def search_tours():
             'count': 0
         })
 
-# API заявок (упрощенная версия)
+# API заявок через SAMO
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    """Получение списка заявок"""
+    """Получение заявок через SAMO API"""
     try:
-        from orders_simple import get_simple_orders
-        result = get_simple_orders()
-        return jsonify(result)
+        if not samo_api:
+            return jsonify({
+                'success': False,
+                'error': 'SAMO API не инициализирован',
+                'orders': [],
+                'count': 0
+            })
+        
+        # Получаем заявки через SAMO API
+        result = samo_api.get_orders()
+        
+        if not result.get('success'):
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'SAMO API недоступен'),
+                'orders': [],
+                'count': 0,
+                'requires_production': result.get('requires_production', False)
+            })
+        
+        orders_data = result.get('data', [])
+        
+        return jsonify({
+            'success': True,
+            'orders': orders_data,
+            'count': len(orders_data),
+            'loaded_from': 'SAMO_API'
+        })
+        
     except Exception as e:
         logger.error(f"Orders error: {e}")
         return jsonify({
