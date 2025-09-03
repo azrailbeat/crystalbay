@@ -17,6 +17,8 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **SAMO Data Preloader**: Comprehensive preloading system that executes SearchTour_ALL and all reference data on startup ✓
 - **Health Check Endpoint**: Added /health endpoint for production monitoring and Docker health checks ✓
 - **Production Script Compatible**: System compatible with clean reinstall script using gunicorn main:app ✓
+- **Universal Tour Search**: Complete system for searching tours between all SAMO API cities (Almaty ID: 1344, Astana ID: 1937) ✓
+- **Real Production Data Integration**: Updated with authentic city IDs from production SAMO API response ✓
 
 ### System Status:
 - **SAMO Token**: Configured and valid ✓

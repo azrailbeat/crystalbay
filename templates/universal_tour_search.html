@@ -262,19 +262,28 @@ async function loadAllCities() {
 
 // Загрузка городов по умолчанию
 function loadDefaultCities() {
-    // Популярные города отправления
+    // Реальные города отправления из SAMO API (обновлено по production данным)
     const defaultCities = [
-        {id: '1344', name: '🇰🇿 Алматы'},
-        {id: '2', name: '🇰🇿 Астана'},
-        {id: '1', name: '🇷🇺 Москва'},
-        {id: '3', name: '🇷🇺 Санкт-Петербург'},
-        {id: '4', name: '🇷🇺 Екатеринбург'},
-        {id: '5', name: '🇷🇺 Новосибирск'},
-        {id: '6', name: '🇺🇦 Киев'},
-        {id: '7', name: '🇺🇦 Одесса'},
-        {id: '8', name: '🇧🇾 Минск'},
-        {id: '9', name: '🇦🇿 Баку'},
-        {id: '10', name: '🇦🇲 Ереван'}
+        {id: 1344, name: 'Алматы (Казахстан)'},
+        {id: 1937, name: 'Астана (Казахстан)'},
+        {id: 1, name: 'Москва (Россия)'},
+        {id: 2, name: 'Санкт-Петербург (Россия)'},
+        {id: 3, name: 'Екатеринбург (Россия)'},
+        {id: 4, name: 'Новосибирск (Россия)'},
+        {id: 5, name: 'Самара (Россия)'},
+        {id: 6, name: 'Челябинск (Россия)'},
+        {id: 7, name: 'Ростов-на-Дону (Россия)'},
+        {id: 8, name: 'Уфа (Россия)'},
+        {id: 9, name: 'Волгоград (Россия)'},
+        {id: 10, name: 'Красноярск (Россия)'},
+        {id: 11, name: 'Пермь (Россия)'},
+        {id: 12, name: 'Воронеж (Россия)'},
+        {id: 13, name: 'Саратов (Россия)'},
+        {id: 14, name: 'Краснодар (Россия)'},
+        {id: 15, name: 'Тольятти (Россия)'},
+        {id: 16, name: 'Барнаул (Россия)'},
+        {id: 17, name: 'Ижевск (Россия)'},
+        {id: 18, name: 'Ульяновск (Россия)'}
     ];
     
     // Популярные направления
@@ -301,7 +310,7 @@ function loadDefaultCities() {
         {id: '20', name: '🇵🇭 Филиппины'}
     ];
     
-    populateSelect('departure-city', defaultCities, 'id', 'name', '1344');
+    populateSelect('departure-city', defaultCities, 'id', 'name', 1344);
     populateSelect('destination', defaultDestinations, 'id', 'name', '15');
     
     searchData.cities = defaultCities;

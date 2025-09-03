@@ -164,10 +164,10 @@ class SamoDataPreloader:
         if 'SearchTour_TOWNFROMS' in towns_data:
             return towns_data['SearchTour_TOWNFROMS']
         
-        # Значения по умолчанию для Казахстана
+        # Значения по умолчанию для Казахстана (ID из production SAMO API)
         return [
-            {'id': '1344', 'name': '🇰🇿 Алматы'},
-            {'id': '2', 'name': '🇰🇿 Астана'}
+            {'id': 1344, 'name': 'Алматы'},
+            {'id': 1937, 'name': 'Астана'}
         ]
     
     def get_destinations_list(self) -> list:
