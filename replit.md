@@ -19,7 +19,7 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **Production Script Compatible**: System compatible with clean reinstall script using gunicorn main:app ✓
 - **Universal Tour Search**: Complete system for searching tours between all SAMO API cities (Almaty ID: 1344, Astana ID: 1937) ✓
 - **Real Production Data Integration**: Updated with authentic city IDs from production SAMO API response ✓
-- **Demo Tours Interface**: Added demo tours for development testing with proper price display and booking functionality ✓
+- **Production Data Only**: Removed all demo/mock data - system now uses only authentic SAMO API data ✓
 - **Enhanced JavaScript**: Fixed syntax errors and improved tour card rendering with multiple data field support ✓
 
 ### System Status:
@@ -115,7 +115,7 @@ curl --location --request POST 'https://booking.crystalbay.com/export/default.ph
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Data integrity requirement: ONLY authentic data from SAMO API - no mock, demo, placeholder, or fallback data.
+Data integrity requirement: ONLY authentic data from SAMO API - no mock, demo, placeholder, or fallback data. System shows errors when API unavailable.
 Market focus: Kazakhstan travelers (Almaty, Astana) to Vietnam destinations.
 Currency priority: Kazakhstan Tenge (KZT) as default currency.
 Production deployment: System designed for production server (IP: 46.250.234.89) with SAMO API access.
