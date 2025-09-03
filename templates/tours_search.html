@@ -648,5 +648,100 @@ document.addEventListener('DOMContentLoaded', function() {
     // Загружаем справочные данные
     loadReferenceData();
 });
+
+// Функция загрузки справочных данных из SAMO API
+async function loadReferenceData() {
+    try {
+        const response = await fetch('/api/tours/filters');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Загружаем города отправления (Казахстан)
+            populateSelect('departure_city', data.filters.departure_cities?.SearchTour_TOWNFROMS || [], 'id', 'name', '1344');
+            
+            // Загружаем направления (Вьетнам)
+            populateSelect('destination', data.filters.destinations?.SearchTour_STATES || [], 'id', 'name', '15');
+            
+            // Загружаем валюты
+            populateSelect('currency', data.filters.currencies?.SearchTour_CURRENCIES || [], 'id', 'name', 'KZT');
+            
+            // Загружаем звезды отелей
+            populateSelect('stars', data.filters.stars?.SearchTour_STARS || [], 'id', 'name');
+            
+            // Загружаем типы питания
+            populateSelect('meals', data.filters.meals?.SearchTour_MEALS || [], 'id', 'name');
+            
+            console.log('Справочные данные загружены из SAMO API');
+        } else {
+            console.warn('Справочные данные недоступны:', data.error);
+            // Устанавливаем значения по умолчанию для Казахстан → Вьетнам
+            setDefaultKazakhstanVietnamOptions();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки справочных данных:', error);
+        setDefaultKazakhstanVietnamOptions();
+    }
+}
+
+// Установка значений по умолчанию для маршрута Казахстан → Вьетнам
+function setDefaultKazakhstanVietnamOptions() {
+    // Города отправления Казахстан
+    const departureSelect = document.getElementById('departure_city');
+    departureSelect.innerHTML = `
+        <option value="1344" selected>🇰🇿 Алматы</option>
+        <option value="2">🇰🇿 Астана</option>
+    `;
+    
+    // Направление Вьетнам
+    const destinationSelect = document.getElementById('destination');
+    destinationSelect.innerHTML = `
+        <option value="15" selected>🇻🇳 Вьетнам</option>
+    `;
+    
+    // Валюты
+    const currencySelect = document.getElementById('currency');
+    currencySelect.innerHTML = `
+        <option value="KZT" selected>₸ Казахстанский тенге</option>
+        <option value="USD">💵 Доллар США</option>
+        <option value="RUB">₽ Российский рубль</option>
+    `;
+    
+    // Звезды отелей
+    const starsSelect = document.getElementById('stars');
+    starsSelect.innerHTML = `
+        <option value="">Любые</option>
+        <option value="3">⭐⭐⭐ 3 звезды</option>
+        <option value="4">⭐⭐⭐⭐ 4 звезды</option>
+        <option value="5">⭐⭐⭐⭐⭐ 5 звезд</option>
+    `;
+    
+    // Типы питания
+    const mealsSelect = document.getElementById('meals');
+    mealsSelect.innerHTML = `
+        <option value="">Любое</option>
+        <option value="BB">🥐 Завтрак (BB)</option>
+        <option value="HB">🍽️ Полупансион (HB)</option>
+        <option value="FB">🍴 Полный пансион (FB)</option>
+        <option value="AI">🎉 Всё включено (AI)</option>
+    `;
+}
+
+function populateSelect(selectId, items, valueField, textField, defaultValue = '') {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    let html = '<option value="">Выберите...</option>';
+    
+    if (Array.isArray(items)) {
+        items.forEach(item => {
+            const value = item[valueField] || item.id || item.code;
+            const text = item[textField] || item.name || item.title || value;
+            const selected = value === defaultValue ? 'selected' : '';
+            html += `<option value="${value}" ${selected}>${text}</option>`;
+        });
+    }
+    
+    select.innerHTML = html;
+}
 </script>
 {% endblock %}
