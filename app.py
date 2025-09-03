@@ -600,9 +600,31 @@ def get_orders():
 
 # === TOUR SEARCH API ===
 
+def is_production_environment():
+    """Определяет, работает ли система на production сервере"""
+    # Проверяем переменную окружения
+    if os.environ.get('ENVIRONMENT') == 'production':
+        return True
+    
+    # Проверяем наличие реального SAMO_OAUTH_TOKEN
+    samo_token = os.environ.get('SAMO_OAUTH_TOKEN', '')
+    if samo_token and samo_token.startswith('27bd59a7'):  # Начало реального токена
+        return True
+    
+    # Проверяем по hostname (production сервер)
+    import socket
+    try:
+        hostname = socket.gethostname()
+        if 'vmi' in hostname or 'contabo' in hostname.lower():
+            return True
+    except:
+        pass
+        
+    return False
+
 @app.route('/api/tours/search', methods=['POST'])
 def search_tours_universal():
-    """Универсальный поиск туров с демо-данными для development"""
+    """Универсальный поиск туров через SAMO API"""
     try:
         data = request.get_json()
         if not data:
@@ -617,15 +639,66 @@ def search_tours_universal():
         
         app.logger.info(f"Поиск туров: {data}")
         
-        # SAMO API недоступен на development сервере
-        return jsonify({
-            'tours': [],
-            'count': 0,
-            'error': 'SAMO API доступ заблокирован. Требуется production сервер.',
-            'requires_production': True,
-            'production_ip': '46.250.234.89',
-            'success': False
-        })
+        # Проверяем production окружение
+        if not is_production_environment():
+            return jsonify({
+                'tours': [],
+                'count': 0,
+                'error': 'SAMO API доступ заблокирован. Требуется production сервер.',
+                'requires_production': True,
+                'production_ip': '46.250.234.89',
+                'success': False
+            })
+        
+        # На production сервере выполняем реальный поиск
+        if not samo_api:
+            return jsonify({
+                'tours': [],
+                'count': 0,
+                'error': 'SAMO API не инициализирован. Проверьте SAMO_OAUTH_TOKEN.',
+                'requires_production': False,
+                'success': False
+            })
+        
+        app.logger.info(f"Выполнение поиска на production сервере с токеном: {os.environ.get('SAMO_OAUTH_TOKEN', '')[:12]}...")
+        
+        # Параметры поиска для SAMO API
+        search_params = {
+            'TOWNFROMINC': data.get('departure_city'),
+            'STATEINC': data.get('destination'),
+            'CURRENCYINC': data.get('currency', 'KZT'),
+            'NIGHTS': data.get('nights', '7'),
+            'ADULT': data.get('adults', '2')
+        }
+        
+        # Добавляем даты если есть
+        if data.get('checkin_date'):
+            search_params['CHECKIN'] = data.get('checkin_date')
+        
+        # Выполняем поиск
+        result = samo_api._make_request('SearchTour_ALL', search_params)
+        
+        if result.get('success'):
+            tours_data = result.get('data', {})
+            tours = tours_data.get('tours', []) if isinstance(tours_data, dict) else []
+            
+            return jsonify({
+                'tours': tours,
+                'count': len(tours),
+                'success': True,
+                'source': 'SAMO_API_Production'
+            })
+        else:
+            error_msg = result.get('error', 'Неизвестная ошибка SAMO API')
+            return jsonify({
+                'tours': [],
+                'count': 0,
+                'error': f'SAMO API ошибка: {error_msg}',
+                'success': False,
+                'samo_error': True,
+                'samo_response': result.get('samo_response', ''),
+                'status_code': result.get('status_code')
+            })
         
     except Exception as e:
         app.logger.error(f"Ошибка поиска туров: {e}")

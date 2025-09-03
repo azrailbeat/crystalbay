@@ -24,17 +24,19 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 
 ### System Status:
 - **SAMO Token**: Configured and valid ✓
-- **Production Server**: IP 46.250.234.89 working with real SAMO data ✓ CONFIRMED
-- **Real Almaty Data**: ID 1344 "Алматы" from production server ✓ LIVE
-- **Kazakhstan Cities**: Real departure cities working on production ✓
+- **Production Server**: Current IP 104.196.37.136 BLOCKED in SAMO API ⚠️
+- **SAMO API Status**: Token valid but IP blacklisted ⚠️
+- **Real Almaty Data**: ID 1344 "Алматы" configured but API blocked ⚠️
 - **Demo Data**: Completely removed ✓
 - **SAMO API Parameters**: TOWNFROMINC properly configured for all commands ✓
 - **JavaScript Fixes**: Applied for real SAMO API response format ✓
 
-### Production vs Development:
-- **Development IP** (34.139.221.108): Blocked, returns 403 errors ⚠️
-- **Production Server** (46.250.234.89): WORKING with real data ✅ CONFIRMED
-- **Real API Commands Working**: SearchTour_TOWNFROMS ✅ CONFIRMED, others require deployment
+### Production Status (September 3, 2025):
+- **Current Production IP**: 104.196.37.136 ⚠️ BLOCKED in SAMO API
+- **SAMO API Response**: "apiKey provided, but invalid, blacklisted address 104.196.37.136"
+- **OAuth Token**: Valid (27bd59a7ac67...7379) ✓
+- **Required Action**: Add IP 104.196.37.136 to SAMO API whitelist
+- **Previous Production IP**: 46.250.234.89 (may have changed)
 
 ## Recent Changes (August 2025)
 

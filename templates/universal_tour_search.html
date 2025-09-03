@@ -442,7 +442,15 @@ function displaySearchResults(apiResponse) {
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     <strong>Требуется production сервер:</strong> SAMO API доступен только на production сервере.
-                    <br><small class="text-muted">IP: 46.250.234.89</small>
+                    <br><small class="text-muted">IP: ${apiResponse.production_ip}</small>
+                </div>
+            `;
+        } else if (apiResponse.samo_error) {
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Ошибка SAMO API:</strong> ${apiResponse.error}
+                    <br><small class="text-muted">Проверьте OAuth токен и whitelist IP</small>
                 </div>
             `;
         } else {

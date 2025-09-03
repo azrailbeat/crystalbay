@@ -82,11 +82,14 @@ class SamoIntegration:
                     }
             
             elif response.status_code == 403:
+                token_info = f"{self.oauth_token[:12]}...{self.oauth_token[-4:]}" if self.oauth_token else "No token"
                 return {
                     'success': False,
-                    'error': 'SAMO API доступ заблокирован. Требуется production сервер.',
+                    'error': f'SAMO API доступ запрещен (403). IP заблокирован или OAuth токен неверный. Токен: {token_info}',
                     'requires_production': True,
-                    'production_ip': '46.250.234.89'
+                    'production_ip': '46.250.234.89',
+                    'status_code': 403,
+                    'samo_response': response.text[:200] if response.text else 'No response text'
                 }
             
             else:
