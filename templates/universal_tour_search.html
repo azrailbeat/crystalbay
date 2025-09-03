@@ -366,6 +366,7 @@ async function searchTours(formData) {
         }
         
         const data = await response.json();
+        console.log('API Response:', data);
         displaySearchResults(data);
         
     } catch (error) {

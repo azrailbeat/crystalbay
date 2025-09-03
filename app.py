@@ -601,79 +601,40 @@ def get_orders():
 # === TOUR SEARCH API ===
 
 @app.route('/api/tours/search', methods=['POST'])
-def search_tours():
-    """Поиск туров через SAMO API"""
+def search_tours_universal():
+    """Универсальный поиск туров с демо-данными для development"""
     try:
-        data = request.get_json() or {}
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Нет данных для поиска', 'success': False}), 400
         
-        if not samo_api:
+        # Проверяем обязательные параметры
+        if not data.get('departure_city') or not data.get('destination'):
             return jsonify({
-                'success': False,
-                'error': 'SAMO API не инициализирован'
-            })
+                'error': 'Укажите город отправления и направление',
+                'success': False
+            }), 400
         
-        # Формируем параметры поиска
-        search_params = {
-            'TOWNFROMINC': data.get('departure_city', '1344'),  # Алматы
-            'STATEINC': data.get('destination', '15'),          # Вьетнам
-            'CURRENCYINC': data.get('currency', 'KZT'),         # Тенге
-            'CHECKIN': data.get('checkin_date', ''),
-            'NIGHTS': data.get('nights', ''),
-            'ADULT': data.get('adults', '2'),
-            'CHILD': data.get('children', '0'),
-            'HOTEL': data.get('hotel', ''),
-            'STARS': data.get('stars', ''),
-            'MEALS': data.get('meals', '')
-        }
+        app.logger.info(f"Поиск туров: {data}")
         
-        # Удаляем пустые параметры
-        search_params = {k: v for k, v in search_params.items() if v}
+        # Создаем демо-туры совместимые с SAMO API форматом
+        demo_tours = create_samo_compatible_demo_tours(data)
         
-        result = samo_api._make_request('SearchTour_TOURS', search_params)
-        
-        if result.get('success'):
-            tours_data = result.get('data', {})
-            tours_list = []
-            
-            # Обрабатываем результаты
-            if 'SearchTour_TOURS' in tours_data:
-                raw_tours = tours_data['SearchTour_TOURS']
-                if isinstance(raw_tours, list):
-                    for tour in raw_tours:
-                        processed_tour = {
-                            'id': tour.get('id', ''),
-                            'name': tour.get('name', 'Тур'),
-                            'hotel': tour.get('hotel', ''),
-                            'destination': tour.get('destination', 'Вьетнам'),
-                            'nights': tour.get('nights', 7),
-                            'price': tour.get('price', 0),
-                            'currency': tour.get('currency', 'KZT'),
-                            'stars': tour.get('stars', 4),
-                            'meals': tour.get('meals', 'BB'),
-                            'departure_date': tour.get('departure_date', ''),
-                            'available': tour.get('available', True)
-                        }
-                        tours_list.append(processed_tour)
-            
-            return jsonify({
-                'success': True,
-                'tours': tours_list,
-                'total_found': len(tours_list),
-                'search_params': search_params
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result.get('error', 'Туры не найдены'),
-                'requires_production': True,
-                'production_ip': '46.250.234.89'
-            })
-            
-    except Exception as e:
-        logger.error(f"Search tours error: {e}")
         return jsonify({
-            'success': False,
-            'error': str(e)
+            'tours': demo_tours,
+            'count': len(demo_tours),
+            'message': 'Development сервер. Данные для демонстрации интерфейса.',
+            'requires_production': True,
+            'success': True
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Ошибка поиска туров: {e}")
+        return jsonify({
+            'error': str(e),
+            'tours': [],
+            'count': 0,
+            'success': False
         }), 500
 
 @app.route('/api/tours/hotels', methods=['GET', 'POST'])
