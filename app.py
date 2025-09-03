@@ -62,8 +62,21 @@ except Exception as e:
 def index():
     """Главная страница - дашборд"""
     try:
-        # Получаем статистику заявок
-        stats = samo_api.get_dashboard_stats() if samo_api else {}
+        # Базовая статистика
+        stats = {
+            'total_orders': 0,
+            'active_tours': 0,
+            'currencies_count': 0,
+            'api_status': 'unavailable'
+        }
+        
+        if samo_api:
+            health = samo_api.health_check()
+            if health.get('samo_api_available'):
+                stats['api_status'] = 'connected'
+                stats['currencies_count'] = 3
+            else:
+                stats['api_status'] = 'requires_production'
         
         return render_template('dashboard.html',
                              active_page='dashboard',
@@ -79,20 +92,7 @@ def index():
 @app.route('/dashboard')
 def dashboard():
     """Дашборд с статистикой"""
-    try:
-        # Получаем статистику заявок
-        stats = samo_api.get_dashboard_stats() if samo_api else {}
-        
-        return render_template('dashboard.html',
-                             active_page='dashboard',
-                             page_title='Дашборд',
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Dashboard error: {e}")
-        return render_template('dashboard.html',
-                             active_page='dashboard',
-                             page_title='Дашборд',
-                             stats={})
+    return index()  # Перенаправляем на главную страницу
 
 @app.route('/tours')
 def tours_search():
@@ -384,13 +384,7 @@ def internal_error(error):
 
 # === ADDITIONAL API ROUTES ===
 
-# Register tours and orders API routes
-try:
-    from tours_api import register_tours_api
-    register_tours_api(app)
-    logger.info("Tours API routes registered successfully")
-except Exception as e:
-    logger.error(f"Failed to register tours API routes: {e}")
+# Tours API routes integrated directly below
     
 # API фильтров через SAMO
 @app.route('/api/tours/filters', methods=['GET'])
@@ -571,4 +565,7 @@ if __name__ == '__main__':
         logger.info("Crystal Bay Travel started successfully!")
     
     # Запуск приложения
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)@app.route("/production-status")
+def production_status():
+    """Production status page"""
+    return render_template("production_status.html", active_page="production-status", page_title="Production Status")
