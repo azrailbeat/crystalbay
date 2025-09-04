@@ -41,10 +41,11 @@ The application follows a modular, service-oriented architecture, designed for c
 - **PostgreSQL**: The relational database used for data storage.
 - **OpenAI GPT-4o**: Utilized for AI-powered chat automation and intelligent processing.
 
-## Production Status (September 3, 2025):
+## Production Status (September 4, 2025):
 - **Production Server**: 46.250.234.89 ✓ ACTIVE (confirmed in browser URL)
-- **Outgoing IP**: 34.73.252.47 ⚠️ BLOCKED by SAMO API
+- **Outgoing IP**: 34.23.16.144 ⚠️ BLOCKED by SAMO API
 - **OAuth Token**: Valid ✓ (27bd59a7ac67...)
 - **Root Cause**: Outgoing requests use different IP than server IP
-- **Solution**: Add IP 34.73.252.47 to SAMO API whitelist
+- **Solution**: Add IP 34.23.16.144 to SAMO API whitelist
 - **System Status**: Ready for production, waiting for IP whitelist update
+- **API Error**: "blacklisted address 34.23.16.144" - confirmed via direct curl test

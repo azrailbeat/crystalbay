@@ -437,19 +437,19 @@ function displaySearchResults(apiResponse) {
     countContainer.textContent = count > 0 ? `${count} туров` : '';
     
     if (!tours || tours.length === 0) {
-        if (apiResponse.samo_status === 'blocked') {
+        if (apiResponse.samo_error && apiResponse.error && apiResponse.error.includes('403')) {
             container.innerHTML = `
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Требуется обновление whitelist в SAMO API</strong>
                     <div class="mt-2">
-                        <p><strong>Причина:</strong> Исходящий IP сервера <code>${apiResponse.current_ip}</code> заблокирован в SAMO API</p>
+                        <p><strong>Причина:</strong> IP адрес сервера <code>34.23.16.144</code> заблокирован в SAMO API</p>
                         <p><strong>Решение:</strong> Обратитесь к администратору SAMO API для добавления IP в whitelist</p>
                         <div class="mt-2 p-2 bg-light rounded">
                             <small class="text-muted">
                                 <strong>Для администратора SAMO API:</strong><br>
-                                Добавить в whitelist: <code>${apiResponse.current_ip}</code><br>
-                                Сервер работает на: <code>${apiResponse.server_ip || '46.250.234.89'}</code><br>
+                                Добавить в whitelist: <code>34.23.16.144</code><br>
+                                Сервер работает на: <code>46.250.234.89</code><br>
                                 OAuth токен действующий ✓
                             </small>
                         </div>
@@ -457,12 +457,21 @@ function displaySearchResults(apiResponse) {
                     </div>
                 </div>
             `;
-        } else if (apiResponse.samo_error || !apiResponse.success) {
+        } else if (apiResponse.samo_error || (!apiResponse.success && apiResponse.error)) {
             container.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     <strong>Ошибка SAMO API:</strong> ${apiResponse.error || 'Неизвестная ошибка'}
-                    <br><small class="text-muted">Проверьте OAuth токен и доступность API</small>
+                    <br><small class="text-muted">Проверьте настройки подключения к API</small>
+                </div>
+            `;
+        } else if (apiResponse.success && apiResponse.message) {
+            // API работает, но туры не найдены
+            container.innerHTML = `
+                <div class="text-center p-5 text-muted">
+                    <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <div class="mt-3">${apiResponse.message}</div>
+                    <div class="mt-2">Система успешно подключена к SAMO API ✓</div>
                 </div>
             `;
         } else {

@@ -626,28 +626,16 @@ def search_tours_universal():
         
         app.logger.info(f"Поиск туров: {data}")
         
-        # Проверяем production окружение - если токен есть, пробуем работать
-        if not is_production_environment():
-            return jsonify({
-                'tours': [],
-                'count': 0,
-                'error': 'SAMO API недоступен. Проверьте токен и настройки сервера.',
-                'requires_production': True,
-                'production_ip': '46.250.234.89',
-                'success': False
-            })
-        
-        # На production сервере выполняем реальный поиск
+        # Проверяем SAMO API
         if not samo_api:
             return jsonify({
                 'tours': [],
                 'count': 0,
                 'error': 'SAMO API не инициализирован. Проверьте SAMO_OAUTH_TOKEN.',
-                'requires_production': False,
                 'success': False
             })
         
-        app.logger.info(f"Выполнение поиска на production сервере с токеном: {os.environ.get('SAMO_OAUTH_TOKEN', '')[:12]}...")
+        app.logger.info(f"Выполнение поиска через SAMO API с токеном: {os.environ.get('SAMO_OAUTH_TOKEN', '')[:12]}...")
         
         # Параметры поиска для SAMO API
         search_params = {
@@ -662,44 +650,103 @@ def search_tours_universal():
         if data.get('checkin_date'):
             search_params['CHECKIN'] = data.get('checkin_date')
         
-        # Пробуем выполнить поиск через разные методы
+        # Добавляем детей если есть
+        if data.get('children') and int(data.get('children', 0)) > 0:
+            search_params['CHILD'] = data.get('children')
+            
+        # Добавляем звезды и питание если есть
+        if data.get('stars'):
+            search_params['STARS'] = data.get('stars')
+        if data.get('meals'):
+            search_params['MEALS'] = data.get('meals')
+        
+        # Пробуем выполнить поиск через разные методы SAMO API
         methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS']
         
         for method in methods_to_try:
-            app.logger.info(f"Пробую метод {method}")
+            app.logger.info(f"Пробую метод {method} с параметрами: {search_params}")
             result = samo_api._make_request(method, search_params)
             
             if result.get('success'):
                 tours_data = result.get('data', {})
                 tours = []
                 
-                # Обрабатываем разные форматы ответа
+                app.logger.info(f"Получен ответ от SAMO API: {type(tours_data)}")
+                
+                # Обрабатываем разные форматы ответа SAMO API
                 if isinstance(tours_data, dict):
-                    tours = tours_data.get('tours', tours_data.get('data', []))
+                    # Проверяем разные возможные ключи
+                    tours = (tours_data.get(method, []) or 
+                            tours_data.get('tours', []) or 
+                            tours_data.get('data', []) or
+                            tours_data.get('result', []))
                 elif isinstance(tours_data, list):
                     tours = tours_data
+                
+                app.logger.info(f"Обработано туров: {len(tours) if isinstance(tours, list) else 0}")
                     
-                if tours:
+                if tours and isinstance(tours, list) and len(tours) > 0:
+                    # Обрабатываем туры для корректного отображения
+                    processed_tours = []
+                    for tour in tours:
+                        if isinstance(tour, dict):
+                            processed_tour = {
+                                'id': tour.get('id', tour.get('tourId', '')),
+                                'name': tour.get('name', tour.get('title', 'Тур')),
+                                'destination': tour.get('destination', tour.get('country', '')),
+                                'city': tour.get('city', tour.get('resort', '')),
+                                'hotel': tour.get('hotel', tour.get('hotelName', '')),
+                                'stars': tour.get('stars', tour.get('hotelStars', 4)),
+                                'nights': tour.get('nights', tour.get('duration', data.get('nights', 7))),
+                                'price': tour.get('price', tour.get('cost', 0)),
+                                'currency': tour.get('currency', search_params.get('CURRENCYINC', 'KZT')),
+                                'departure_date': tour.get('departure_date', tour.get('date', '')),
+                                'meals': tour.get('meals', tour.get('meal', '')),
+                                'description': tour.get('description', '')
+                            }
+                            processed_tours.append(processed_tour)
+                    
                     return jsonify({
-                        'tours': tours,
-                        'count': len(tours),
+                        'tours': processed_tours,
+                        'count': len(processed_tours),
                         'success': True,
-                        'source': f'SAMO_API_{method}'
+                        'source': f'SAMO_API_{method}',
+                        'search_params': search_params
                     })
+                else:
+                    app.logger.info(f"Метод {method} не вернул туры или вернул пустой список")
         
-        # SAMO API недоступен - показываем только ошибку
-        app.logger.error(f"SAMO API недоступен, возвращаем ошибку согласно требованиям")
+        # Если ни один метод не вернул туры, проверяем причину
+        app.logger.warning("Ни один метод SAMO API не вернул туры")
         
-        current_ip = os.popen('curl -s ifconfig.me 2>/dev/null').read().strip()
+        # Проверим health check для диагностики
+        health_result = samo_api.health_check()
+        if not health_result.get('samo_api_available'):
+            error_msg = health_result.get('error', 'SAMO API недоступен')
+            if '403' in str(error_msg):
+                return jsonify({
+                    'tours': [],
+                    'count': 0,
+                    'success': False,
+                    'error': 'SAMO API доступ запрещен (403). Проверьте OAuth токен или IP whitelist.',
+                    'samo_error': True
+                })
+            else:
+                return jsonify({
+                    'tours': [],
+                    'count': 0,
+                    'success': False,
+                    'error': f'SAMO API недоступен: {error_msg}',
+                    'samo_error': True
+                })
+        
+        # API доступен, но туры не найдены
         return jsonify({
             'tours': [],
             'count': 0,
-            'success': False,
-            'error': f'SAMO API заблокировал IP {current_ip}. Нужно добавить в whitelist.',
-            'current_ip': current_ip,
-            'required_ip': current_ip,
-            'server_ip': '46.250.234.89',
-            'samo_status': 'blocked'
+            'success': True,
+            'message': 'По вашему запросу туры не найдены. Попробуйте изменить параметры поиска.',
+            'search_params': search_params
         })
         
     except Exception as e:
