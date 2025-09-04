@@ -563,28 +563,80 @@ function displaySearchResults(apiResponse) {
 
 // Создание карточки тура
 function createTourCard(tour, index) {
-    const hotelName = tour.hotelName || tour.hotel_name || tour.name || `Тур ${index + 1}`;
-    const destination = tour.stateName || tour.destination || tour.city || 'Направление не указано';
-    const stars = tour.hotelStars || tour.stars || 0;
-    const nights = tour.night || tour.nights || '-';
-    const meal = tour.mealName || tour.meal || '-';
-    const adults = tour.adult || tour.adults || '2';
+    console.log('Данные тура:', tour); // Для отладки
     
-    // Цена может быть в разных полях
-    const price = tour.priceTotal || tour.price || tour.cost || tour.amount;
-    const currency = tour.currencyCode || tour.currency || 'USD';
+    // Обработка названия отеля
+    const hotelName = tour.hotelName || tour.hotel_name || tour.name || tour.HotelName || `Тур ${index + 1}`;
+    
+    // Обработка направления
+    const destination = tour.stateName || tour.destination || tour.city || tour.StateName || 'Направление не указано';
+    
+    // Обработка звезд отеля
+    const stars = tour.hotelStars || tour.stars || tour.HotelStars || 0;
+    
+    // Обработка количества ночей
+    const nights = tour.night || tour.nights || tour.Night || tour.Nights || '-';
+    
+    // Обработка питания
+    const meal = tour.mealName || tour.meal || tour.MealName || tour.Meal || '-';
+    
+    // Обработка количества взрослых
+    const adults = tour.adult || tour.adults || tour.Adult || tour.Adults || '2';
+    
+    // Детальная обработка цены - проверяем все возможные поля
+    let price = null;
+    let currency = 'USD';
+    
+    // Различные варианты полей цены в SAMO API
+    if (tour.priceTotal) price = tour.priceTotal;
+    else if (tour.price) price = tour.price;
+    else if (tour.cost) price = tour.cost;
+    else if (tour.amount) price = tour.amount;
+    else if (tour.Price) price = tour.Price;
+    else if (tour.PriceTotal) price = tour.PriceTotal;
+    else if (tour.Cost) price = tour.Cost;
+    else if (tour.Amount) price = tour.Amount;
+    else if (tour.priceAdult) price = tour.priceAdult;
+    else if (tour.PriceAdult) price = tour.PriceAdult;
+    
+    // Различные варианты полей валюты
+    if (tour.currencyCode) currency = tour.currencyCode;
+    else if (tour.currency) currency = tour.currency;
+    else if (tour.Currency) currency = tour.Currency;
+    else if (tour.CurrencyCode) currency = tour.CurrencyCode;
+    
+    // Обработка дат
+    const checkIn = tour.checkIn || tour.check_in || tour.CheckIn || tour.dateFrom || tour.DateFrom || '';
+    const checkOut = tour.checkOut || tour.check_out || tour.CheckOut || tour.dateTo || tour.DateTo || '';
+    
+    // Дополнительная информация
+    const tourOperator = tour.tourOperator || tour.operator || tour.TourOperator || '';
+    const hotelClass = tour.hotelClass || tour.class || tour.HotelClass || '';
+    const cityFrom = tour.townFromName || tour.cityFrom || tour.TownFromName || tour.CityFrom || '';
     
     return `
         <div class="col-lg-6 col-xl-4 mb-4">
             <div class="card h-100 tour-card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h6 class="card-title mb-0">${hotelName}</h6>
+                        <h6 class="card-title mb-0" title="${hotelName}">${hotelName.length > 30 ? hotelName.substring(0, 30) + '...' : hotelName}</h6>
                         <div class="text-end">
                             ${stars > 0 ? '⭐'.repeat(parseInt(stars)) : ''}
                             <div class="badge bg-success mt-1">${destination}</div>
                         </div>
                     </div>
+                    
+                    ${cityFrom ? `
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>Вылет из: ${cityFrom}</small>
+                        </div>
+                    ` : ''}
+                    
+                    ${checkIn ? `
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="bi bi-calendar me-1"></i>Даты: ${formatDate(checkIn)} ${checkOut ? '- ' + formatDate(checkOut) : ''}</small>
+                        </div>
+                    ` : ''}
                     
                     <div class="mb-3">
                         <div class="row text-center small">
@@ -602,32 +654,56 @@ function createTourCard(tour, index) {
                             </div>
                         </div>
                         
-                        ${price ? `
+                        ${price && price > 0 ? `
                             <div class="text-center mt-3">
                                 <h5 class="text-primary mb-0">
                                     ${formatPrice(price, currency)}
                                 </h5>
-                                <small class="text-muted">за тур</small>
+                                <small class="text-muted">за тур (${adults} взр.)</small>
                             </div>
                         ` : `
                             <div class="text-center mt-3">
-                                <div class="text-muted">Цена уточняется</div>
+                                <div class="text-warning">
+                                    <i class="bi bi-phone me-1"></i>
+                                    Цена уточняется
+                                </div>
+                                <small class="text-muted">Обратитесь к менеджеру</small>
                             </div>
                         `}
                     </div>
                     
-                    ${tour.description || tour.programName ? `
+                    ${tourOperator ? `
                         <div class="mb-2">
-                            <small class="text-muted">${tour.description || tour.programName}</small>
+                            <small class="text-muted"><i class="bi bi-building me-1"></i>Туроператор: ${tourOperator}</small>
                         </div>
                     ` : ''}
+                    
+                    ${tour.description || tour.programName || tour.Description || tour.ProgramName ? `
+                        <div class="mb-2">
+                            <small class="text-muted">${tour.description || tour.programName || tour.Description || tour.ProgramName}</small>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Отладочная информация (временно) -->
+                    <div class="collapse" id="debug-${index}">
+                        <div class="mt-2 p-2 bg-light rounded small">
+                            <strong>Debug данные:</strong><br>
+                            <pre style="font-size: 10px; max-height: 100px; overflow-y: auto;">${JSON.stringify(tour, null, 1)}</pre>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-primary btn-sm w-100" onclick="bookTour(${index})">
-                        <i class="bi bi-plus me-1"></i>
-                        Создать заявку
-                    </button>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-sm" onclick="bookTour(${index})">
+                            <i class="bi bi-plus me-1"></i>
+                            Создать заявку
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#debug-${index}">
+                            <i class="bi bi-bug me-1"></i>
+                            Debug
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -642,6 +718,21 @@ function formatPrice(price, currency = 'USD') {
         currency: currency || 'USD',
         minimumFractionDigits: 0
     }).format(price);
+}
+
+// Форматирование даты
+function formatDate(dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
 }
 
 // Показать сообщение
