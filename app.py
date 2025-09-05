@@ -910,6 +910,11 @@ def universal_tour_search():
     """Универсальный поиск туров между всеми доступными городами SAMO"""
     return render_template("universal_tour_search.html", active_page="tours", page_title="Универсальный поиск туров")
 
+@app.route("/advanced-tours")
+def advanced_tour_search():
+    """Расширенный поиск туров с детализированными фильтрами как в оригинальной системе SAMO"""
+    return render_template("advanced_tour_search.html", active_page="tours", page_title="Расширенный поиск туров")
+
 @app.route('/api/tours/search', methods=['POST'])
 def api_universal_tour_search():
     """API endpoint для универсального поиска туров"""
