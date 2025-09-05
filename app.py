@@ -1123,6 +1123,17 @@ def sync_samo_orders_temp():
         # Создаем интеграцию
         samo_integration = SamoOrdersIntegration()
         
+        # Если запрашиваются данные заявок, возвращаем их напрямую  
+        if data.get('get_data'):
+            orders_data = samo_integration.get_orders_data(date_from, date_to)
+            if orders_data.get('success'):
+                return jsonify({
+                    'success': True,
+                    'orders': orders_data.get('data', []),
+                    'message': f'Загружено {len(orders_data.get("data", []))} заявок',
+                    'source': orders_data.get('source')
+                })
+        
         # Запускаем синхронизацию
         result = samo_integration.sync_orders_to_database(date_from, date_to)
         

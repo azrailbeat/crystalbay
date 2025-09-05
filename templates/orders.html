@@ -585,6 +585,35 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+// Функция загрузки синхронизированных заявок
+async function loadSynchronizedOrders() {
+    try {
+        // Повторно запрашиваем синхронизацию чтобы получить данные заявок
+        const response = await fetch('/api/samo/orders/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ get_data: true })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.orders && result.orders.length > 0) {
+            // Отображаем синхронизированные заявки
+            currentOrders = result.orders;
+            displayOrders(result.orders);
+            showNotification(`Загружено ${result.orders.length} заявок из SAMO API`, 'info');
+        } else {
+            // Если заявки не удалось получить, показываем обычный список
+            loadOrders();
+        }
+    } catch (error) {
+        console.error('Error loading synchronized orders:', error);
+        loadOrders(); // Fallback на обычную загрузку
+    }
+}
+
 // Функция синхронизации заявок из SAMO API
 async function syncOrdersFromSamo() {
     try {
@@ -615,8 +644,14 @@ async function syncOrdersFromSamo() {
             `;
             showNotification(message, 'success');
             
-            // Обновляем список заявок
-            setTimeout(() => loadOrders(), 1000);
+            // Если есть заявки, загружаем их напрямую из результата синхронизации
+            if (stats.total_orders > 0) {
+                // Загружаем заявки через специальный эндпоинт синхронизации
+                loadSynchronizedOrders();
+            } else {
+                // Если заявок нет, обновляем обычный список
+                setTimeout(() => loadOrders(), 1000);
+            }
         } else {
             showNotification(`Ошибка синхронизации: ${result.error}`, 'danger');
         }
