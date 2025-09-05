@@ -549,19 +549,88 @@ class CrystalBaySamoAPI:
     # === БРОНИРОВАНИЕ ===
     
     def get_orders_api(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список заявок через API GetOrders"""
+        """Получить список заявок через ClaimSearch WebAPI"""
         if date_from is None:
             date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         if date_to is None:
             date_to = datetime.now().strftime('%Y-%m-%d')
             
-        params = {
-            'action': 'GetOrders',
-            'date_from': date_from,
-            'date_to': date_to
-        }
-        
-        return self._make_request('GetOrders', params)
+        try:
+            # ClaimSearch использует WebAPI, а не обычный SAMO API
+            webapi_baseurl = "https://booking.crystalbay.com"
+            url = f"{webapi_baseurl}/MyOffice/ClaimSearch"
+            
+            # Параметры для ClaimSearch (OData style)
+            params = {
+                '$orderBy': 'inc desc',
+                'lang': 'ru',
+                'skip': 0,
+                'take': 100,
+                'xdebug': 'true'
+            }
+            
+            # Фильтр по дате создания
+            if date_from and date_to:
+                params['$filter'] = f"cDate ge {date_from}T00:00:00z and cDate le {date_to}T23:59:59z"
+            elif date_from:
+                params['$filter'] = f"cDate ge {date_from}T00:00:00z"
+            
+            # Заголовки для WebAPI (Bearer токен)
+            headers = {
+                'Authorization': f'Bearer {self.oauth_token}',
+                'Accept': 'application/json',
+                'User-Agent': 'Crystal Bay Travel/1.0'
+            }
+            
+            logger.info("=== CLAIMSEARCH API REQUEST START ===")
+            logger.info(f"Action: ClaimSearch")
+            logger.info(f"Method: GET")
+            logger.info(f"URL: {url}")
+            logger.info(f"Parameters: {params}")
+            logger.info(f"Headers: {headers}")
+            
+            response = requests.get(url, params=params, headers=headers, timeout=30)
+            
+            logger.info("=== CLAIMSEARCH API RESPONSE ===")
+            logger.info(f"HTTP Status: {response.status_code} {response.reason}")
+            logger.info(f"Response Headers: {dict(response.headers)}")
+            
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    logger.info(f"✅ ClaimSearch успешно: получено {len(data) if isinstance(data, list) else 1} заявок")
+                    return {
+                        'success': True,
+                        'data': {'ClaimSearch': data if isinstance(data, list) else [data]},
+                        'total': len(data) if isinstance(data, list) else 1,
+                        'source': 'CLAIMSEARCH_WEBAPI'
+                    }
+                except Exception as e:
+                    logger.error(f"ClaimSearch JSON parse error: {e}")
+                    return {
+                        'success': False,
+                        'error': f'JSON parse error: {e}',
+                        'raw_response': response.text[:500]
+                    }
+            elif response.status_code == 403:
+                logger.error("❌ ClaimSearch: доступ запрещен (Bearer токен)")
+                return {
+                    'success': False,
+                    'error': 'ClaimSearch API доступ запрещен (Bearer токен неверный)'
+                }
+            else:
+                logger.error(f"❌ ClaimSearch HTTP {response.status_code}")
+                return {
+                    'success': False,
+                    'error': f'ClaimSearch HTTP {response.status_code}: {response.text[:200]}'
+                }
+                
+        except Exception as e:
+            logger.error(f"ClaimSearch API error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     def get_bookings_api(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
         """Получить список бронирований через API"""

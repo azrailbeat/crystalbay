@@ -44,30 +44,114 @@ class SamoOrdersIntegration:
             return self._get_mock_orders()
     
     def _process_real_orders(self, orders_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Обработка реальных заявок из SAMO API"""
+        """Обработка реальных заявок из ClaimSearch API"""
         processed_orders = []
         
         try:
-            # Обрабатываем структуру ответа GetOrders
-            if isinstance(orders_data, dict) and 'GetOrders' in orders_data:
-                samo_orders = orders_data['GetOrders']
-                if isinstance(samo_orders, list):
-                    for order in samo_orders:
-                        processed_order = self._convert_samo_order_to_local(order)
+            # Обрабатываем структуру ответа ClaimSearch
+            if isinstance(orders_data, dict) and 'ClaimSearch' in orders_data:
+                claims = orders_data['ClaimSearch']
+                if isinstance(claims, list):
+                    for claim in claims:
+                        processed_order = self._convert_claim_to_local(claim)
                         if processed_order:
                             processed_orders.append(processed_order)
+            elif isinstance(orders_data, list):
+                # Если данные пришли как массив напрямую
+                for claim in orders_data:
+                    processed_order = self._convert_claim_to_local(claim)
+                    if processed_order:
+                        processed_orders.append(processed_order)
             
             return {
                 'success': True,
                 'data': processed_orders,
                 'total_count': len(processed_orders),
-                'source': 'SAMO_API_REAL',
+                'source': 'CLAIMSEARCH_REAL',
                 'sync_date': datetime.now().isoformat()
             }
             
         except Exception as e:
-            logger.error(f"Error processing real orders: {e}")
+            logger.error(f"Error processing ClaimSearch orders: {e}")
             return self._get_mock_orders()
+    
+    def _convert_claim_to_local(self, claim: Dict[str, Any]) -> Dict[str, Any]:
+        """Конвертация заявки ClaimSearch в локальный формат"""
+        try:
+            # Извлекаем данные из структуры ClaimSearch API
+            order_id = claim.get('inc', '')  # Номер заявки
+            order_number = claim.get('number', f"CLAIM-{order_id}")
+            
+            # Клиентские данные 
+            client_name = claim.get('clientName', '') or claim.get('client', '')
+            client_phone = claim.get('clientPhone', '')
+            client_email = claim.get('clientEmail', '')
+            
+            # Информация о туре
+            destination = claim.get('stateName', '') or claim.get('tourName', '')
+            hotel = claim.get('hotelName', '')
+            hotel_stars = claim.get('hotelStars', '')
+            
+            # Даты
+            check_in = claim.get('checkIn', '')
+            check_out = claim.get('checkOut', '')
+            nights = claim.get('nights', 0)
+            
+            # Количество туристов
+            adults = claim.get('adult', 0) or claim.get('adults', 0)
+            children = claim.get('child', 0) or claim.get('children', 0)
+            
+            # Питание
+            meal = claim.get('mealName', '') or claim.get('meal', '')
+            
+            # Стоимость
+            total_amount = claim.get('cost', 0) or claim.get('totalAmount', 0)
+            currency = claim.get('currency', 'KZT')
+            
+            # Статус (конвертируем из числового в текстовый)
+            status_id = claim.get('status', 0)
+            status_map = {
+                0: 'new',
+                1: 'processing', 
+                2: 'confirmed',
+                3: 'paid',
+                4: 'cancelled'
+            }
+            status = status_map.get(status_id, 'new')
+            
+            # Особые пожелания
+            special_requests = claim.get('comment', '') or claim.get('notes', '')
+            
+            # Создаём локальную заявку
+            local_order = {
+                'id': str(order_id),
+                'number': order_number,
+                'client_name': client_name,
+                'client_phone': client_phone,
+                'client_email': client_email,
+                'destination': destination,
+                'hotel': hotel,
+                'hotel_stars': hotel_stars,
+                'check_in': check_in,
+                'check_out': check_out,
+                'nights': nights,
+                'adults': adults,
+                'children': children,
+                'meal': meal,
+                'total_amount': total_amount,
+                'currency': currency,
+                'status': status,
+                'special_requests': special_requests,
+                'created_date': claim.get('cDate', datetime.now().isoformat()),
+                'source': 'CLAIMSEARCH',
+                'samo_id': str(order_id)
+            }
+            
+            return local_order
+            
+        except Exception as e:
+            logger.error(f"Error converting ClaimSearch to local: {e}")
+            return None
     
     def _convert_samo_order_to_local(self, samo_order: Dict[str, Any]) -> Dict[str, Any]:
         """Конвертация заявки SAMO в локальный формат"""
