@@ -647,18 +647,28 @@ def search_tours_universal():
         }
         
         # Добавляем даты если есть
-        if data.get('checkin_date'):
-            search_params['CHECKIN'] = data.get('checkin_date')
+        if data.get('checkin_date') or data.get('CHECKIN'):
+            search_params['CHECKIN'] = data.get('checkin_date') or data.get('CHECKIN')
         
         # Добавляем детей если есть
         if data.get('children') and int(data.get('children', 0)) > 0:
             search_params['CHILD'] = data.get('children')
+        elif data.get('CHILD'):
+            search_params['CHILD'] = data.get('CHILD')
             
         # Добавляем звезды и питание если есть
-        if data.get('stars'):
-            search_params['STARS'] = data.get('stars')
-        if data.get('meals'):
-            search_params['MEALS'] = data.get('meals')
+        if data.get('stars') or data.get('STARS'):
+            search_params['STARS'] = data.get('stars') or data.get('STARS')
+        if data.get('meals') or data.get('MEAL'):
+            search_params['MEALS'] = data.get('meals') or data.get('MEAL')
+            
+        # ВАЖНО: Добавляем флаги для расчета цен
+        if data.get('PRICESHOW'):
+            search_params['PRICESHOW'] = data.get('PRICESHOW')
+        if data.get('CALCPRICE'):
+            search_params['CALCPRICE'] = data.get('CALCPRICE')
+        if data.get('DETAILED'):
+            search_params['DETAILED'] = data.get('DETAILED')
         
         # Пробуем выполнить поиск через разные методы SAMO API
         methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS']
