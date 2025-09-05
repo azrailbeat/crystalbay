@@ -626,7 +626,7 @@ def get_tour_details(tour_id, search_params):
         })
         
         # Пробуем разные методы для получения детальной информации
-        methods_to_try = ['SearchTour_PRICES', 'GetTour_DETAIL', 'SearchTour_TOURS']
+        methods_to_try = ['SearchTour_PRICES', 'SearchTour_DETAIL', 'GetTour_DETAIL', 'SearchTour_TOURS', 'SearchTour_ALL']
         
         for method in methods_to_try:
             app.logger.info(f"Получаю детали тура {tour_id} через {method}")
@@ -723,12 +723,11 @@ def search_tours_universal():
             search_params['MEALS'] = data.get('meals') or data.get('MEAL')
             
         # ВАЖНО: Добавляем флаги для расчета цен
-        if data.get('PRICESHOW'):
-            search_params['PRICESHOW'] = data.get('PRICESHOW')
-        if data.get('CALCPRICE'):
-            search_params['CALCPRICE'] = data.get('CALCPRICE')
-        if data.get('DETAILED'):
-            search_params['DETAILED'] = data.get('DETAILED')
+        search_params['PRICESHOW'] = data.get('PRICESHOW', '1')
+        search_params['CALCPRICE'] = data.get('CALCPRICE', '1') 
+        search_params['DETAILED'] = data.get('DETAILED', '1')
+        search_params['GETPRICE'] = '1'
+        search_params['LANG'] = 'ru'
         
         # Пробуем выполнить поиск через разные методы SAMO API
         methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS']
@@ -742,6 +741,7 @@ def search_tours_universal():
                 tours = []
                 
                 app.logger.info(f"Получен ответ от SAMO API: {type(tours_data)}")
+                app.logger.info(f"Данные от SAMO API (первые 500 символов): {str(tours_data)[:500]}")
                 
                 # Обрабатываем разные форматы ответа SAMO API
                 if isinstance(tours_data, dict):
@@ -760,19 +760,20 @@ def search_tours_universal():
                     processed_tours = []
                     for tour in tours:
                         if isinstance(tour, dict):
+                            # Расширенный маппинг полей из SAMO API
                             processed_tour = {
-                                'id': tour.get('id', tour.get('tourId', '')),
-                                'name': tour.get('name', tour.get('title', 'Тур')),
-                                'destination': tour.get('destination', tour.get('country', '')),
-                                'city': tour.get('city', tour.get('resort', '')),
-                                'hotel': tour.get('hotel', tour.get('hotelName', '')),
-                                'stars': tour.get('stars', tour.get('hotelStars', 4)),
-                                'nights': tour.get('nights', tour.get('duration', data.get('nights', 7))),
-                                'price': tour.get('price', tour.get('cost', 0)),
-                                'currency': tour.get('currency', search_params.get('CURRENCYINC', 'KZT')),
-                                'departure_date': tour.get('departure_date', tour.get('date', '')),
-                                'meals': tour.get('meals', tour.get('meal', '')),
-                                'description': tour.get('description', '')
+                                'id': tour.get('id', tour.get('tourId', tour.get('ID', ''))),
+                                'name': tour.get('name', tour.get('title', tour.get('NAME', tour.get('TOUR_NAME', 'Тур')))),
+                                'destination': tour.get('destination', tour.get('country', tour.get('STATE', tour.get('COUNTRY', '')))),
+                                'city': tour.get('city', tour.get('resort', tour.get('CITY', tour.get('RESORT', '')))),
+                                'hotel': tour.get('hotel', tour.get('hotelName', tour.get('HOTEL', tour.get('HOTEL_NAME', '')))),
+                                'stars': tour.get('stars', tour.get('hotelStars', tour.get('STARS', tour.get('HOTEL_STARS', 4)))),
+                                'nights': tour.get('nights', tour.get('duration', tour.get('NIGHTS', data.get('nights', 7)))),
+                                'price': tour.get('price', tour.get('cost', tour.get('PRICE', tour.get('COST', 0)))),
+                                'currency': tour.get('currency', tour.get('CURRENCY', search_params.get('CURRENCYINC', 'KZT'))),
+                                'departure_date': tour.get('departure_date', tour.get('date', tour.get('DATE', tour.get('CHECKIN', '')))),
+                                'meals': tour.get('meals', tour.get('meal', tour.get('MEAL', tour.get('MEALS', '')))),
+                                'description': tour.get('description', tour.get('DESCRIPTION', ''))
                             }
                             
                             # Если цена равна 0, пытаемся получить детальную информацию о туре
