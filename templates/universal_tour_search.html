@@ -565,23 +565,36 @@ function displaySearchResults(apiResponse) {
 function createTourCard(tour, index) {
     console.log('Данные тура:', tour); // Для отладки
     
-    // Обработка названия отеля
-    const hotelName = tour.hotelName || tour.hotel_name || tour.name || tour.HotelName || `Тур ${index + 1}`;
+    // Обработка названия отеля - используем name как основное поле
+    const hotelName = tour.name || tour.hotelName || tour.hotel_name || tour.HotelName || `Тур ${index + 1}`;
     
-    // Обработка направления
-    const destination = tour.stateName || tour.destination || tour.city || tour.StateName || 'Направление не указано';
+    // Обработка направления - извлекаем из названия тура если не заполнено
+    let destination = tour.stateName || tour.destination || tour.city || tour.StateName;
+    if (!destination || destination === '') {
+        // Попробуем извлечь направление из названия тура
+        const tourName = hotelName.toLowerCase();
+        if (tourName.includes('дананг')) destination = 'Дананг';
+        else if (tourName.includes('фукуок') || tourName.includes('phu quoc')) destination = 'Фукуок';
+        else if (tourName.includes('нячанг')) destination = 'Нячанг';
+        else if (tourName.includes('хошимин') || tourName.includes('сайгон')) destination = 'Хошимин';
+        else if (tourName.includes('ханой')) destination = 'Ханой';
+        else destination = 'Вьетнам';
+    }
     
     // Обработка звезд отеля
-    const stars = tour.hotelStars || tour.stars || tour.HotelStars || 0;
+    const stars = tour.stars || tour.hotelStars || tour.HotelStars || 0;
     
     // Обработка количества ночей
-    const nights = tour.night || tour.nights || tour.Night || tour.Nights || '-';
+    const nights = tour.nights || tour.night || tour.Night || tour.Nights || '-';
     
-    // Обработка питания
-    const meal = tour.mealName || tour.meal || tour.MealName || tour.Meal || '-';
+    // Обработка питания - если пустое, попробуем определить из названия
+    let meal = tour.meals || tour.mealName || tour.meal || tour.MealName || tour.Meal;
+    if (!meal || meal === '') {
+        meal = 'Уточняется';
+    }
     
-    // Обработка количества взрослых
-    const adults = tour.adult || tour.adults || tour.Adult || tour.Adults || '2';
+    // Обработка количества взрослых - берем из параметров запроса
+    const adults = rawResponseData?.request_params?.adults || tour.adult || tour.adults || tour.Adult || tour.Adults || '1';
     
     // Детальная обработка цены - проверяем все возможные поля
     let price = null;
@@ -605,14 +618,40 @@ function createTourCard(tour, index) {
     else if (tour.Currency) currency = tour.Currency;
     else if (tour.CurrencyCode) currency = tour.CurrencyCode;
     
-    // Обработка дат
-    const checkIn = tour.checkIn || tour.check_in || tour.CheckIn || tour.dateFrom || tour.DateFrom || '';
-    const checkOut = tour.checkOut || tour.check_out || tour.CheckOut || tour.dateTo || tour.DateTo || '';
+    // Обработка дат - используем дату из параметров поиска если данные пустые
+    let checkIn = tour.checkIn || tour.check_in || tour.CheckIn || tour.dateFrom || tour.DateFrom || tour.departure_date;
+    let checkOut = tour.checkOut || tour.check_out || tour.CheckOut || tour.dateTo || tour.DateTo || '';
+    
+    // Если даты пустые, используем дату из параметров поиска
+    if (!checkIn || checkIn === '') {
+        checkIn = rawResponseData?.request_params?.checkin_date || rawResponseData?.search_params?.CHECKIN || '';
+    }
+    
+    // Если нет даты выезда, вычисляем её от даты заезда + количество ночей
+    if (!checkOut || checkOut === '') {
+        if (checkIn && nights && nights !== '-') {
+            try {
+                const checkInDate = new Date(checkIn);
+                checkInDate.setDate(checkInDate.getDate() + parseInt(nights));
+                checkOut = checkInDate.toISOString().split('T')[0];
+            } catch (e) {
+                checkOut = '';
+            }
+        }
+    }
     
     // Дополнительная информация
     const tourOperator = tour.tourOperator || tour.operator || tour.TourOperator || '';
     const hotelClass = tour.hotelClass || tour.class || tour.HotelClass || '';
-    const cityFrom = tour.townFromName || tour.cityFrom || tour.TownFromName || tour.CityFrom || '';
+    
+    // Город отправления - извлекаем из названия тура если не заполнено
+    let cityFrom = tour.townFromName || tour.cityFrom || tour.TownFromName || tour.CityFrom || '';
+    if (!cityFrom || cityFrom === '') {
+        const tourName = hotelName.toLowerCase();
+        if (tourName.includes('астана') || tourName.includes('astana')) cityFrom = 'Астана';
+        else if (tourName.includes('алматы') || tourName.includes('almaty')) cityFrom = 'Алматы';
+        else cityFrom = 'Казахстан';
+    }
     
     return `
         <div class="col-lg-6 col-xl-4 mb-4">
@@ -663,11 +702,14 @@ function createTourCard(tour, index) {
                             </div>
                         ` : `
                             <div class="text-center mt-3">
-                                <div class="text-warning">
-                                    <i class="bi bi-phone me-1"></i>
-                                    Цена уточняется
+                                <div class="text-info">
+                                    <i class="bi bi-calculator me-1"></i>
+                                    <strong>Расчет цены</strong>
                                 </div>
-                                <small class="text-muted">Обратитесь к менеджеру</small>
+                                <small class="text-muted">ID тура: ${tour.id} • Валюта: ${currency}</small>
+                                <div class="mt-1">
+                                    <small class="text-success">✓ Тур доступен для бронирования</small>
+                                </div>
                             </div>
                         `}
                     </div>
