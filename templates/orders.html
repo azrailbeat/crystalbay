@@ -14,6 +14,10 @@
                 <i class="bi bi-plus-lg me-2"></i>
                 Новая заявка
             </button>
+            <button class="btn btn-success ms-2" onclick="syncOrdersFromSamo()">
+                <i class="bi bi-arrow-clockwise me-2"></i>
+                Синхронизировать с SAMO
+            </button>
         </div>
     </div>
 </div>
@@ -579,6 +583,47 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         alert.remove();
     }, 5000);
+}
+
+// Функция синхронизации заявок из SAMO API
+async function syncOrdersFromSamo() {
+    try {
+        showNotification('Запускается синхронизация заявок из SAMO API...', 'info');
+        
+        const response = await fetch('/api/samo/orders/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                date_from: null, // Последние 30 дней по умолчанию
+                date_to: null
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const stats = result.stats || {};
+            const message = `
+                Синхронизация завершена успешно!<br>
+                📊 Всего заявок: ${stats.total_orders || 0}<br>
+                ✅ Новых: ${stats.new_orders || 0}<br>
+                🔄 Обновлено: ${stats.updated_orders || 0}<br>
+                ❌ Ошибок: ${stats.errors || 0}<br>
+                📡 Источник: ${stats.source || 'UNKNOWN'}
+            `;
+            showNotification(message, 'success');
+            
+            // Обновляем список заявок
+            setTimeout(() => loadOrders(), 1000);
+        } else {
+            showNotification(`Ошибка синхронизации: ${result.error}`, 'danger');
+        }
+    } catch (error) {
+        console.error('Sync error:', error);
+        showNotification('Ошибка при синхронизации: ' + error.message, 'danger');
+    }
 }
 
 // Функция поиска туров для конкретной заявки

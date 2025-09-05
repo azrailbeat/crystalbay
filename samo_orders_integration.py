@@ -28,7 +28,15 @@ class SamoOrdersIntegration:
             return self._get_mock_orders()
         
         try:
-            # Используем рабочие SAMO API команды
+            # Сначала пытаемся получить реальные заявки через GetOrders
+            orders_result = self.samo_api.get_orders_api(date_from, date_to)
+            
+            if orders_result.get('success') and orders_result.get('data'):
+                logger.info("✅ Получены реальные заявки из SAMO API")
+                return self._process_real_orders(orders_result['data'])
+            
+            logger.warning("⚠️ GetOrders не вернул данных, используем данные туров")
+            # Fallback: используем рабочие SAMO API команды для создания заявок на основе туров
             orders_data = []
             
             # 1. Получаем валюты для расчета стоимости
@@ -118,6 +126,117 @@ class SamoOrdersIntegration:
         except Exception as e:
             logger.error(f"Error getting SAMO orders data: {e}")
             return self._get_mock_orders()
+    
+    def _process_real_orders(self, orders_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Обработка реальных заявок из SAMO API"""
+        processed_orders = []
+        
+        try:
+            # Обрабатываем структуру ответа GetOrders
+            if isinstance(orders_data, dict) and 'GetOrders' in orders_data:
+                samo_orders = orders_data['GetOrders']
+                if isinstance(samo_orders, list):
+                    for order in samo_orders:
+                        processed_order = self._convert_samo_order_to_local(order)
+                        if processed_order:
+                            processed_orders.append(processed_order)
+            
+            return {
+                'success': True,
+                'data': processed_orders,
+                'total_count': len(processed_orders),
+                'source': 'SAMO_API_REAL',
+                'sync_date': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing real orders: {e}")
+            return self._get_mock_orders()
+    
+    def _convert_samo_order_to_local(self, samo_order: Dict[str, Any]) -> Dict[str, Any]:
+        """Конвертация заявки SAMO в локальный формат"""
+        try:
+            # Извлекаем данные из структуры SAMO API
+            order_id = samo_order.get('id', '')
+            order_number = samo_order.get('number', f"SAMO-{order_id}")
+            
+            # Клиентские данные
+            client_name = samo_order.get('client_name', '') or samo_order.get('person_name', '')
+            client_phone = samo_order.get('client_phone', '') or samo_order.get('phone', '')
+            client_email = samo_order.get('client_email', '') or samo_order.get('email', '')
+            
+            # Данные о туре
+            destination = samo_order.get('destination', '') or samo_order.get('country', '')
+            hotel = samo_order.get('hotel', '') or samo_order.get('hotel_name', '')
+            check_in = samo_order.get('check_in', '') or samo_order.get('checkin_date', '')
+            check_out = samo_order.get('check_out', '') or samo_order.get('checkout_date', '')
+            
+            # Рассчитываем количество ночей
+            nights = samo_order.get('nights', 0)
+            if not nights and check_in and check_out:
+                try:
+                    from datetime import datetime
+                    checkin_dt = datetime.strptime(check_in[:10], '%Y-%m-%d')
+                    checkout_dt = datetime.strptime(check_out[:10], '%Y-%m-%d')
+                    nights = (checkout_dt - checkin_dt).days
+                except:
+                    nights = 7  # по умолчанию
+            
+            # Количество туристов
+            adults = samo_order.get('adults', 2)
+            children = samo_order.get('children', 0)
+            
+            # Стоимость
+            total_amount = samo_order.get('total_amount', 0) or samo_order.get('price', 0)
+            currency = samo_order.get('currency', 'KZT')
+            
+            # Статус заявки
+            status = samo_order.get('status', 'new')
+            status_mapping = {
+                'new': 'new',
+                'confirmed': 'confirmed', 
+                'processing': 'processing',
+                'paid': 'paid',
+                'cancelled': 'cancelled',
+                'pending': 'new'
+            }
+            local_status = status_mapping.get(status.lower(), 'new')
+            
+            # Питание
+            meal = samo_order.get('meal', 'BB')
+            
+            # Дата создания
+            created_date = samo_order.get('created_date', '') or samo_order.get('date_create', '')
+            if not created_date:
+                created_date = datetime.now().isoformat()
+            
+            return {
+                'id': f"SAMO-{order_id}",
+                'number': order_number,
+                'created_date': created_date,
+                'client_name': client_name,
+                'client_phone': client_phone,
+                'client_email': client_email,
+                'destination': destination,
+                'hotel': hotel,
+                'check_in': check_in,
+                'check_out': check_out,
+                'nights': nights,
+                'adults': adults,
+                'children': children,
+                'meal': meal,
+                'total_amount': total_amount,
+                'currency': currency,
+                'status': local_status,
+                'special_requests': samo_order.get('special_requests', ''),
+                'source': 'SAMO_API',
+                'samo_id': order_id,
+                'raw_data': samo_order  # сохраняем исходные данные
+            }
+            
+        except Exception as e:
+            logger.error(f"Error converting SAMO order: {e}")
+            return None
     
     def _convert_prices_to_orders(self, prices_data: List[Dict], hotels_data: Dict, 
                                  currencies: Dict, departure_cities: Dict) -> List[Dict]:
@@ -217,6 +336,221 @@ class SamoOrdersIntegration:
             logger.error(f"Error converting prices to orders: {e}")
         
         return orders
+    
+    def sync_orders_to_database(self, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+        """Синхронизация заявок из SAMO API в локальную базу данных"""
+        try:
+            from app import db
+            from models import Order, OrderLog
+            
+            # Получаем заявки из SAMO API
+            orders_data = self.get_orders_data(date_from, date_to)
+            
+            if not orders_data.get('success'):
+                return {
+                    'success': False,
+                    'error': 'Failed to fetch orders from SAMO API',
+                    'details': orders_data
+                }
+            
+            orders = orders_data.get('data', [])
+            sync_stats = {
+                'total_orders': len(orders),
+                'new_orders': 0,
+                'updated_orders': 0,
+                'errors': 0,
+                'source': orders_data.get('source', 'UNKNOWN')
+            }
+            
+            for order_data in orders:
+                try:
+                    # Проверяем существует ли заявка в БД
+                    existing_order = None
+                    if order_data.get('samo_id'):
+                        existing_order = Order.query.filter_by(samo_id=order_data['samo_id']).first()
+                    
+                    if not existing_order and order_data.get('number'):
+                        existing_order = Order.query.filter_by(number=order_data['number']).first()
+                    
+                    if existing_order:
+                        # Обновляем существующую заявку
+                        updated = self._update_order_from_samo(existing_order, order_data)
+                        if updated:
+                            sync_stats['updated_orders'] += 1
+                    else:
+                        # Создаем новую заявку
+                        new_order = self._create_order_from_samo(order_data)
+                        if new_order:
+                            sync_stats['new_orders'] += 1
+                            
+                except Exception as e:
+                    logger.error(f"Error syncing order {order_data.get('id', 'unknown')}: {e}")
+                    sync_stats['errors'] += 1
+            
+            # Сохраняем изменения
+            db.session.commit()
+            
+            logger.info(f"📊 Синхронизация завершена: {sync_stats}")
+            
+            return {
+                'success': True,
+                'stats': sync_stats,
+                'source': orders_data.get('source'),
+                'sync_date': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Database sync error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def _create_order_from_samo(self, order_data: Dict[str, Any]) -> bool:
+        """Создание новой заявки в БД из данных SAMO"""
+        try:
+            from app import db
+            from models import Order, OrderLog
+            from datetime import datetime
+            
+            # Создаем новую заявку
+            new_order = Order()
+            new_order.number = order_data.get('number', '')
+            new_order.client_name = order_data.get('client_name', '')
+            new_order.client_phone = order_data.get('client_phone', '')
+            new_order.client_email = order_data.get('client_email', '')
+            new_order.destination = order_data.get('destination', '')
+            new_order.hotel = order_data.get('hotel', '')
+            
+            # Даты
+            if order_data.get('check_in'):
+                try:
+                    new_order.check_in = datetime.strptime(order_data['check_in'][:10], '%Y-%m-%d').date()
+                except:
+                    pass
+                    
+            if order_data.get('check_out'):
+                try:
+                    new_order.check_out = datetime.strptime(order_data['check_out'][:10], '%Y-%m-%d').date()
+                except:
+                    pass
+            
+            new_order.nights = order_data.get('nights', 0)
+            new_order.adults = order_data.get('adults', 2)
+            new_order.children = order_data.get('children', 0)
+            new_order.meal = order_data.get('meal', 'BB')
+            new_order.total_amount = order_data.get('total_amount', 0)
+            new_order.currency = order_data.get('currency', 'KZT')
+            new_order.status = order_data.get('status', 'new')
+            new_order.special_requests = order_data.get('special_requests', '')
+            
+            # SAMO данные
+            new_order.samo_id = order_data.get('samo_id', '')
+            new_order.source = 'SAMO_API'
+            
+            db.session.add(new_order)
+            db.session.flush()  # Получаем ID заявки
+            
+            # Создаем лог создания
+            log = OrderLog()
+            log.order_id = new_order.id
+            log.action = 'created_from_samo'
+            log.description = f"Заявка создана из SAMO API (ID: {order_data.get('samo_id', 'unknown')})"
+            log.new_value = json.dumps(order_data, ensure_ascii=False)
+            
+            db.session.add(log)
+            
+            logger.info(f"✅ Создана новая заявка: {new_order.number}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error creating order from SAMO data: {e}")
+            return False
+    
+    def _update_order_from_samo(self, order: 'Order', order_data: Dict[str, Any]) -> bool:
+        """Обновление существующей заявки из данных SAMO"""
+        try:
+            from app import db
+            from models import OrderLog
+            from datetime import datetime
+            
+            changes = []
+            
+            # Проверяем и обновляем поля
+            fields_to_check = [
+                ('client_name', 'client_name'),
+                ('client_phone', 'client_phone'), 
+                ('client_email', 'client_email'),
+                ('destination', 'destination'),
+                ('hotel', 'hotel'),
+                ('nights', 'nights'),
+                ('adults', 'adults'),
+                ('children', 'children'),
+                ('meal', 'meal'),
+                ('total_amount', 'total_amount'),
+                ('currency', 'currency'),
+                ('status', 'status'),
+                ('special_requests', 'special_requests')
+            ]
+            
+            for db_field, data_field in fields_to_check:
+                old_value = getattr(order, db_field)
+                new_value = order_data.get(data_field)
+                
+                if new_value and old_value != new_value:
+                    changes.append({
+                        'field': db_field,
+                        'old_value': old_value,
+                        'new_value': new_value
+                    })
+                    setattr(order, db_field, new_value)
+            
+            # Обновляем даты
+            if order_data.get('check_in'):
+                try:
+                    new_checkin = datetime.strptime(order_data['check_in'][:10], '%Y-%m-%d').date()
+                    if order.check_in != new_checkin:
+                        changes.append({
+                            'field': 'check_in',
+                            'old_value': str(order.check_in) if order.check_in else None,
+                            'new_value': str(new_checkin)
+                        })
+                        order.check_in = new_checkin
+                except:
+                    pass
+            
+            if order_data.get('check_out'):
+                try:
+                    new_checkout = datetime.strptime(order_data['check_out'][:10], '%Y-%m-%d').date()
+                    if order.check_out != new_checkout:
+                        changes.append({
+                            'field': 'check_out',
+                            'old_value': str(order.check_out) if order.check_out else None,
+                            'new_value': str(new_checkout)
+                        })
+                        order.check_out = new_checkout
+                except:
+                    pass
+            
+            # Если есть изменения, создаем лог
+            if changes:
+                log = OrderLog()
+                log.order_id = order.id
+                log.action = 'updated_from_samo'
+                log.description = f"Заявка обновлена из SAMO API"
+                log.old_value = json.dumps([c['old_value'] for c in changes], ensure_ascii=False)
+                log.new_value = json.dumps([c['new_value'] for c in changes], ensure_ascii=False)
+                
+                db.session.add(log)
+                
+                logger.info(f"🔄 Обновлена заявка: {order.number} ({len(changes)} изменений)")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error updating order from SAMO data: {e}")
+            return False
     
     def _get_mock_orders(self) -> Dict[str, Any]:
         """Возвращает моковые данные заявок (fallback)"""

@@ -42,18 +42,23 @@ class Order(Base):
     id = Column(Integer, primary_key=True)
     number = Column(String(100), unique=True, nullable=False)
     
-    # Клиент
-    client_id = Column(Integer, ForeignKey('clients.id'), nullable=False)
+    # Клиент данные (можем хранить напрямую для SAMO интеграции)
+    client_id = Column(Integer, ForeignKey('clients.id'), nullable=True)
+    client_name = Column(String(255), nullable=True)
+    client_phone = Column(String(50), nullable=True)
+    client_email = Column(String(255), nullable=True)
     
     # Параметры тура
     destination = Column(String(255), nullable=False)
+    hotel = Column(String(255), nullable=True)  # Совместимость с SAMO данными
     hotel_name = Column(String(255), nullable=True)
     hotel_stars = Column(Integer, nullable=True)
-    check_in = Column(DateTime, nullable=False)
-    check_out = Column(DateTime, nullable=False)
-    nights = Column(Integer, nullable=False)
+    check_in = Column(DateTime, nullable=True)  # Допускаем NULL для новых заявок
+    check_out = Column(DateTime, nullable=True)
+    nights = Column(Integer, nullable=False, default=0)
     adults = Column(Integer, nullable=False, default=1)
     children = Column(Integer, nullable=False, default=0)
+    meal = Column(String(50), nullable=True)  # Совместимость с SAMO данными
     meal_type = Column(String(50), nullable=True)
     
     # Финансы
@@ -64,9 +69,11 @@ class Order(Base):
     status = Column(String(50), default='new')  # new, processing, confirmed, paid, cancelled
     
     # SAMO данные
+    samo_id = Column(String(100), nullable=True, unique=True)  # ID заявки в SAMO API
     samo_tour_id = Column(String(100), nullable=True)
     samo_hotel_id = Column(String(100), nullable=True)
     samo_booking_id = Column(String(100), nullable=True)
+    source = Column(String(50), default='manual')  # manual, SAMO_API, external
     
     # Дополнительно
     special_requests = Column(Text, nullable=True)

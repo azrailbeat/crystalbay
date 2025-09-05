@@ -548,6 +548,21 @@ class CrystalBaySamoAPI:
     
     # === БРОНИРОВАНИЕ ===
     
+    def get_orders_api(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
+        """Получить список заявок через API GetOrders"""
+        if date_from is None:
+            date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if date_to is None:
+            date_to = datetime.now().strftime('%Y-%m-%d')
+            
+        params = {
+            'action': 'GetOrders',
+            'date_from': date_from,
+            'date_to': date_to
+        }
+        
+        return self._make_request('GetOrders', params)
+
     def get_bookings_api(self, date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:
         """Получить список бронирований через API"""
         if date_from is None:

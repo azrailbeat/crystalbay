@@ -1977,4 +1977,42 @@ def register_api_routes(app):
                 'error': str(e)
             }), 500
 
+    @app.route('/api/samo/orders/sync', methods=['POST'])
+    def sync_samo_orders():
+        """Синхронизация заявок из SAMO API в локальную базу данных"""
+        try:
+            from samo_orders_integration import SamoOrdersIntegration
+            
+            data = request.get_json() or {}
+            date_from = data.get('date_from')
+            date_to = data.get('date_to')
+            
+            # Создаем интеграцию
+            samo_integration = SamoOrdersIntegration()
+            
+            # Запускаем синхронизацию
+            result = samo_integration.sync_orders_to_database(date_from, date_to)
+            
+            if result.get('success'):
+                return jsonify({
+                    'success': True,
+                    'message': 'Синхронизация заявок завершена успешно',
+                    'stats': result.get('stats'),
+                    'source': result.get('source'),
+                    'sync_date': result.get('sync_date')
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result.get('error', 'Unknown error during sync'),
+                    'details': result.get('details')
+                }), 400
+            
+        except Exception as e:
+            logger.error(f"Error syncing SAMO orders: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     logger.info("API routes registered successfully")
