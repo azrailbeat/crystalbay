@@ -46,6 +46,7 @@ try:
     from models import *
     from samo_integration import SamoIntegration
     from samo_data_preloader import initialize_preloader, get_preloader, preload_samo_data
+    from app_api import register_api_routes
 except ImportError as e:
     logger.warning(f"Import warning: {e}")
 
@@ -553,48 +554,7 @@ def get_tour_filters():
 
 # Старая функция search_tours удалена - используется новая в разделе TOUR SEARCH API
 
-# API заявок через SAMO
-@app.route('/api/orders', methods=['GET'])
-def get_orders():
-    """Получение заявок через SAMO API"""
-    try:
-        if not samo_api:
-            return jsonify({
-                'success': False,
-                'error': 'SAMO API не инициализирован',
-                'orders': [],
-                'count': 0
-            })
-        
-        # Получаем заявки через SAMO API
-        result = samo_api.get_orders()
-        
-        if not result.get('success'):
-            return jsonify({
-                'success': False,
-                'error': result.get('error', 'SAMO API недоступен'),
-                'orders': [],
-                'count': 0,
-                'requires_production': result.get('requires_production', False)
-            })
-        
-        orders_data = result.get('data', [])
-        
-        return jsonify({
-            'success': True,
-            'orders': orders_data,
-            'count': len(orders_data),
-            'loaded_from': 'SAMO_API'
-        })
-        
-    except Exception as e:
-        logger.error(f"Orders error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'orders': [],
-            'count': 0
-        })
+# API заявок обрабатывается в app_api.py
 
 # === STARTUP ===
 
@@ -1148,4 +1108,50 @@ def production_health_check():
             'error': str(e),
             'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
         }), 500
+
+# Временный эндпоинт синхронизации заявок
+@app.route('/api/samo/orders/sync', methods=['POST'])
+def sync_samo_orders_temp():
+    """Временный эндпоинт синхронизации заявок из SAMO API"""
+    try:
+        from samo_orders_integration import SamoOrdersIntegration
+        
+        data = request.get_json() or {}
+        date_from = data.get('date_from')
+        date_to = data.get('date_to')
+        
+        # Создаем интеграцию
+        samo_integration = SamoOrdersIntegration()
+        
+        # Запускаем синхронизацию
+        result = samo_integration.sync_orders_to_database(date_from, date_to)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': 'Синхронизация заявок завершена успешно',
+                'stats': result.get('stats'),
+                'source': result.get('source'),
+                'sync_date': result.get('sync_date')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Unknown error during sync'),
+                'details': result.get('details')
+            }), 400
+        
+    except Exception as e:
+        logger.error(f"Error syncing SAMO orders: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Регистрируем API роуты (временно отключено из-за конфликтов)
+# try:
+#     register_api_routes(app)
+#     logger.info("✅ API routes registered successfully")
+# except Exception as e:
+#     logger.error(f"❌ Failed to register API routes: {e}")
 
