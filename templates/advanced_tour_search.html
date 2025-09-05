@@ -1103,6 +1103,37 @@
             populateSelect('destination', [], '', '', '43');
             populateHotelsFilter();
         }
+        
+        // Предзаполнение формы из URL параметров (для заявок)
+        function fillFormFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Заполняем поля если они есть в URL
+            if (urlParams.get('departure_city')) document.getElementById('departure_city').value = urlParams.get('departure_city');
+            if (urlParams.get('destination')) document.getElementById('destination').value = urlParams.get('destination');
+            if (urlParams.get('checkin_date')) document.getElementById('checkin_date').value = urlParams.get('checkin_date');
+            if (urlParams.get('nights')) document.getElementById('nights').value = urlParams.get('nights');
+            if (urlParams.get('adults')) document.getElementById('adults').value = urlParams.get('adults');
+            if (urlParams.get('children')) document.getElementById('children').value = urlParams.get('children');
+            if (urlParams.get('currency')) document.getElementById('currency').value = urlParams.get('currency');
+            if (urlParams.get('stars')) {
+                const starsCheckbox = document.querySelector(`input[name="stars"][value="${urlParams.get('stars')}"]`);
+                if (starsCheckbox) starsCheckbox.checked = true;
+            }
+            
+            // Если есть параметры заявки, автоматически запускаем поиск
+            if (urlParams.get('departure_city') && urlParams.get('destination')) {
+                console.log('Автоматический поиск по параметрам заявки');
+                setTimeout(() => searchTours(), 2000); // Даем время загрузиться данным
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                fillFormFromURL(); // Заполняем форму из URL
+            }, 1000);
+        });
     </script>
 </body>
 </html>

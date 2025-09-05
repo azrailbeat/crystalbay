@@ -307,13 +307,16 @@ function displayOrders(orders) {
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" onclick="showOrderDetails('${order.id}')">
+                                <button class="btn btn-outline-primary" onclick="showOrderDetails('${order.id}')" title="Просмотр">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                <button class="btn btn-outline-success" onclick="changeOrderStatus('${order.id}', 'confirmed')">
+                                <button class="btn btn-outline-info" onclick="searchToursForOrder('${order.id}')" title="Найти туры">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                                <button class="btn btn-outline-success" onclick="changeOrderStatus('${order.id}', 'confirmed')" title="Подтвердить">
                                     <i class="bi bi-check"></i>
                                 </button>
-                                <button class="btn btn-outline-danger" onclick="changeOrderStatus('${order.id}', 'cancelled')">
+                                <button class="btn btn-outline-danger" onclick="changeOrderStatus('${order.id}', 'cancelled')" title="Отменить">
                                     <i class="bi bi-x"></i>
                                 </button>
                             </div>
@@ -576,6 +579,37 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         alert.remove();
     }, 5000);
+}
+
+// Функция поиска туров для конкретной заявки
+function searchToursForOrder(orderId) {
+    const order = currentOrders.find(o => o.id === orderId);
+    if (!order) {
+        showNotification('Заявка не найдена', 'danger');
+        return;
+    }
+    
+    // Формируем параметры поиска на основе данных заявки
+    const searchParams = {
+        departure_city: '1344', // Алматы по умолчанию
+        destination: '43',      // Вьетнам по умолчанию
+        checkin_date: order.check_in,
+        nights: order.nights || '7',
+        adults: order.adults || '2',
+        children: order.children || '0',
+        currency: order.currency || 'KZT'
+    };
+    
+    // Добавляем специфичные параметры если они есть в заявке
+    if (order.hotel_stars) {
+        searchParams.stars = order.hotel_stars;
+    }
+    
+    showNotification(`Ищем туры для заявки ${order.number}...`, 'info');
+    
+    // Перенаправляем на страницу поиска туров с предзаполненными параметрами
+    const urlParams = new URLSearchParams(searchParams);
+    window.open(`/advanced-tours?${urlParams.toString()}`, '_blank');
 }
 
 // Инициализация
