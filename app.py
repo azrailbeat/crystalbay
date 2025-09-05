@@ -162,6 +162,13 @@ def demo():
                          active_page='demo',
                          page_title='Демонстрация')
 
+@app.route('/settings')
+def settings():
+    """Страница настроек системы"""
+    return render_template('settings.html',
+                         active_page='settings',
+                         page_title='Настройки системы')
+
 # === API ROUTES ===
 
 @app.route('/api/samo/<action>', methods=['GET', 'POST'])
@@ -1154,6 +1161,171 @@ def sync_samo_orders_temp():
         
     except Exception as e:
         logger.error(f"Error syncing SAMO orders: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# === SETTINGS API ROUTES ===
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """Получить все настройки"""
+    try:
+        from settings_service import settings_service
+        category = request.args.get('category')
+        settings = settings_service.get_all(category=category, include_secrets=False)
+        return jsonify({
+            'success': True,
+            'settings': settings,
+            'categories': settings_service.get_categories()
+        })
+    except Exception as e:
+        logger.error(f"Error getting settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/settings', methods=['POST'])
+def save_settings():
+    """Сохранить настройки"""
+    try:
+        from settings_service import settings_service
+        data = request.get_json()
+        
+        saved_count = 0
+        for key, value in data.items():
+            if settings_service.set(key, value):
+                saved_count += 1
+        
+        # Очищаем кэш для обновления настроек
+        settings_service.clear_cache()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Сохранено {saved_count} настроек',
+            'saved_count': saved_count
+        })
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/settings/export', methods=['GET'])
+def export_settings():
+    """Экспорт настроек"""
+    try:
+        from settings_service import settings_service
+        settings = settings_service.get_all(include_secrets=True)
+        return jsonify({
+            'success': True,
+            'settings': settings
+        })
+    except Exception as e:
+        logger.error(f"Error exporting settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/settings/import', methods=['POST'])
+def import_settings():
+    """Импорт настроек"""
+    try:
+        from settings_service import settings_service
+        data = request.get_json()
+        settings = data.get('settings', [])
+        
+        imported_count = 0
+        for setting in settings:
+            key = setting.get('key')
+            value = setting.get('value')
+            description = setting.get('description')
+            category = setting.get('category', 'general')
+            is_secret = setting.get('is_secret', False)
+            
+            if key and settings_service.set(key, value, description, category, is_secret):
+                imported_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'Импортировано {imported_count} настроек',
+            'imported_count': imported_count
+        })
+    except Exception as e:
+        logger.error(f"Error importing settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/test-connection/<api_type>', methods=['GET'])
+def test_connection(api_type):
+    """Тестирование соединения с API"""
+    try:
+        from settings_service import settings_service
+        
+        if api_type == 'samo':
+            # Тестируем SAMO API
+            api_url = settings_service.get('samo_api_url')
+            oauth_token = settings_service.get('samo_oauth_token')
+            
+            if not api_url or not oauth_token:
+                return jsonify({
+                    'success': False,
+                    'error': 'Не настроены URL или токен для SAMO API'
+                }), 400
+            
+            # Выполняем тестовый запрос
+            import requests
+            try:
+                response = requests.post(api_url, 
+                    data={'samo_action': 'api', 'samo_command': 'SearchTour_CURRENCIES', 'samo_oauth_token': oauth_token},
+                    timeout=10)
+                
+                if response.status_code == 200:
+                    return jsonify({'success': True, 'message': 'Соединение с SAMO API установлено'})
+                else:
+                    return jsonify({'success': False, 'error': f'HTTP {response.status_code}'})
+            except requests.RequestException as e:
+                return jsonify({'success': False, 'error': f'Ошибка соединения: {str(e)}'})
+                
+        elif api_type == 'webapi':
+            # Тестируем WebAPI
+            base_url = settings_service.get('webapi_base_url')
+            bearer_token = settings_service.get('webapi_bearer_token')
+            
+            if not base_url or not bearer_token:
+                return jsonify({
+                    'success': False,
+                    'error': 'Не настроены URL или токен для WebAPI'
+                }), 400
+            
+            # Выполняем тестовый запрос к ClaimSearch
+            import requests
+            try:
+                headers = {'Authorization': f'Bearer {bearer_token}'}
+                response = requests.get(f"{base_url}/MyOffice/ClaimSearch?take=1", 
+                    headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    return jsonify({'success': True, 'message': 'Соединение с WebAPI установлено'})
+                else:
+                    return jsonify({'success': False, 'error': f'HTTP {response.status_code}'})
+            except requests.RequestException as e:
+                return jsonify({'success': False, 'error': f'Ошибка соединения: {str(e)}'})
+                
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Неизвестный тип API'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error testing {api_type} connection: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

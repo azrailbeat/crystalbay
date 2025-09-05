@@ -17,11 +17,26 @@ class SamoIntegration:
     """SAMO API интеграция только для production сервера"""
     
     def __init__(self):
-        self.base_url = 'https://booking.crystalbay.com/export/default.php'
+        # Сначала пытаемся загрузить из переменных окружения
+        self.base_url = os.environ.get('SAMO_API_URL', 'https://booking.crystalbay.com/export/default.php')
         self.oauth_token = os.environ.get('SAMO_OAUTH_TOKEN')
         
+        # Затем пытаемся загрузить из настроек БД
+        try:
+            from settings_service import settings_service
+            db_url = settings_service.get('samo_api_url')
+            db_token = settings_service.get('samo_oauth_token')
+            
+            if db_url:
+                self.base_url = db_url
+            if db_token:
+                self.oauth_token = db_token
+        except:
+            # Если настройки недоступны, используем значения по умолчанию
+            pass
+        
         if not self.oauth_token:
-            logger.error("SAMO_OAUTH_TOKEN не найден в переменных окружения")
+            logger.error("SAMO OAuth токен не найден ни в переменных окружения, ни в настройках")
             raise ValueError("SAMO OAuth токен обязателен для работы")
         
         self.session = requests.Session()

@@ -190,3 +190,29 @@ class ApiLog(Base):
             'error_message': self.error_message,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+class Settings(Base):
+    """Настройки системы"""
+    __tablename__ = 'settings'
+    
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(Text, nullable=True)
+    description = Column(String(255), nullable=True)
+    category = Column(String(50), nullable=False, default='general')  # general, api, ui
+    is_secret = Column(Boolean, default=False)  # Скрывать ли значение в UI
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self, include_secrets=False):
+        return {
+            'id': self.id,
+            'key': self.key,
+            'value': self.value if (include_secrets or not self.is_secret) else ('*' * 8 if self.value else None),
+            'description': self.description,
+            'category': self.category,
+            'is_secret': self.is_secret,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
