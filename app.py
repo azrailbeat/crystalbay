@@ -722,21 +722,25 @@ def search_tours_universal():
         if data.get('meals') or data.get('MEAL'):
             search_params['MEALS'] = data.get('meals') or data.get('MEAL')
             
-        # ВАЖНО: Добавляем флаги для расчета цен
-        search_params['PRICESHOW'] = data.get('PRICESHOW', '1')
-        search_params['CALCPRICE'] = data.get('CALCPRICE', '1') 
-        search_params['DETAILED'] = data.get('DETAILED', '1')
-        search_params['GETPRICE'] = '1'
-        search_params['LANG'] = 'ru'
+        # ВАЖНО: Флаги для получения полной информации включая цены
+        search_params.update({
+            'PRICESHOW': '1',
+            'CALCPRICE': '1', 
+            'DETAILED': '1',
+            'GETPRICE': '1',
+            'WITHPRICE': '1',
+            'INCLUDEPRICE': '1',
+            'FULLINFO': '1',
+            'LANG': 'ru',
+            'FORMAT': 'FULL'
+        })
         
-        # Добавляем параметры для увеличения количества результатов
-        search_params['LIMIT'] = data.get('limit', '50')  # Увеличиваем лимит до 50 туров
-        search_params['OFFSET'] = data.get('offset', '0')
-        search_params['PAGE'] = data.get('page', '1')
-        search_params['PAGESIZE'] = data.get('pagesize', '50')
+        # Ограничиваем количество для быстрого ответа
+        search_params['LIMIT'] = '20'  
+        search_params['PAGESIZE'] = '20'
         
-        # Пробуем выполнить поиск через разные методы SAMO API для получения максимального количества туров
-        methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS', 'SearchTour_SIMPLE', 'SearchTour_LIST']
+        # Пробуем выполнить поиск через методы с детальной информацией 
+        methods_to_try = ['SearchTour_DETAIL', 'SearchTour_FULL', 'SearchTour_ALL', 'SearchTour_TOURS']
         
         for method in methods_to_try:
             app.logger.info(f"Пробую метод {method} с параметрами: {search_params}")
@@ -787,15 +791,8 @@ def search_tours_universal():
                                 'description': tour.get('description', tour.get('DESCRIPTION', ''))
                             }
                             
-                            # Если цена равна 0, пытаемся получить детальную информацию о туре
-                            if processed_tour['price'] == 0 and processed_tour['id']:
-                                try:
-                                    detailed_info = get_tour_details(processed_tour['id'], search_params)
-                                    if detailed_info and detailed_info.get('price', 0) > 0:
-                                        processed_tour.update(detailed_info)
-                                        app.logger.info(f"Получена детальная информация для тура {processed_tour['id']}: цена {detailed_info.get('price')}")
-                                except Exception as e:
-                                    app.logger.warning(f"Ошибка получения детальной информации для тура {processed_tour['id']}: {e}")
+                            # Временно убираем индивидуальные запросы деталей - они замедляют поиск
+                            # TODO: Найти более эффективный способ получения цен от SAMO API
                                     
                             processed_tours.append(processed_tour)
                     
