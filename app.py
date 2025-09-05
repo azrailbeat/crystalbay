@@ -609,6 +609,66 @@ def is_production_environment():
         
     return False
 
+def get_tour_details(tour_id, search_params):
+    """Получение детальной информации о туре для расчета цен"""
+    try:
+        if not samo_api or not tour_id:
+            return None
+            
+        # Параметры для получения детальной информации о конкретном туре
+        detail_params = search_params.copy()
+        detail_params.update({
+            'TOURID': str(tour_id),
+            'PRICESHOW': '1',
+            'CALCPRICE': '1', 
+            'DETAILED': '1',
+            'GETPRICE': '1'
+        })
+        
+        # Пробуем разные методы для получения детальной информации
+        methods_to_try = ['SearchTour_PRICES', 'GetTour_DETAIL', 'SearchTour_TOURS']
+        
+        for method in methods_to_try:
+            app.logger.info(f"Получаю детали тура {tour_id} через {method}")
+            result = samo_api._make_request(method, detail_params)
+            
+            if result.get('success') and result.get('data'):
+                tour_data = result.get('data')
+                
+                # Обрабатываем разные форматы ответа
+                tour_info = None
+                if isinstance(tour_data, dict):
+                    if 'tours' in tour_data and tour_data['tours']:
+                        tour_info = tour_data['tours'][0] if isinstance(tour_data['tours'], list) else tour_data['tours']
+                    elif 'price' in tour_data or 'cost' in tour_data:
+                        tour_info = tour_data
+                    elif str(tour_id) in tour_data:
+                        tour_info = tour_data[str(tour_id)]
+                elif isinstance(tour_data, list) and len(tour_data) > 0:
+                    tour_info = tour_data[0]
+                
+                if tour_info and isinstance(tour_info, dict):
+                    detailed_info = {
+                        'price': tour_info.get('price', tour_info.get('cost', 0)),
+                        'currency': tour_info.get('currency', search_params.get('CURRENCYINC', 'KZT')),
+                        'hotel': tour_info.get('hotel', tour_info.get('hotelName', '')),
+                        'city': tour_info.get('city', tour_info.get('resort', '')),
+                        'destination': tour_info.get('destination', tour_info.get('country', '')),
+                        'meals': tour_info.get('meals', tour_info.get('meal', '')),
+                        'description': tour_info.get('description', ''),
+                        'departure_date': tour_info.get('departure_date', tour_info.get('date', ''))
+                    }
+                    
+                    # Возвращаем только если есть полезная информация
+                    if any(v for v in detailed_info.values() if v not in ['', 0]):
+                        return detailed_info
+        
+        return None
+        
+    except Exception as e:
+        app.logger.error(f"Ошибка получения деталей тура {tour_id}: {e}")
+        return None
+
 @app.route('/api/tours/search', methods=['POST'])
 def search_tours_universal():
     """Универсальный поиск туров через SAMO API"""
@@ -714,6 +774,17 @@ def search_tours_universal():
                                 'meals': tour.get('meals', tour.get('meal', '')),
                                 'description': tour.get('description', '')
                             }
+                            
+                            # Если цена равна 0, пытаемся получить детальную информацию о туре
+                            if processed_tour['price'] == 0 and processed_tour['id']:
+                                try:
+                                    detailed_info = get_tour_details(processed_tour['id'], search_params)
+                                    if detailed_info and detailed_info.get('price', 0) > 0:
+                                        processed_tour.update(detailed_info)
+                                        app.logger.info(f"Получена детальная информация для тура {processed_tour['id']}: цена {detailed_info.get('price')}")
+                                except Exception as e:
+                                    app.logger.warning(f"Ошибка получения детальной информации для тура {processed_tour['id']}: {e}")
+                                    
                             processed_tours.append(processed_tour)
                     
                     return jsonify({
@@ -914,6 +985,33 @@ def universal_tour_search():
 def advanced_tour_search():
     """Расширенный поиск туров с детализированными фильтрами как в оригинальной системе SAMO"""
     return render_template("advanced_tour_search.html", active_page="tours", page_title="Расширенный поиск туров")
+
+@app.route('/api/advanced-tours/search', methods=['POST'])
+def api_advanced_tour_search():
+    """API endpoint для расширенного поиска туров с обязательным получением детальной информации"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Нет данных для поиска', 'success': False}), 400
+        
+        app.logger.info(f"Расширенный поиск туров: {data}")
+        
+        # Добавляем флаги для обязательного получения детальной информации
+        data['PRICESHOW'] = '1'
+        data['CALCPRICE'] = '1'
+        data['DETAILED'] = '1'
+        
+        # Используем существующую функцию поиска
+        return search_tours_universal()
+        
+    except Exception as e:
+        app.logger.error(f"Ошибка расширенного поиска туров: {e}")
+        return jsonify({
+            'error': str(e),
+            'tours': [],
+            'count': 0,
+            'success': False
+        }), 500
 
 @app.route('/api/tours/search', methods=['POST'])
 def api_universal_tour_search():
