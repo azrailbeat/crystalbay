@@ -729,8 +729,14 @@ def search_tours_universal():
         search_params['GETPRICE'] = '1'
         search_params['LANG'] = 'ru'
         
-        # Пробуем выполнить поиск через разные методы SAMO API
-        methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS']
+        # Добавляем параметры для увеличения количества результатов
+        search_params['LIMIT'] = data.get('limit', '50')  # Увеличиваем лимит до 50 туров
+        search_params['OFFSET'] = data.get('offset', '0')
+        search_params['PAGE'] = data.get('page', '1')
+        search_params['PAGESIZE'] = data.get('pagesize', '50')
+        
+        # Пробуем выполнить поиск через разные методы SAMO API для получения максимального количества туров
+        methods_to_try = ['SearchTour_ALL', 'SearchTour_TOURS', 'SearchTour_SIMPLE', 'SearchTour_LIST']
         
         for method in methods_to_try:
             app.logger.info(f"Пробую метод {method} с параметрами: {search_params}")
@@ -753,7 +759,12 @@ def search_tours_universal():
                 elif isinstance(tours_data, list):
                     tours = tours_data
                 
-                app.logger.info(f"Обработано туров: {len(tours) if isinstance(tours, list) else 0}")
+                app.logger.info(f"Обработано туров из {method}: {len(tours) if isinstance(tours, list) else 0}")
+                
+                # Если получили результаты, логируем подробности  
+                if tours and isinstance(tours, list):
+                    app.logger.info(f"Первый тур: {tours[0] if len(tours) > 0 else 'нет'}")
+                    app.logger.info(f"Общее количество туров от SAMO API: {len(tours)}")
                     
                 if tours and isinstance(tours, list) and len(tours) > 0:
                     # Обрабатываем туры для корректного отображения
@@ -788,12 +799,16 @@ def search_tours_universal():
                                     
                             processed_tours.append(processed_tour)
                     
+                    app.logger.info(f"Итого обработано и возвращено туров: {len(processed_tours)}")
+                    
                     return jsonify({
                         'tours': processed_tours,
                         'count': len(processed_tours),
                         'success': True,
                         'source': f'SAMO_API_{method}',
-                        'search_params': search_params
+                        'search_params': search_params,
+                        'original_count': len(tours),
+                        'processed_count': len(processed_tours)
                     })
                 else:
                     app.logger.info(f"Метод {method} не вернул туры или вернул пустой список")
