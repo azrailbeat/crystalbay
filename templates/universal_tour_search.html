@@ -437,10 +437,27 @@ async function searchTours(formData) {
             if (value) searchParams[key] = value;
         }
         
-        // Добавляем обязательные параметры для SAMO API
+        // Добавляем все необходимые параметры для SAMO API чтобы получить цены
         searchParams.TOWNFROMINC = searchParams.departure_city;
         searchParams.STATEINC = searchParams.destination;
-        searchParams.CURRENCYINC = searchParams.currency || 'USD';
+        searchParams.CURRENCYINC = searchParams.currency || 'KZT';
+        searchParams.CHECKIN = searchParams.checkin_date;
+        searchParams.NIGHTS = searchParams.nights;
+        searchParams.ADULT = searchParams.adults;
+        searchParams.CHILD = searchParams.children || '0';
+        
+        // Дополнительные параметры для более точного поиска
+        if (searchParams.stars) {
+            searchParams.STARS = searchParams.stars;
+        }
+        if (searchParams.meals) {
+            searchParams.MEAL = searchParams.meals;
+        }
+        
+        // Параметры для расчета цен
+        searchParams.PRICESHOW = '1'; // Показывать цены
+        searchParams.CALCPRICE = '1'; // Рассчитывать цены
+        searchParams.DETAILED = '1';  // Детальная информация
         
         console.log('Параметры поиска:', searchParams);
         
