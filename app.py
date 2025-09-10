@@ -51,25 +51,35 @@ except ImportError as e:
     logger.warning(f"Import warning: {e}")
 
 # Initialize integrations
-try:
-    samo_api = SamoIntegration()
-    logger.info("SAMO API integration initialized successfully")
-    
-    # Предварительная загрузка всех данных SAMO API
-    logger.info("🚀 Запускаю предварительную загрузку данных SAMO API...")
+samo_api = None
+
+def init_samo_integration():
+    """Инициализация SAMO API интеграции"""
+    global samo_api
     try:
-        preload_result = preload_samo_data(samo_api)
-        if preload_result.get('success_count', 0) > 0:
-            logger.info(f"✅ Предварительная загрузка завершена: {preload_result.get('success_count')}/{preload_result.get('total_requests')} запросов")
-            logger.info(f"🏨 Загружено отелей: {len(preload_result.get('hotels_list', []))}")
-        else:
-            logger.warning("⚠️ Предварительная загрузка не удалась - будут использоваться значения по умолчанию")
-    except Exception as e:
-        logger.error(f"❌ Ошибка предварительной загрузки: {e}")
+        samo_api = SamoIntegration()
+        logger.info("SAMO API integration initialized successfully")
         
-except Exception as e:
-    logger.error(f"SAMO API initialization failed: {e}")
-    samo_api = None
+        # Предварительная загрузка всех данных SAMO API
+        logger.info("🚀 Запускаю предварительную загрузку данных SAMO API...")
+        try:
+            preload_result = preload_samo_data(samo_api)
+            if preload_result.get('success_count', 0) > 0:
+                logger.info(f"✅ Предварительная загрузка завершена: {preload_result.get('success_count')}/{preload_result.get('total_requests')} запросов")
+                logger.info(f"🏨 Загружено отелей: {len(preload_result.get('hotels_list', []))}")
+            else:
+                logger.warning("⚠️ Предварительная загрузка не удалась - будут использоваться значения по умолчанию")
+        except Exception as e:
+            logger.error(f"❌ Ошибка предварительной загрузки: {e}")
+            
+        return True
+    except Exception as e:
+        logger.error(f"SAMO API initialization failed: {e}")
+        samo_api = None
+        return False
+
+# Инициализируем при запуске
+init_samo_integration()
 
 # === MAIN ROUTES ===
 
@@ -1201,6 +1211,15 @@ def save_settings():
         
         # Очищаем кэш для обновления настроек
         settings_service.clear_cache()
+        
+        # Переинициализируем интеграции если изменились API настройки
+        api_keys = ['samo_oauth_token', 'samo_api_url', 'webapi_base_url', 'webapi_bearer_token']
+        if any(key in data for key in api_keys):
+            try:
+                init_samo_integration()
+                logger.info("SAMO API переинициализирован с новыми настройками")
+            except Exception as e:
+                logger.error(f"Ошибка переинициализации SAMO API: {e}")
         
         return jsonify({
             'success': True,

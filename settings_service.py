@@ -87,26 +87,34 @@ class SettingsService:
     def __init__(self):
         """Инициализация сервиса настроек"""
         self._settings_cache = {}
-        self._load_defaults()
+        self._defaults_loaded = False
     
-    def _load_defaults(self):
-        """Загрузка настроек по умолчанию в БД"""
+    def _ensure_defaults_loaded(self):
+        """Ленивая загрузка настроек по умолчанию в БД"""
+        if self._defaults_loaded:
+            return
+            
         try:
-            with db.session.begin():
-                for key, config in self.DEFAULT_SETTINGS.items():
-                    # Проверяем, есть ли настройка в БД
-                    existing = db.session.query(Settings).filter_by(key=key).first()
-                    if not existing:
-                        # Создаем новую настройку
-                        setting = Settings(
-                            key=key,
-                            value=config['value'],
-                            description=config['description'],
-                            category=config['category'],
-                            is_secret=config['is_secret']
-                        )
-                        db.session.add(setting)
-                        logger.info(f"Создана настройка по умолчанию: {key}")
+            # Импортируем app здесь, чтобы избежать циклических импортов
+            from flask import current_app
+            
+            with current_app.app_context():
+                with db.session.begin():
+                    for key, config in self.DEFAULT_SETTINGS.items():
+                        # Проверяем, есть ли настройка в БД
+                        existing = db.session.query(Settings).filter_by(key=key).first()
+                        if not existing:
+                            # Создаем новую настройку
+                            setting = Settings(
+                                key=key,
+                                value=config['value'],
+                                description=config['description'],
+                                category=config['category'],
+                                is_secret=config['is_secret']
+                            )
+                            db.session.add(setting)
+                            logger.info(f"Создана настройка по умолчанию: {key}")
+                self._defaults_loaded = True
         except Exception as e:
             logger.error(f"Ошибка при загрузке настроек по умолчанию: {e}")
     
@@ -122,11 +130,18 @@ class SettingsService:
             if key in self._settings_cache:
                 return self._settings_cache[key]
             
-            # Загружаем из БД
-            setting = db.session.query(Settings).filter_by(key=key).first()
-            if setting:
-                self._settings_cache[key] = setting.value
-                return setting.value
+            # Загружаем из БД с контекстом приложения
+            try:
+                from flask import current_app
+                with current_app.app_context():
+                    self._ensure_defaults_loaded()
+                    setting = db.session.query(Settings).filter_by(key=key).first()
+                    if setting:
+                        self._settings_cache[key] = setting.value
+                        return setting.value
+            except:
+                # Если контекст недоступен, продолжаем
+                pass
             
             # Возвращаем значение по умолчанию
             if key in self.DEFAULT_SETTINGS:
