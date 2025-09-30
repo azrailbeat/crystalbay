@@ -45,8 +45,14 @@ The application follows a modular, service-oriented architecture, designed for c
 ## Recent Changes (September 30, 2025):
 - **Multi-Channel Messaging System**: Added Telegram and WhatsApp connectors for customer communication
 - **Message Management**: Complete UI for viewing, managing, and responding to messages from all channels
-- **Database Model**: Added Message model for storing all customer communications with platform tracking
+- **Database Model**: Added Message model with composite unique constraint (platform, chat_id, message_id) for idempotency
 - **API Endpoints**: Full REST API for messaging operations (webhooks, sending, reading messages)
+- **Security Enhancements**:
+  - Mandatory SESSION_SECRET environment variable (no fallback)
+  - Telegram webhook validation with X-Telegram-Bot-Api-Secret-Token
+  - Message deduplication via composite unique constraint
+  - Database transaction rollback on errors
+  - Database indexes on platform, chat_id, and created_at for performance
 
 ## Production Status (September 4, 2025):
 - **Production Server**: 46.250.234.89 ✓ ACTIVE (confirmed in browser URL)
