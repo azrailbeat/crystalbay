@@ -42,6 +42,12 @@ The application follows a modular, service-oriented architecture, designed for c
 - **PostgreSQL**: The relational database used for data storage.
 - **OpenAI GPT-4o**: Utilized for AI-powered chat automation and intelligent processing.
 
+## Recent Changes (September 30, 2025):
+- **Multi-Channel Messaging System**: Added Telegram and WhatsApp connectors for customer communication
+- **Message Management**: Complete UI for viewing, managing, and responding to messages from all channels
+- **Database Model**: Added Message model for storing all customer communications with platform tracking
+- **API Endpoints**: Full REST API for messaging operations (webhooks, sending, reading messages)
+
 ## Production Status (September 4, 2025):
 - **Production Server**: 46.250.234.89 ✓ ACTIVE (confirmed in browser URL)
 - **Outgoing IP**: 34.23.16.144 ⚠️ BLOCKED by SAMO API

@@ -4,7 +4,7 @@ Crystal Bay Travel - Database Models
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Text, Float, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, DeclarativeBase
 
 # Базовый класс для моделей
@@ -215,4 +215,68 @@ class Settings(Base):
             'is_secret': self.is_secret,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class Message(Base):
+    """Модель сообщения из мессенджеров"""
+    __tablename__ = 'messages'
+    __table_args__ = (
+        # Композитный уникальный индекс для идемпотентности
+        # message_id уникален только в пределах платформы и чата
+        UniqueConstraint('platform', 'chat_id', 'message_id', name='unique_message_per_chat'),
+        {'sqlite_autoincrement': True},
+    )
+    
+    id = Column(Integer, primary_key=True)
+    
+    # Источник сообщения
+    platform = Column(String(20), nullable=False, index=True)  # telegram, whatsapp
+    chat_id = Column(String(100), nullable=False, index=True)  # ID чата в мессенджере
+    message_id = Column(String(100), nullable=False)  # ID сообщения в мессенджере
+    
+    # Участники
+    from_user_id = Column(String(100), nullable=False)  # ID отправителя
+    from_username = Column(String(255), nullable=True)  # Имя/username отправителя
+    from_phone = Column(String(50), nullable=True)  # Телефон (для WhatsApp)
+    
+    # Содержимое
+    text = Column(Text, nullable=True)  # Текст сообщения
+    message_type = Column(String(50), default='text')  # text, photo, document, location, etc
+    media_url = Column(String(500), nullable=True)  # URL медиафайла
+    
+    # Направление
+    direction = Column(String(20), nullable=False)  # incoming, outgoing
+    
+    # Статус
+    is_read = Column(Boolean, default=False)
+    replied = Column(Boolean, default=False)
+    
+    # Связь с клиентом
+    client_id = Column(Integer, ForeignKey('clients.id'), nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    received_at = Column(DateTime, nullable=True)  # Время получения от мессенджера
+    
+    # Связи
+    client = relationship("Client")
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'platform': self.platform,
+            'chat_id': self.chat_id,
+            'message_id': self.message_id,
+            'from_user_id': self.from_user_id,
+            'from_username': self.from_username,
+            'from_phone': self.from_phone,
+            'text': self.text,
+            'message_type': self.message_type,
+            'media_url': self.media_url,
+            'direction': self.direction,
+            'is_read': self.is_read,
+            'replied': self.replied,
+            'client_id': self.client_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'received_at': self.received_at.isoformat() if self.received_at else None
         }

@@ -19,12 +19,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class Base(DeclarativeBase):
-    pass
+# Import models Base
+from models import Base
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "crystal-bay-secret-key")
+app.secret_key = os.environ.get("SESSION_SECRET")
+if not app.secret_key:
+    raise RuntimeError("SESSION_SECRET environment variable is required")
 
 # CORS configuration
 CORS(app, origins=["*"])
@@ -38,7 +40,6 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Initialize database
-from models import Base
 db = SQLAlchemy(app, model_class=Base)
 
 # Import models and API integrations
@@ -1386,6 +1387,255 @@ def test_connection(api_type):
             'success': False,
             'error': str(e)
         }), 500
+
+# === MESSAGING ENDPOINTS ===
+
+# Initialize messaging connectors
+telegram_connector = None
+whatsapp_connector = None
+
+def init_messaging_connectors():
+    """Инициализация коннекторов мессенджеров"""
+    global telegram_connector, whatsapp_connector
+    try:
+        from telegram_connector import TelegramConnector
+        from whatsapp_connector import WhatsAppConnector
+        
+        telegram_connector = TelegramConnector()
+        whatsapp_connector = WhatsAppConnector()
+        logger.info("✅ Messaging connectors initialized")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize messaging connectors: {e}")
+        return False
+
+# Инициализируем коннекторы
+init_messaging_connectors()
+
+@app.route('/messages')
+def messages():
+    """Страница управления сообщениями"""
+    return render_template('messages.html',
+                         active_page='messages',
+                         page_title='Сообщения')
+
+@app.route('/api/messages')
+def get_messages():
+    """Получить список сообщений"""
+    try:
+        platform = request.args.get('platform')  # telegram, whatsapp, all
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        query = db.session.query(Message)
+        
+        if platform and platform != 'all':
+            query = query.filter(Message.platform == platform)
+        
+        messages = query.order_by(Message.created_at.desc()).offset(offset).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'messages': [msg.to_dict() for msg in messages],
+            'total': query.count()
+        })
+    except Exception as e:
+        logger.error(f"Error getting messages: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/messages/<int:message_id>/read', methods=['POST'])
+def mark_message_read(message_id):
+    """Отметить сообщение как прочитанное"""
+    try:
+        message = db.session.get(Message, message_id)
+        if not message:
+            return jsonify({'success': False, 'error': 'Message not found'}), 404
+        
+        message.is_read = True
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error marking message as read: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/messages/send', methods=['POST'])
+def send_message():
+    """Отправить сообщение"""
+    try:
+        data = request.json
+        platform = data.get('platform')
+        chat_id = data.get('chat_id')
+        text = data.get('text')
+        
+        if not all([platform, chat_id, text]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        result = None
+        
+        if platform == 'telegram' and telegram_connector:
+            result = telegram_connector.send_message(chat_id, text)
+        elif platform == 'whatsapp' and whatsapp_connector:
+            channel_id = data.get('channel_id')
+            if not channel_id:
+                return jsonify({'success': False, 'error': 'channel_id required for WhatsApp'}), 400
+            result = whatsapp_connector.send_message(channel_id, chat_id, text)
+        else:
+            return jsonify({'success': False, 'error': 'Invalid platform or connector not initialized'}), 400
+        
+        if result and result.get('ok'):
+            # Сохраняем отправленное сообщение в БД
+            message = Message(
+                platform=platform,
+                chat_id=chat_id,
+                message_id=str(result.get('result', {}).get('message_id', '')),
+                from_user_id='system',
+                from_username='Crystal Bay Travel',
+                text=text,
+                direction='outgoing',
+                is_read=True,
+                replied=False
+            )
+            db.session.add(message)
+            db.session.commit()
+            
+            return jsonify({'success': True, 'message': message.to_dict()})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Unknown error')}), 500
+            
+    except Exception as e:
+        logger.error(f"Error sending message: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/webhook/telegram', methods=['POST'])
+def telegram_webhook():
+    """Webhook для получения сообщений из Telegram"""
+    try:
+        # Валидация Telegram webhook (опционально с secret_token)
+        secret_token = os.environ.get('TELEGRAM_WEBHOOK_SECRET')
+        if secret_token:
+            received_token = request.headers.get('X-Telegram-Bot-Api-Secret-Token')
+            if received_token != secret_token:
+                logger.warning("Invalid Telegram webhook secret token")
+                return jsonify({'ok': False, 'error': 'Invalid secret token'}), 403
+        
+        update = request.json
+        
+        if not telegram_connector:
+            return jsonify({'ok': False, 'error': 'Telegram connector not initialized'}), 500
+        
+        parsed = telegram_connector.parse_message(update)
+        
+        if parsed:
+            # Проверка идемпотентности - не дублируем сообщения
+            existing = db.session.query(Message).filter_by(
+                platform='telegram',
+                message_id=parsed['message_id']
+            ).first()
+            
+            if existing:
+                logger.debug(f"Message {parsed['message_id']} already exists, skipping")
+                return jsonify({'ok': True})
+            
+            # Сохраняем сообщение в БД
+            message = Message(
+                platform='telegram',
+                chat_id=parsed['chat_id'],
+                message_id=parsed['message_id'],
+                from_user_id=parsed['from_user_id'],
+                from_username=parsed['from_username'],
+                text=parsed['text'],
+                message_type=parsed['message_type'],
+                media_url=parsed.get('media_url'),
+                direction='incoming',
+                received_at=parsed['received_at']
+            )
+            db.session.add(message)
+            db.session.commit()
+            
+            logger.info(f"📨 Получено сообщение из Telegram: {parsed['from_username']}")
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        logger.error(f"Error processing Telegram webhook: {e}")
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/webhook/whatsapp', methods=['POST'])
+def whatsapp_webhook():
+    """Webhook для получения сообщений из WhatsApp"""
+    try:
+        webhook_data = request.json
+        
+        if not whatsapp_connector:
+            return jsonify({'ok': False, 'error': 'WhatsApp connector not initialized'}), 500
+        
+        parsed = whatsapp_connector.parse_message(webhook_data)
+        
+        if parsed:
+            # Проверка идемпотентности - не дублируем сообщения
+            existing = db.session.query(Message).filter_by(
+                platform='whatsapp',
+                message_id=parsed['message_id']
+            ).first()
+            
+            if existing:
+                logger.debug(f"Message {parsed['message_id']} already exists, skipping")
+                return jsonify({'ok': True})
+            
+            # Сохраняем сообщение в БД
+            message = Message(
+                platform='whatsapp',
+                chat_id=parsed['chat_id'],
+                message_id=parsed['message_id'],
+                from_user_id=parsed['from_user_id'],
+                from_username=parsed['from_username'],
+                from_phone=parsed.get('from_phone'),
+                text=parsed['text'],
+                message_type=parsed['message_type'],
+                media_url=parsed.get('media_url'),
+                direction='incoming',
+                received_at=parsed['received_at']
+            )
+            db.session.add(message)
+            db.session.commit()
+            
+            logger.info(f"📱 Получено сообщение из WhatsApp: {parsed['from_username']}")
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        logger.error(f"Error processing WhatsApp webhook: {e}")
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/messaging/status')
+def messaging_status():
+    """Статус коннекторов мессенджеров"""
+    try:
+        status = {
+            'telegram': {
+                'enabled': telegram_connector is not None,
+                'webhook': None
+            },
+            'whatsapp': {
+                'enabled': whatsapp_connector is not None,
+                'channels': []
+            }
+        }
+        
+        if telegram_connector:
+            webhook_info = telegram_connector.get_webhook_info()
+            status['telegram']['webhook'] = webhook_info.get('result', {}).get('url')
+        
+        if whatsapp_connector:
+            channels = whatsapp_connector.get_channels()
+            status['whatsapp']['channels'] = channels
+        
+        return jsonify({'success': True, 'status': status})
+    except Exception as e:
+        logger.error(f"Error getting messaging status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Регистрируем API роуты (временно отключено из-за конфликтов)
 # try:
