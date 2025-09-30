@@ -1,295 +1,329 @@
 {% extends "layout.html" %}
 
-{% block title %}Дашборд - Crystal Bay Travel{% endblock %}
+{% block title %}Аналитика и Метрики - Crystal Bay Travel{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="h3 mb-2">Дашборд</h1>
-            <p class="text-muted mb-0">Управление турами и заявками Crystal Bay Travel</p>
-        </div>
-        <div>
-            <button class="btn btn-primary" onclick="refreshData()">
-                <i class="bi bi-arrow-clockwise me-2"></i>
-                Обновить данные
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <div class="stats-number" id="orders-count">-</div>
-                        <div class="text-white-75">Заявки сегодня</div>
-                    </div>
-                    <div class="text-white-50">
-                        <i class="bi bi-list-ul" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <div class="stats-number" id="currencies-count">{{ stats.get('currencies_count', '-') }}</div>
-                        <div class="text-white-75">Валюты</div>
-                    </div>
-                    <div class="text-white-50">
-                        <i class="bi bi-currency-exchange" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <div class="stats-number" id="hotels-count">{{ stats.get('hotels_count', '-') }}</div>
-                        <div class="text-white-75">Отели</div>
-                    </div>
-                    <div class="text-white-50">
-                        <i class="bi bi-building" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--crystal-dark);
+        margin: 16px 0;
+    }
     
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <div class="stats-number" id="states-count">{{ stats.get('states_count', '-') }}</div>
-                        <div class="text-white-75">Направления</div>
-                    </div>
-                    <div class="text-white-50">
-                        <i class="bi bi-geo-alt" style="font-size: 2rem;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- API Status -->
-<div class="row mb-4">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-server me-2"></i>
-                    Статус API
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6 text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-database" style="font-size: 2rem; color: {{ 'green' if stats.get('api_status', {}).get('currencies', False) else 'red' }};"></i>
-                        </div>
-                        <div>
-                            <strong>SAMO API</strong><br>
-                            <span class="status-badge status-{{ 'confirmed' if stats.get('api_status', {}).get('currencies', False) else 'cancelled' }}">
-                                {{ 'Подключен' if stats.get('api_status', {}).get('currencies', False) else 'Отключен' }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-6 text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-cloud" style="font-size: 2rem; color: orange;"></i>
-                        </div>
-                        <div>
-                            <strong>Production Ready</strong><br>
-                            <span class="status-badge status-processing">В разработке</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
     
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-activity me-2"></i>
-                    Быстрые действия
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('tours_search') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-search me-2"></i>
-                        Найти туры
-                    </a>
-                    <a href="{{ url_for('orders') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-plus-lg me-2"></i>
-                        Создать заявку
-                    </a>
-                    <a href="{{ url_for('ai_assistant') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-robot me-2"></i>
-                        ИИ-Помощник
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Orders -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-clock-history me-2"></i>
-                    Последние заявки
-                </h5>
-                <a href="{{ url_for('orders') }}" class="btn btn-sm btn-outline-primary">
-                    Все заявки
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div id="recent-orders">
-                    <div class="loading">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                        <div class="mt-2">Загружаем последние заявки...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    .metric-change {
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 8px;
+        display: inline-block;
+    }
+    
+    .metric-change.positive {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .metric-change.negative {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    
+    .ai-insights {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+    
+    .ai-insights h4 {
+        color: white;
+        margin-bottom: 16px;
+    }
+    
+    .insight-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .alert-item {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border-left: 4px solid;
+    }
+    
+    .alert-warning {
+        background: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
+    }
+    
+    .alert-danger {
+        background: #f8d7da;
+        border-color: #dc3545;
+        color: #721c24;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+    }
+    
+    .period-selector {
+        background: white;
+        border-radius: 12px;
+        padding: 8px;
+        display: inline-flex;
+        gap: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .period-btn {
+        padding: 8px 16px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .period-btn.active {
+        background: var(--crystal-blue);
+        color: white;
+    }
+</style>
 {% endblock %}
 
-{% block extra_scripts %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📊 Аналитика и Метрики</h2>
+            <p class="text-muted mb-0">Ключевые показатели эффективности с ИИ-анализом</p>
+        </div>
+        <div class="period-selector">
+            <button class="period-btn" onclick="loadMetrics('7d')">7 дней</button>
+            <button class="period-btn active" onclick="loadMetrics('30d')">30 дней</button>
+            <button class="period-btn" onclick="loadMetrics('90d')">90 дней</button>
+        </div>
+    </div>
+    
+    <!-- Financial Metrics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">💰 Финансовые показатели</h5>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Общая выручка</div>
+                <div class="metric-value" id="totalRevenue">0 ₸</div>
+                <div class="metric-change positive" id="revenueGrowth">+0%</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Средний чек</div>
+                <div class="metric-value" id="avgBookingValue">0 ₸</div>
+                <div class="metric-change" id="avgChange">-</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Прибыльность</div>
+                <div class="metric-value" id="profitMargin">0%</div>
+                <div class="metric-change" id="profitChange">-</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Прогноз прибыли</div>
+                <div class="metric-value" id="estimatedProfit">0 ₸</div>
+                <div class="metric-change" id="profitForecast">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Operational Metrics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">⚙️ Операционные показатели</h5>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Всего бронирований</div>
+                <div class="metric-value" id="totalBookings">0</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Конверсия</div>
+                <div class="metric-value" id="conversionRate">0%</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Отмены</div>
+                <div class="metric-value" id="cancellationRate">0%</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Lead Time</div>
+                <div class="metric-value" id="avgLeadTime">0 дней</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="chart-container">
+                <h5 class="mb-3">📈 Тренд выручки</h5>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="chart-container">
+                <h5 class="mb-3">📊 Тренд бронирований</h5>
+                <canvas id="bookingsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Загрузка данных дашборда
-async function loadDashboardData() {
-    try {
-        // Загружаем последние заявки
-        const ordersResponse = await fetch('/api/orders?limit=5');
-        const ordersData = await ordersResponse.json();
-        
-        if (ordersData.success) {
-            displayRecentOrders(ordersData.data);
-            document.getElementById('orders-count').textContent = ordersData.total_count || 0;
-        } else {
-            document.getElementById('recent-orders').innerHTML = 
-                '<div class="alert alert-warning m-3">Не удалось загрузить заявки: ' + ordersData.error + '</div>';
-        }
-        
-    } catch (error) {
-        console.error('Dashboard data loading error:', error);
-        document.getElementById('recent-orders').innerHTML = 
-            '<div class="alert alert-danger m-3">Ошибка загрузки данных: ' + error.message + '</div>';
-    }
-}
+let revenueChart = null;
+let bookingsChart = null;
 
-function displayRecentOrders(orders) {
-    const container = document.getElementById('recent-orders');
-    
-    if (orders.length === 0) {
-        container.innerHTML = '<div class="text-center p-4 text-muted">Пока нет заявок</div>';
-        return;
-    }
-    
-    const tableHTML = `
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>Номер</th>
-                    <th>Клиент</th>
-                    <th>Направление</th>
-                    <th>Даты</th>
-                    <th>Сумма</th>
-                    <th>Статус</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${orders.map(order => `
-                    <tr>
-                        <td><strong>${order.number}</strong></td>
-                        <td>
-                            <div>${order.client_name}</div>
-                            <small class="text-muted">${order.client_phone}</small>
-                        </td>
-                        <td>${order.destination}</td>
-                        <td>
-                            <small>${CrystalBay.formatDate(order.check_in)} - ${CrystalBay.formatDate(order.check_out)}</small><br>
-                            <small class="text-muted">${order.nights} ночей</small>
-                        </td>
-                        <td>
-                            <strong>${CrystalBay.formatCurrency(order.total_amount, order.currency)}</strong>
-                        </td>
-                        <td>
-                            <span class="status-badge status-${order.status}">
-                                ${getStatusText(order.status)}
-                            </span>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-    
-    container.innerHTML = tableHTML;
-}
-
-function getStatusText(status) {
-    const statusMap = {
-        'new': 'Новая',
-        'processing': 'В обработке',
-        'confirmed': 'Подтверждена',
-        'paid': 'Оплачена',
-        'cancelled': 'Отменена'
-    };
-    return statusMap[status] || status;
-}
-
-function refreshData() {
-    // Показываем загрузку
-    CrystalBay.showLoading('#recent-orders');
-    
-    // Перезагружаем данные
-    loadDashboardData();
-    
-    // Показываем уведомление
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-success alert-dismissible fade show';
-    alert.innerHTML = `
-        <i class="bi bi-check-circle me-2"></i>
-        Данные обновлены
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.querySelector('.main-content').insertBefore(alert, document.querySelector('.page-header').nextSibling);
-    
-    // Автоматически скрываем через 3 секунды
-    setTimeout(() => {
-        alert.remove();
-    }, 3000);
-}
-
-// Загружаем данные при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardData();
+    loadMetrics('30d');
 });
+
+async function loadMetrics(period) {
+    document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+    event?.target?.classList.add('active');
+    
+    try {
+        const response = await fetch('/api/dashboard/metrics?period=' + period);
+        const data = await response.json();
+        
+        if (data.success) {
+            updateMetrics(data.metrics);
+            updateCharts(data.metrics.trends);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function updateMetrics(m) {
+    const f = m.financial;
+    const o = m.operational;
+    
+    document.getElementById('totalRevenue').textContent = formatNumber(f.total_revenue) + ' ₸';
+    document.getElementById('avgBookingValue').textContent = formatNumber(f.avg_booking_value) + ' ₸';
+    document.getElementById('profitMargin').textContent = f.profit_margin + '%';
+    document.getElementById('estimatedProfit').textContent = formatNumber(f.estimated_profit) + ' ₸';
+    
+    const growthEl = document.getElementById('revenueGrowth');
+    growthEl.textContent = (f.revenue_growth >= 0 ? '+' : '') + f.revenue_growth.toFixed(1) + '%';
+    growthEl.className = 'metric-change ' + (f.revenue_growth >= 0 ? 'positive' : 'negative');
+    
+    document.getElementById('totalBookings').textContent = o.total_bookings;
+    document.getElementById('conversionRate').textContent = o.conversion_rate + '%';
+    document.getElementById('cancellationRate').textContent = o.cancellation_rate + '%';
+    document.getElementById('avgLeadTime').textContent = o.avg_lead_time + ' дней';
+}
+
+function updateCharts(trends) {
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    if (revenueChart) revenueChart.destroy();
+    
+    revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: trends.days,
+            datasets: [{
+                label: 'Выручка (₸)',
+                data: trends.revenue,
+                borderColor: '#0066CC',
+                backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+    
+    const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+    if (bookingsChart) bookingsChart.destroy();
+    
+    bookingsChart = new Chart(bookingsCtx, {
+        type: 'bar',
+        data: {
+            labels: trends.days,
+            datasets: [{
+                label: 'Бронирования',
+                data: trends.bookings,
+                backgroundColor: '#667eea',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('ru-RU').format(Math.round(num));
+}
 </script>
 {% endblock %}

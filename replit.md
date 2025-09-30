@@ -18,6 +18,7 @@ API Requirements: Real SAMO API integration exclusively - system shows errors wh
 The application follows a modular, service-oriented architecture, designed for cloud deployment with scalability and fault tolerance.
 
 ### Core Components
+- **Analytics Dashboard with AI Insights**: Professional analytics dashboard with real-time KPI tracking, Chart.js visualizations, and OpenAI-powered business insights. Tracks financial metrics (revenue, average booking value, profit margins), operational metrics (conversion rate, occupancy, cancellations), and customer metrics (CLV, CAC, repeat rate, NPS).
 - **Web Admin Dashboard**: A clean Flask-based interface with an Apple-inspired design and light theme, providing a centralized control panel for all operations.
 - **SAMO API Integration**: Comprehensive integration for tour booking, inventory management, and real-time tour data, including a full SAMO API management system with testing capabilities for over 60 commands.
 - **Lead Management**: A Kanban-style system for tracking and managing customer leads, integrated with a detailed customer journey mapping feature.

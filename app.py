@@ -85,38 +85,10 @@ init_samo_integration()
 
 @app.route('/')
 def index():
-    """Главная страница - дашборд"""
-    try:
-        # Базовая статистика
-        stats = {
-            'total_orders': 0,
-            'active_tours': 0,
-            'currencies_count': 0,
-            'api_status': 'unavailable'
-        }
-        
-        if samo_api:
-            try:
-                health = samo_api.health_check()
-                if health.get('samo_api_available'):
-                    stats['api_status'] = 'connected'
-                    stats['currencies_count'] = 3
-                else:
-                    stats['api_status'] = 'requires_production'
-            except Exception as e:
-                logger.error(f"Health check error: {e}")
-                stats['api_status'] = 'error'
-        
-        return render_template('dashboard.html',
-                             active_page='dashboard',
-                             page_title='Дашборд',
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Dashboard error: {e}")
-        return render_template('dashboard.html',
-                             active_page='dashboard',
-                             page_title='Дашборд',
-                             stats={})
+    """Главная страница - дашборд с аналитикой"""
+    return render_template('dashboard.html',
+                         active_page='dashboard',
+                         page_title='Аналитика и Метрики')
 
 @app.route('/dashboard')
 def dashboard():
@@ -397,6 +369,71 @@ def health_check():
         
     except Exception as e:
         logger.error(f"Health check error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# === DASHBOARD METRICS & AI API ===
+
+@app.route('/api/dashboard/metrics', methods=['GET'])
+def get_dashboard_metrics():
+    """Получить метрики дашборда"""
+    try:
+        from dashboard_metrics import DashboardMetricsService
+        
+        period = request.args.get('period', '30d')
+        metrics_service = DashboardMetricsService(db.session)
+        metrics = metrics_service.get_all_metrics(period)
+        
+        return jsonify({
+            'success': True,
+            'metrics': metrics
+        })
+    except Exception as e:
+        logger.error(f"Dashboard metrics error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/dashboard/ai-insights', methods=['POST'])
+def get_ai_insights():
+    """Получить ИИ-анализ метрик"""
+    try:
+        from ai_insights import AIInsightsService
+        
+        metrics = request.get_json()
+        ai_service = AIInsightsService()
+        insights = ai_service.analyze_metrics(metrics)
+        
+        return jsonify({
+            'success': True,
+            'insights': insights
+        })
+    except Exception as e:
+        logger.error(f"AI insights error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/dashboard/forecast', methods=['POST'])
+def get_demand_forecast():
+    """Получить прогноз спроса"""
+    try:
+        from ai_insights import AIInsightsService
+        
+        trend_data = request.get_json()
+        ai_service = AIInsightsService()
+        forecast = ai_service.get_demand_forecast(trend_data)
+        
+        return jsonify({
+            'success': True,
+            'forecast': forecast
+        })
+    except Exception as e:
+        logger.error(f"Demand forecast error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
