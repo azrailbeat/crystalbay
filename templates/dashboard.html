@@ -239,9 +239,14 @@ document.addEventListener('DOMContentLoaded', function() {
     loadMetrics('30d');
 });
 
-async function loadMetrics(period) {
+async function loadMetrics(period, event = null) {
     document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-    event?.target?.classList.add('active');
+    if (event?.target) {
+        event.target.classList.add('active');
+    } else {
+        const defaultBtn = document.querySelector(`[onclick*="${period}"]`);
+        if (defaultBtn) defaultBtn.classList.add('active');
+    }
     
     try {
         const response = await fetch('/api/dashboard/metrics?period=' + period);
