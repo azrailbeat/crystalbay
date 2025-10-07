@@ -132,6 +132,8 @@ Thumbs.db
 *.bak
 *.backup
 *.old
+backups*
+BACKUP*
 test_*.py
 *_test.py
 *_tests.py
