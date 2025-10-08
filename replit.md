@@ -42,7 +42,20 @@ The application follows a modular, service-oriented architecture, designed for c
 - **PostgreSQL**: The relational database used for data storage.
 - **OpenAI GPT-4o**: Utilized for AI-powered chat automation and intelligent processing.
 
-## Recent Changes (October 6, 2025):
+## Recent Changes (October 8, 2025):
+- **🔐 Security Hardening (CRITICAL)**:
+  - ✅ Removed hardcoded OAuth token from crystal_bay_samo_api.py - now uses SAMO_OAUTH_TOKEN environment variable
+  - ✅ Fixed OAuth token logging - no longer logs full token, only masked version (first 8 + last 4 chars)
+  - ✅ Restricted CORS - now requires explicit ALLOWED_ORIGINS environment variable (no more wildcard "*")
+  - ✅ Added safe_params logging to prevent credential exposure in request logs
+  - ✅ Updated .gitignore with security patterns (backup files, old versions, test files)
+- **🧹 Cleanup (539MB freed)**:
+  - ✅ Removed backup_20250902_103619 and backup_20250902_103620 directories
+  - ✅ Deleted all test files (test_*.py, *_test.py, run_all_tests.py)
+  - ✅ Removed old/backup versions (samo_integration_old.py, *_backup.html)
+  - ✅ Cleaned up production reports and outdated files
+
+## Previous Changes (October 6, 2025):
 - **Demo Data System**: Created seed_demo_data.py for generating realistic demo data for presentations
   - 10 Kazakhstan clients with authentic names
   - 14 travel orders (Kazakhstan → Vietnam destinations)
