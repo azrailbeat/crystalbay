@@ -28,8 +28,16 @@ app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise RuntimeError("SESSION_SECRET environment variable is required")
 
-# CORS configuration
-CORS(app, origins=["*"])
+# CORS configuration - restrict to specific origins for security
+allowed_origins = os.environ.get("ALLOWED_ORIGINS", "").split(",") if os.environ.get("ALLOWED_ORIGINS") else []
+if allowed_origins:
+    CORS(app, origins=allowed_origins, supports_credentials=True)
+    logger.info(f"🔒 CORS configured for: {allowed_origins}")
+else:
+    # Development fallback - log warning
+    logger.warning("⚠️ CORS: No ALLOWED_ORIGINS set, using restricted default")
+    # Only allow same-origin in production
+    CORS(app, origins=[], supports_credentials=True)
 
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///crystal_bay.db")

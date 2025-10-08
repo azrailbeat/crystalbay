@@ -5,6 +5,7 @@
 import logging
 import requests
 import json
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from crystal_bay_samo_api_helpers import handle_error_response
@@ -22,7 +23,10 @@ class CrystalBaySamoAPI:
             settings = self.settings_service.get_samo_settings()
             
             self.base_url = base_url or settings.get('api_url', 'https://booking.crystalbay.com/export/default.php')
-            self.oauth_token = oauth_token or settings.get('oauth_token', '27bd59a7ac67422189789f0188167379')
+            self.oauth_token = oauth_token or settings.get('oauth_token') or os.environ.get('SAMO_OAUTH_TOKEN')
+            
+            if not self.oauth_token:
+                raise ValueError("SAMO OAuth token is required. Set SAMO_OAUTH_TOKEN environment variable.")
             
             logger.info(f"🔧 SAMO API CONFIG: URL={self.base_url}")
             logger.info(f"🔧 OAuth Token: {self.oauth_token[:8]}***{self.oauth_token[-4:] if self.oauth_token else 'None'}")
@@ -31,7 +35,11 @@ class CrystalBaySamoAPI:
         except ImportError:
             # Fallback if models not available
             self.base_url = base_url or "https://booking.crystalbay.com/export/default.php"
-            self.oauth_token = oauth_token or "27bd59a7ac67422189789f0188167379"
+            self.oauth_token = oauth_token or os.environ.get('SAMO_OAUTH_TOKEN')
+            
+            if not self.oauth_token:
+                raise ValueError("SAMO OAuth token is required. Set SAMO_OAUTH_TOKEN environment variable.")
+            
             self.timeout = 30
             self.user_agent = 'Crystal Bay Travel Integration/1.0'
             
@@ -55,12 +63,15 @@ class CrystalBaySamoAPI:
             import time
             start_time = time.time()
             
-            # Детальное логирование запроса
+            # Детальное логирование запроса (без OAuth токена)
             logger.info(f"=== SAMO API REQUEST START ===")
             logger.info(f"Action: {action}")
             logger.info(f"Method: POST")
             logger.info(f"URL: {self.base_url}")
-            logger.info(f"Request Parameters: {request_params}")
+            
+            # Логируем параметры БЕЗ токена (безопасно)
+            safe_params = {k: ('***HIDDEN***' if k == 'oauth_token' else v) for k, v in request_params.items()}
+            logger.info(f"Request Parameters: {safe_params}")
             
             # Headers exactly like curl
             headers = {
@@ -68,11 +79,6 @@ class CrystalBaySamoAPI:
                 'Accept': '*/*'
             }
             logger.info(f"Request Headers: {headers}")
-            
-            # Создаем полный URL для логирования
-            from urllib.parse import urlencode
-            full_url = f"{self.base_url}?{urlencode(request_params)}"
-            logger.info(f"Full URL: {full_url}")
             
             # ВАЖНО: используем POST как в рабочем curl
             response = self.session.post(self.base_url, params=request_params, headers=headers, timeout=self.timeout)
@@ -112,10 +118,10 @@ class CrystalBaySamoAPI:
                         "status_code": 200,
                         "action": action,
                         "request_details": {
-                            "url": full_url,
+                            "url": self.base_url,
                             "method": "POST",
                             "headers": headers,
-                            "params": request_params,
+                            "params": safe_params,
                             "response_time": f"{request_time:.3f}s",
                             "response_headers": dict(response.headers),
                             "response_size": len(response.text)
@@ -132,10 +138,10 @@ class CrystalBaySamoAPI:
                         "status_code": 200,
                         "action": action,
                         "request_details": {
-                            "url": full_url,
+                            "url": self.base_url,
                             "method": "POST", 
                             "headers": headers,
-                            "params": request_params,
+                            "params": safe_params,
                             "response_time": f"{request_time:.3f}s",
                             "response_headers": dict(response.headers),
                             "response_size": len(response.text)
@@ -164,10 +170,10 @@ class CrystalBaySamoAPI:
                     "action": action,
                     "blocked_ip": blocked_ip,
                     "request_details": {
-                        "url": full_url,
+                        "url": self.base_url,
                         "method": "POST",
                         "headers": headers,
-                        "params": request_params,
+                        "params": safe_params,
                         "response_time": f"{request_time:.3f}s",
                         "response_headers": dict(response.headers),
                         "response_size": len(response.text)
@@ -185,10 +191,10 @@ class CrystalBaySamoAPI:
                     "action": action,
                     "help": "Check required parameters for this action",
                     "request_details": {
-                        "url": full_url,
+                        "url": self.base_url,
                         "method": "POST",
                         "headers": headers,
-                        "params": request_params,
+                        "params": safe_params,
                         "response_time": f"{request_time:.3f}s",
                         "response_headers": dict(response.headers),
                         "response_size": len(response.text)
@@ -205,10 +211,10 @@ class CrystalBaySamoAPI:
                     "status_code": response.status_code,
                     "action": action,
                     "request_details": {
-                        "url": full_url,
+                        "url": self.base_url,
                         "method": "POST",
                         "headers": headers,
-                        "params": request_params,
+                        "params": safe_params,
                         "response_time": f"{request_time:.3f}s",
                         "response_headers": dict(response.headers),
                         "response_size": len(response.text)
