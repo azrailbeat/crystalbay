@@ -626,4 +626,225 @@ def register_api_routes(app):
                 "command": "Server curl test failed"
             }), 500
 
+    # === UNIFIED MESSAGING API ===
+    
+    @app.route('/api/messages/status', methods=['GET'])
+    def api_messaging_status():
+        """Get messaging hub status"""
+        try:
+            from messaging_service import messaging_hub
+            status = messaging_hub.get_status()
+            return jsonify({
+                'success': True,
+                'status': status
+            })
+        except Exception as e:
+            logger.error(f"Messaging status error: {e}")
+            return jsonify({
+                'success': True,
+                'status': {
+                    'initialized': False,
+                    'connectors': {
+                        'telegram': {'connected': False, 'bot_token_set': bool(os.environ.get('TELEGRAM_BOT_TOKEN'))},
+                        'wazzup': {'connected': False, 'api_key_set': bool(os.environ.get('WAZZUP_API_KEY'))}
+                    },
+                    'automation_rules': 0
+                }
+            })
+    
+    @app.route('/api/messages/initialize', methods=['POST'])
+    def api_messaging_initialize():
+        """Initialize messaging connectors"""
+        try:
+            from messaging_service import messaging_hub
+            result = messaging_hub.initialize()
+            return jsonify({
+                'success': True,
+                'result': result
+            })
+        except Exception as e:
+            logger.error(f"Messaging initialize error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/messages/conversations', methods=['GET'])
+    def api_get_conversations():
+        """Get all conversations"""
+        try:
+            from messaging_service import messaging_hub
+            channel = request.args.get('channel')
+            limit = request.args.get('limit', 50, type=int)
+            
+            conversations = messaging_hub.get_conversations(channel, limit)
+            return jsonify({
+                'success': True,
+                'conversations': conversations,
+                'count': len(conversations)
+            })
+        except Exception as e:
+            logger.error(f"Get conversations error: {e}")
+            return jsonify({
+                'success': True,
+                'conversations': [],
+                'count': 0
+            })
+    
+    @app.route('/api/messages/conversations/<conversation_id>', methods=['GET'])
+    def api_get_conversation_messages(conversation_id):
+        """Get messages for a conversation"""
+        try:
+            from messaging_service import messaging_hub
+            limit = request.args.get('limit', 50, type=int)
+            
+            messages = messaging_hub.get_messages(conversation_id, limit)
+            return jsonify({
+                'success': True,
+                'conversation_id': conversation_id,
+                'messages': messages,
+                'count': len(messages)
+            })
+        except Exception as e:
+            logger.error(f"Get messages error: {e}")
+            return jsonify({
+                'success': True,
+                'conversation_id': conversation_id,
+                'messages': [],
+                'count': 0
+            })
+    
+    @app.route('/api/messages/send', methods=['POST'])
+    def api_send_message():
+        """Send message through specified channel"""
+        try:
+            data = request.get_json() or {}
+            channel = data.get('channel')
+            chat_id = data.get('chat_id')
+            message = data.get('message')
+            
+            if not all([channel, chat_id, message]):
+                return jsonify({
+                    'success': False,
+                    'error': 'channel, chat_id, and message are required'
+                }), 400
+            
+            from messaging_service import messaging_hub
+            result = messaging_hub.send_message(channel, chat_id, message, data.get('options', {}))
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Send message error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/messages/stats', methods=['GET'])
+    def api_messaging_stats():
+        """Get messaging channel statistics"""
+        try:
+            from messaging_service import messaging_hub
+            stats = messaging_hub.get_channel_stats()
+            return jsonify({
+                'success': True,
+                'stats': stats
+            })
+        except Exception as e:
+            logger.error(f"Messaging stats error: {e}")
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'telegram': {'total_conversations': 0, 'unread_messages': 0},
+                    'whatsapp': {'total_conversations': 0, 'unread_messages': 0},
+                    'wazzup': {'total_conversations': 0, 'unread_messages': 0}
+                }
+            })
+    
+    @app.route('/api/messages/unread', methods=['GET'])
+    def api_unread_count():
+        """Get unread message count"""
+        try:
+            from messaging_service import messaging_hub
+            channel = request.args.get('channel')
+            count = messaging_hub.get_unread_count(channel)
+            return jsonify({
+                'success': True,
+                'unread_count': count,
+                'channel': channel or 'all'
+            })
+        except Exception as e:
+            return jsonify({
+                'success': True,
+                'unread_count': 0,
+                'channel': 'all'
+            })
+    
+    # === WEBHOOKS ===
+    
+    @app.route('/webhooks/telegram', methods=['POST'])
+    def webhook_telegram():
+        """Handle Telegram webhook"""
+        try:
+            payload = request.get_json() or {}
+            logger.info(f"Telegram webhook received: {str(payload)[:200]}")
+            
+            from messaging_service import messaging_hub
+            result = messaging_hub.handle_incoming_message('telegram', payload)
+            return jsonify({'ok': True, 'result': result})
+        except Exception as e:
+            logger.error(f"Telegram webhook error: {e}")
+            return jsonify({'ok': False, 'error': str(e)}), 500
+    
+    @app.route('/webhooks/wazzup', methods=['POST'])
+    def webhook_wazzup():
+        """Handle Wazzup webhook"""
+        try:
+            payload = request.get_json() or {}
+            logger.info(f"Wazzup webhook received: {str(payload)[:200]}")
+            
+            from messaging_service import messaging_hub
+            
+            messages = payload.get('messages', [])
+            results = []
+            for msg in messages:
+                result = messaging_hub.handle_incoming_message('wazzup', msg)
+                results.append(result)
+            
+            return jsonify({'success': True, 'processed': len(results)})
+        except Exception as e:
+            logger.error(f"Wazzup webhook error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/webhooks/whatsapp', methods=['POST'])
+    def webhook_whatsapp():
+        """Handle WhatsApp webhook (via Wazzup)"""
+        return webhook_wazzup()
+    
+    @app.route('/webhooks/status', methods=['GET'])
+    def webhooks_status():
+        """Get webhooks status"""
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        wazzup_key = os.environ.get('WAZZUP_API_KEY')
+        
+        return jsonify({
+            'success': True,
+            'webhooks': {
+                'telegram': {
+                    'endpoint': '/webhooks/telegram',
+                    'method': 'POST',
+                    'configured': bool(telegram_token)
+                },
+                'wazzup': {
+                    'endpoint': '/webhooks/wazzup',
+                    'method': 'POST',
+                    'configured': bool(wazzup_key)
+                },
+                'whatsapp': {
+                    'endpoint': '/webhooks/whatsapp',
+                    'method': 'POST',
+                    'note': 'Uses Wazzup integration'
+                }
+            }
+        })
+    
     logger.info("API routes registered successfully")

@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Messaging - Crystal Bay Tours</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0071e3;
+            --secondary-color: #86868b;
+            --background-color: #f5f5f7;
+            --card-background: #ffffff;
+            --success-color: #34c759;
+            --danger-color: #ff3b30;
+            --warning-color: #ff9500;
+            --border-radius: 12px;
+            --text-color: #1d1d1f;
+            --light-border: #e6e6e6;
+            --light-accent: #f2f2f2;
+            --telegram-color: #0088cc;
+            --whatsapp-color: #25d366;
+            --email-color: #ea4335;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .messaging-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .sidebar-panel {
+            width: 320px;
+            background: var(--card-background);
+            border-right: 1px solid var(--light-border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--light-border);
+        }
+        
+        .sidebar-header h5 {
+            margin: 0 0 15px 0;
+            font-weight: 600;
+        }
+        
+        .channel-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .channel-tab {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--light-border);
+            background: var(--light-accent);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .channel-tab:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .channel-tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .channel-tab.telegram { border-color: var(--telegram-color); }
+        .channel-tab.telegram.active { background: var(--telegram-color); }
+        
+        .channel-tab.whatsapp { border-color: var(--whatsapp-color); }
+        .channel-tab.whatsapp.active { background: var(--whatsapp-color); }
+        
+        .channel-badge {
+            background: var(--danger-color);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .conversation-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--light-border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background: var(--light-accent);
+        }
+        
+        .conversation-item.active {
+            background: rgba(0, 113, 227, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .conversation-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .conversation-time {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+        }
+        
+        .conversation-preview {
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .channel-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+        }
+        
+        .channel-icon.telegram { background: var(--telegram-color); }
+        .channel-icon.whatsapp { background: var(--whatsapp-color); }
+        .channel-icon.email { background: var(--email-color); }
+        
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--background-color);
+        }
+        
+        .chat-header {
+            background: var(--card-background);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--light-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-contact {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .contact-info h6 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .contact-info small {
+            color: var(--secondary-color);
+        }
+        
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-actions .btn {
+            border-radius: 8px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            position: relative;
+        }
+        
+        .message.incoming {
+            background: var(--card-background);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .message.outgoing {
+            background: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-content {
+            margin-bottom: 4px;
+        }
+        
+        .message-meta {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            text-align: right;
+        }
+        
+        .chat-input-area {
+            background: var(--card-background);
+            padding: 15px 20px;
+            border-top: 1px solid var(--light-border);
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .chat-input {
+            flex: 1;
+            border: 1px solid var(--light-border);
+            border-radius: 20px;
+            padding: 10px 16px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.95rem;
+            max-height: 120px;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);
+        }
+        
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .send-btn:hover {
+            background: #0066cc;
+        }
+        
+        .send-btn:disabled {
+            background: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        
+        .info-panel {
+            width: 280px;
+            background: var(--card-background);
+            border-left: 1px solid var(--light-border);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .info-section {
+            margin-bottom: 25px;
+        }
+        
+        .info-section h6 {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--secondary-color);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--light-border);
+        }
+        
+        .info-label {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+        
+        .info-value {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .automation-card {
+            background: var(--light-accent);
+            border-radius: var(--border-radius);
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .automation-card h6 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+        }
+        
+        .automation-card p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--secondary-color);
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h5 {
+            margin-bottom: 10px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-indicator.online { background: var(--success-color); }
+        .status-indicator.offline { background: var(--secondary-color); }
+        .status-indicator.away { background: var(--warning-color); }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="messaging-container">
+        <!-- Sidebar: Conversations List -->
+        <div class="sidebar-panel">
+            <div class="sidebar-header">
+                <h5><i class="bi bi-chat-dots-fill me-2"></i>Сообщения</h5>
+                <div class="channel-tabs">
+                    <div class="channel-tab active" data-channel="all">
+                        Все <span class="channel-badge" id="badge-all">0</span>
+                    </div>
+                    <div class="channel-tab telegram" data-channel="telegram">
+                        <i class="bi bi-telegram"></i> Telegram
+                    </div>
+                    <div class="channel-tab whatsapp" data-channel="whatsapp">
+                        <i class="bi bi-whatsapp"></i> WhatsApp
+                    </div>
+                </div>
+            </div>
+            
+            <div class="conversations-list" id="conversations-list">
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h5>Нет диалогов</h5>
+                    <p>Входящие сообщения появятся здесь</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-header" id="chat-header" style="display: none;">
+                <div class="chat-contact">
+                    <div class="contact-avatar" id="contact-avatar">A</div>
+                    <div class="contact-info">
+                        <h6 id="contact-name">Выберите диалог</h6>
+                        <small id="contact-channel">-</small>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="btn btn-outline-primary btn-sm" onclick="createLeadFromChat()">
+                        <i class="bi bi-person-plus"></i> Создать лид
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="showContactInfo()">
+                        <i class="bi bi-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="empty-state">
+                    <i class="bi bi-chat-square-text"></i>
+                    <h5>Выберите диалог</h5>
+                    <p>Выберите диалог из списка слева для просмотра сообщений</p>
+                </div>
+            </div>
+            
+            <div class="chat-input-area" id="chat-input-area" style="display: none;">
+                <div class="chat-input-container">
+                    <textarea class="chat-input" id="message-input" placeholder="Введите сообщение..." rows="1"></textarea>
+                    <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="info-panel" id="info-panel">
+            <div class="info-section">
+                <h6>Статус интеграций</h6>
+                <div id="integrations-status">
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-telegram"></i> Telegram</span>
+                        <span class="info-value"><span class="status-indicator offline"></span> Не подключен</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-whatsapp"></i> WhatsApp</span>
+                        <span class="info-value"><span class="status-indicator offline"></span> Не подключен</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h6>Статистика</h6>
+                <div id="stats-container">
+                    <div class="info-item">
+                        <span class="info-label">Всего диалогов</span>
+                        <span class="info-value" id="stat-conversations">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Непрочитанных</span>
+                        <span class="info-value" id="stat-unread">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h6>Автоматизация</h6>
+                <div id="automation-container">
+                    <div class="automation-card">
+                        <h6><i class="bi bi-lightning-fill text-warning"></i> Авто-приветствие</h6>
+                        <p>Отправлять приветствие новым клиентам</p>
+                    </div>
+                    <div class="automation-card">
+                        <h6><i class="bi bi-person-plus text-primary"></i> Авто-лид</h6>
+                        <p>Создавать лид при первом сообщении</p>
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm w-100 mt-2" onclick="showAutomationSettings()">
+                    <i class="bi bi-gear"></i> Настроить автоматизацию
+                </button>
+            </div>
+            
+            <div class="info-section">
+                <h6>Быстрые действия</h6>
+                <div class="d-grid gap-2">
+                    <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-grid"></i> К дашборду
+                    </a>
+                    <button class="btn btn-outline-primary btn-sm" onclick="initializeConnectors()">
+                        <i class="bi bi-plug"></i> Подключить мессенджеры
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="refreshMessages()">
+                        <i class="bi bi-arrow-clockwise"></i> Обновить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentConversation = null;
+        let currentChannel = 'all';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+            loadConversations();
+            loadStats();
+            
+            setInterval(refreshMessages, 30000);
+            
+            document.querySelectorAll('.channel-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentChannel = this.dataset.channel;
+                    loadConversations();
+                });
+            });
+            
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+        
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/messages/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateIntegrationsStatus(data.status);
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+        
+        function updateIntegrationsStatus(status) {
+            const container = document.getElementById('integrations-status');
+            const connectors = status.connectors || {};
+            
+            let html = '';
+            
+            if (connectors.telegram) {
+                const tgStatus = connectors.telegram.connected ? 'online' : 'offline';
+                const tgText = connectors.telegram.connected ? 'Подключен' : 'Не подключен';
+                html += `
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-telegram"></i> Telegram</span>
+                        <span class="info-value"><span class="status-indicator ${tgStatus}"></span> ${tgText}</span>
+                    </div>
+                `;
+            }
+            
+            if (connectors.wazzup) {
+                const waStatus = connectors.wazzup.connected ? 'online' : 'offline';
+                const waText = connectors.wazzup.connected ? 'Подключен' : 'Не подключен';
+                html += `
+                    <div class="info-item">
+                        <span class="info-label"><i class="bi bi-whatsapp"></i> WhatsApp</span>
+                        <span class="info-value"><span class="status-indicator ${waStatus}"></span> ${waText}</span>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html || '<p class="text-muted">Нет данных</p>';
+        }
+        
+        async function loadConversations() {
+            try {
+                let url = '/api/messages/conversations';
+                if (currentChannel !== 'all') {
+                    url += `?channel=${currentChannel}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderConversations(data.conversations);
+                }
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+            }
+        }
+        
+        function renderConversations(conversations) {
+            const container = document.getElementById('conversations-list');
+            
+            if (!conversations || conversations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <h5>Нет диалогов</h5>
+                        <p>Входящие сообщения появятся здесь</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = conversations.map(conv => `
+                <div class="conversation-item ${conv.id === currentConversation?.id ? 'active' : ''}" 
+                     onclick="selectConversation('${conv.id}', '${conv.channel}', '${conv.external_chat_id}')">
+                    <div class="conversation-header">
+                        <div class="conversation-name">
+                            <span class="channel-icon ${conv.channel}">
+                                <i class="bi bi-${conv.channel === 'telegram' ? 'telegram' : 'whatsapp'}"></i>
+                            </span>
+                            ${conv.participant_name || 'Неизвестный'}
+                        </div>
+                        <span class="conversation-time">${formatTime(conv.last_message_at)}</span>
+                    </div>
+                    <div class="conversation-preview">
+                        ${conv.participant_phone || conv.external_chat_id || 'Нет сообщений'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function selectConversation(id, channel, chatId) {
+            currentConversation = { id, channel, chat_id: chatId };
+            
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('chat-header').style.display = 'flex';
+            document.getElementById('chat-input-area').style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/messages/conversations/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderMessages(data.messages);
+                    
+                    const conv = event.currentTarget;
+                    document.getElementById('contact-name').textContent = 
+                        conv.querySelector('.conversation-name').textContent.trim();
+                    document.getElementById('contact-channel').textContent = 
+                        channel.charAt(0).toUpperCase() + channel.slice(1);
+                    document.getElementById('contact-avatar').textContent = 
+                        (conv.querySelector('.conversation-name').textContent.trim()[0] || 'A').toUpperCase();
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+        
+        function renderMessages(messages) {
+            const container = document.getElementById('chat-messages');
+            
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-chat-square"></i>
+                        <p>Нет сообщений в этом диалоге</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            messages.reverse();
+            
+            container.innerHTML = messages.map(msg => `
+                <div class="message ${msg.direction === 'in' ? 'incoming' : 'outgoing'}">
+                    <div class="message-content">${escapeHtml(msg.content)}</div>
+                    <div class="message-meta">${formatTime(msg.created_at)}</div>
+                </div>
+            `).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            if (!currentConversation) {
+                alert('Выберите диалог');
+                return;
+            }
+            
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel: currentConversation.channel,
+                        chat_id: currentConversation.chat_id,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    
+                    const container = document.getElementById('chat-messages');
+                    container.innerHTML += `
+                        <div class="message outgoing">
+                            <div class="message-content">${escapeHtml(message)}</div>
+                            <div class="message-meta">${formatTime(new Date().toISOString())}</div>
+                        </div>
+                    `;
+                    container.scrollTop = container.scrollHeight;
+                } else {
+                    alert('Ошибка отправки: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/messages/stats');
+                const data = await response.json();
+                
+                if (data.success && data.stats) {
+                    let totalConversations = 0;
+                    let totalUnread = 0;
+                    
+                    for (const channel of Object.values(data.stats)) {
+                        totalConversations += channel.total_conversations || 0;
+                        totalUnread += channel.unread_messages || 0;
+                    }
+                    
+                    document.getElementById('stat-conversations').textContent = totalConversations;
+                    document.getElementById('stat-unread').textContent = totalUnread;
+                    document.getElementById('badge-all').textContent = totalUnread;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function initializeConnectors() {
+            try {
+                const response = await fetch('/api/messages/initialize', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Коннекторы инициализированы!');
+                    loadStatus();
+                } else {
+                    alert('Ошибка: ' + JSON.stringify(data.result));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        function refreshMessages() {
+            loadConversations();
+            loadStats();
+            if (currentConversation) {
+                selectConversation(currentConversation.id, currentConversation.channel, currentConversation.chat_id);
+            }
+        }
+        
+        function createLeadFromChat() {
+            if (!currentConversation) return;
+            alert('Функция создания лида будет реализована');
+        }
+        
+        function showContactInfo() {
+            alert('Информация о контакте');
+        }
+        
+        function showAutomationSettings() {
+            alert('Настройки автоматизации');
+        }
+        
+        function formatTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'сейчас';
+            if (diff < 3600000) return Math.floor(diff / 60000) + ' мин назад';
+            if (diff < 86400000) return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

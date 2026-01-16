@@ -13,6 +13,8 @@ require('dotenv').config();
 // Import routes
 const mainRoutes = require('./routes/main');
 const apiRoutes = require('./routes/api');
+const messagesRoutes = require('./routes/messages');
+const webhooksRoutes = require('./routes/webhooks');
 
 const app = express();
 
@@ -64,6 +66,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use('/', mainRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/webhooks', webhooksRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -155,8 +155,8 @@ def samo_api():
 
 @app.route('/messages')
 def messages():
-    """Messages page"""
-    return render_template('messages.html')
+    """Unified Messages page"""
+    return render_template('messages_unified.html')
 
 @app.route('/settings')
 def settings():

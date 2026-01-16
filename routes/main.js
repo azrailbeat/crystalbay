@@ -114,7 +114,7 @@ router.get('/samo-api', (req, res) => {
 });
 
 router.get('/messages', (req, res) => {
-    res.render('messages', { active_page: 'messages' });
+    res.render('messages-unified', { active_page: 'messages' });
 });
 
 router.get('/settings', (req, res) => {
