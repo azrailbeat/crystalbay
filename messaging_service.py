@@ -33,6 +33,28 @@ class MessageStore:
         except Exception as e:
             logger.warning(f"MessageStore: Using memory storage - {e}")
     
+    def _ensure_connection(self):
+        """Ensure database connection is alive, reconnect if needed"""
+        if not self.db:
+            return False
+        try:
+            cursor = self.db.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            return True
+        except Exception as e:
+            logger.warning(f"MessageStore: Reconnecting - {e}")
+            try:
+                import psycopg2
+                database_url = os.environ.get('DATABASE_URL')
+                if database_url:
+                    self.db = psycopg2.connect(database_url)
+                    return True
+            except Exception as e2:
+                logger.error(f"MessageStore: Reconnection failed - {e2}")
+                self.db = None
+                return False
+    
     def _create_tables(self):
         """Create messaging tables if they don't exist"""
         if not self.db:
@@ -154,7 +176,7 @@ class MessageStore:
     
     def get_conversations(self, channel: str = None, limit: int = 50) -> List[Dict]:
         """Get all conversations optionally filtered by channel"""
-        if self.db:
+        if self.db and self._ensure_connection():
             try:
                 cursor = self.db.cursor()
                 if channel:
@@ -237,7 +259,7 @@ class MessageStore:
     
     def get_messages(self, conversation_id: str, limit: int = 50) -> List[Dict]:
         """Get messages for a conversation"""
-        if self.db:
+        if self.db and self._ensure_connection():
             try:
                 cursor = self.db.cursor()
                 cursor.execute('''
@@ -267,7 +289,7 @@ class MessageStore:
     
     def get_unread_count(self, channel: str = None) -> int:
         """Get count of unread incoming messages"""
-        if self.db:
+        if self.db and self._ensure_connection():
             try:
                 cursor = self.db.cursor()
                 if channel:

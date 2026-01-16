@@ -325,7 +325,12 @@
             <!-- Навигация по разделам -->
             <ul class="nav nav-pills mb-4" id="settingsTabs">
                 <li class="nav-item">
-                    <a class="nav-link active" data-bs-toggle="pill" href="#integrations">
+                    <a class="nav-link active" data-bs-toggle="pill" href="#messengers">
+                        <i class="bi bi-chat-dots"></i> Мессенджеры
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="pill" href="#integrations">
                         <i class="bi bi-link-45deg"></i> Интеграции
                     </a>
                 </li>
@@ -347,8 +352,111 @@
             </ul>
             
             <div class="tab-content">
+                <!-- Мессенджеры -->
+                <div class="tab-pane fade show active" id="messengers">
+                    <div class="settings-section">
+                        <div class="settings-header" style="background: linear-gradient(135deg, #0088cc 0%, #005f8f 100%);">
+                            <h3><i class="bi bi-chat-dots me-2"></i>Настройка мессенджеров</h3>
+                        </div>
+                        <div class="settings-body">
+                            <p class="text-muted mb-4">Подключите мессенджеры для общения с клиентами. После настройки сообщения будут отображаться в разделе "Сообщения".</p>
+                            
+                            <div class="integration-grid">
+                                <!-- Telegram Bot -->
+                                <div class="integration-card" id="telegram-card">
+                                    <div class="integration-header">
+                                        <div class="integration-title">
+                                            <div class="integration-logo telegram">
+                                                <i class="bi bi-telegram"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">Telegram Bot</h5>
+                                                <small class="text-muted">Бот для общения с клиентами</small>
+                                            </div>
+                                        </div>
+                                        <div class="integration-status" id="telegram-status-badge">
+                                            <span class="status-dot bg-secondary"></span>
+                                            <span id="telegram-status-text">Не настроен</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-fields">
+                                        <div class="mb-3">
+                                            <label class="form-label">Токен бота (от @BotFather):</label>
+                                            <input type="password" class="form-control" id="telegram-bot-token" 
+                                                   placeholder="Например: 123456789:ABCdefGhIjKlmnoPQRstuvwxyz">
+                                            <small class="text-muted">Получите токен у @BotFather в Telegram</small>
+                                        </div>
+                                        <div class="mb-3" id="telegram-bot-info" style="display: none;">
+                                            <div class="alert alert-success">
+                                                <strong>Бот подключен:</strong> <span id="telegram-bot-name">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-actions">
+                                        <button class="btn btn-test" onclick="testTelegramConnection()">
+                                            <i class="bi bi-wifi"></i> Проверить
+                                        </button>
+                                        <button class="btn btn-save" onclick="saveTelegramSettings()">
+                                            <i class="bi bi-save"></i> Сохранить
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Wazzup24 WhatsApp -->
+                                <div class="integration-card" id="wazzup-card">
+                                    <div class="integration-header">
+                                        <div class="integration-title">
+                                            <div class="integration-logo wazzup">
+                                                <i class="bi bi-whatsapp"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">WhatsApp (Wazzup24)</h5>
+                                                <small class="text-muted">Интеграция через Wazzup24.ru</small>
+                                            </div>
+                                        </div>
+                                        <div class="integration-status" id="wazzup-status-badge">
+                                            <span class="status-dot bg-secondary"></span>
+                                            <span id="wazzup-status-text">Не настроен</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-fields">
+                                        <div class="mb-3">
+                                            <label class="form-label">API ключ Wazzup24:</label>
+                                            <input type="password" class="form-control" id="wazzup-api-key" 
+                                                   placeholder="Введите API ключ из личного кабинета Wazzup24">
+                                            <small class="text-muted">Получите API ключ в <a href="https://wazzup24.ru" target="_blank">личном кабинете Wazzup24</a></small>
+                                        </div>
+                                        <div class="mb-3" id="wazzup-channels-info" style="display: none;">
+                                            <label class="form-label">Подключенные каналы:</label>
+                                            <div id="wazzup-channels-list"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-actions">
+                                        <button class="btn btn-test" onclick="testWazzupConnection()">
+                                            <i class="bi bi-wifi"></i> Проверить
+                                        </button>
+                                        <button class="btn btn-save" onclick="saveWazzupSettings()">
+                                            <i class="bi bi-save"></i> Сохранить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <a href="/messages" class="btn btn-primary">
+                                    <i class="bi bi-chat-dots-fill me-2"></i>Перейти к сообщениям
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Интеграции -->
-                <div class="tab-pane fade show active" id="integrations">
+                <div class="tab-pane fade" id="integrations">
                     <div class="integration-grid" id="integrationsGrid">
                         
                         <!-- SAMO API -->
@@ -610,8 +718,138 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadSamoSettings();
         loadAllSettings();
+        loadMessengerStatus();
         setupEventListeners();
     });
+    
+    // Load messenger status from API
+    async function loadMessengerStatus() {
+        try {
+            const response = await fetch('/api/messages/status');
+            const data = await response.json();
+            
+            if (data.success && data.status) {
+                const connectors = data.status.connectors || {};
+                
+                // Update Telegram status
+                if (connectors.telegram) {
+                    const tg = connectors.telegram;
+                    const statusBadge = document.getElementById('telegram-status-badge');
+                    const statusText = document.getElementById('telegram-status-text');
+                    const botInfo = document.getElementById('telegram-bot-info');
+                    
+                    if (tg.bot_info) {
+                        statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                        statusText.textContent = 'Подключен';
+                        document.getElementById('telegram-bot-name').textContent = '@' + tg.bot_info.username;
+                        botInfo.style.display = 'block';
+                        document.getElementById('telegram-card').classList.add('enabled');
+                    } else if (tg.bot_token_set) {
+                        statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+                        statusText.textContent = 'Настроен';
+                    }
+                }
+                
+                // Update Wazzup status
+                if (connectors.wazzup) {
+                    const wz = connectors.wazzup;
+                    const statusBadge = document.getElementById('wazzup-status-badge');
+                    const statusText = document.getElementById('wazzup-status-text');
+                    
+                    if (wz.connected) {
+                        statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                        statusText.textContent = 'Подключен';
+                        document.getElementById('wazzup-card').classList.add('enabled');
+                    } else if (wz.api_key_set) {
+                        statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+                        statusText.textContent = 'Настроен';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading messenger status:', error);
+        }
+    }
+    
+    // Test Telegram connection
+    async function testTelegramConnection() {
+        const tokenInput = document.getElementById('telegram-bot-token');
+        const token = tokenInput.value.trim();
+        
+        const statusBadge = document.getElementById('telegram-status-badge');
+        statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+        document.getElementById('telegram-status-text').textContent = 'Проверка...';
+        
+        try {
+            const response = await fetch('/api/messages/initialize', { method: 'POST' });
+            const data = await response.json();
+            
+            if (data.success && data.result && data.result.telegram && data.result.telegram.success) {
+                const botInfo = data.result.telegram.bot_info;
+                statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                document.getElementById('telegram-status-text').textContent = 'Подключен';
+                document.getElementById('telegram-bot-name').textContent = '@' + botInfo.username;
+                document.getElementById('telegram-bot-info').style.display = 'block';
+                document.getElementById('telegram-card').classList.add('enabled');
+                showNotification('Telegram бот подключен: @' + botInfo.username, 'success');
+            } else {
+                statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+                document.getElementById('telegram-status-text').textContent = 'Ошибка';
+                showNotification('Ошибка подключения Telegram', 'error');
+            }
+        } catch (error) {
+            statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+            document.getElementById('telegram-status-text').textContent = 'Ошибка';
+            showNotification('Ошибка: ' + error.message, 'error');
+        }
+    }
+    
+    // Save Telegram settings
+    function saveTelegramSettings() {
+        const token = document.getElementById('telegram-bot-token').value.trim();
+        if (!token) {
+            showNotification('Введите токен бота', 'warning');
+            return;
+        }
+        showNotification('Для сохранения токена Telegram используйте переменные окружения (TELEGRAM_BOT_TOKEN)', 'info');
+    }
+    
+    // Test Wazzup connection
+    async function testWazzupConnection() {
+        const statusBadge = document.getElementById('wazzup-status-badge');
+        statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+        document.getElementById('wazzup-status-text').textContent = 'Проверка...';
+        
+        try {
+            const response = await fetch('/api/wazzup/test', { method: 'POST' });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                document.getElementById('wazzup-status-text').textContent = 'Подключен';
+                document.getElementById('wazzup-card').classList.add('enabled');
+                showNotification('Wazzup24 подключен успешно', 'success');
+            } else {
+                statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+                document.getElementById('wazzup-status-text').textContent = 'Ошибка';
+                showNotification(data.message || 'Ошибка подключения Wazzup24', 'error');
+            }
+        } catch (error) {
+            statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+            document.getElementById('wazzup-status-text').textContent = 'Ошибка';
+            showNotification('Ошибка: ' + error.message, 'error');
+        }
+    }
+    
+    // Save Wazzup settings
+    function saveWazzupSettings() {
+        const apiKey = document.getElementById('wazzup-api-key').value.trim();
+        if (!apiKey) {
+            showNotification('Введите API ключ Wazzup24', 'warning');
+            return;
+        }
+        showNotification('Для сохранения API ключа Wazzup24 используйте переменные окружения (WAZZUP_API_KEY)', 'info');
+    }
     
     // Настройка обработчиков событий
     function setupEventListeners() {
