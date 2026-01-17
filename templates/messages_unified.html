@@ -381,6 +381,15 @@
         </div>
         
         <div class="chat-input-area" id="chat-input-area" style="display: none;">
+            <div class="agent-selector mb-2">
+                <label class="form-label small text-muted mb-1">Отправить от имени:</label>
+                <select class="form-select form-select-sm" id="agent-select" style="max-width: 250px;">
+                    <option value="system" data-name="Система">Система</option>
+                    <option value="manager1" data-name="Менеджер Анна">Менеджер Анна</option>
+                    <option value="manager2" data-name="Менеджер Ольга">Менеджер Ольга</option>
+                    <option value="support" data-name="Служба поддержки">Служба поддержки</option>
+                </select>
+            </div>
             <div class="chat-input-container">
                 <textarea class="chat-input" id="message-input" placeholder="Введите сообщение..." rows="1"></textarea>
                 <button class="send-btn" id="send-btn" onclick="sendMessage()">
@@ -602,12 +611,18 @@ function renderMessages(messages) {
     
     messages.reverse();
     
-    container.innerHTML = messages.map(msg => `
-        <div class="message ${msg.direction === 'in' ? 'incoming' : 'outgoing'}">
-            <div class="message-content">${escapeHtml(msg.content)}</div>
-            <div class="message-meta">${formatTime(msg.created_at)}</div>
-        </div>
-    `).join('');
+    container.innerHTML = messages.map(msg => {
+        const senderInfo = msg.direction === 'out' && msg.sender_name 
+            ? `<div class="message-sender small text-muted">${escapeHtml(msg.sender_name)}</div>` 
+            : '';
+        return `
+            <div class="message ${msg.direction === 'in' ? 'incoming' : 'outgoing'}">
+                ${senderInfo}
+                <div class="message-content">${escapeHtml(msg.content || '')}</div>
+                <div class="message-meta">${formatTime(msg.created_at)}</div>
+            </div>
+        `;
+    }).join('');
     
     container.scrollTop = container.scrollHeight;
 }
@@ -623,6 +638,11 @@ async function sendMessage() {
     
     if (!message) return;
     
+    const agentSelect = document.getElementById('agent-select');
+    const selectedOption = agentSelect.options[agentSelect.selectedIndex];
+    const agentId = agentSelect.value;
+    const agentName = selectedOption.getAttribute('data-name') || 'Система';
+    
     const sendBtn = document.getElementById('send-btn');
     sendBtn.disabled = true;
     
@@ -633,7 +653,9 @@ async function sendMessage() {
             body: JSON.stringify({
                 channel: currentConversation.channel,
                 chat_id: currentConversation.chat_id,
-                message: message
+                message: message,
+                agent_id: agentId,
+                agent_name: agentName
             })
         });
         
@@ -645,6 +667,7 @@ async function sendMessage() {
             const container = document.getElementById('chat-messages');
             container.innerHTML += `
                 <div class="message outgoing">
+                    <div class="message-sender small text-muted">${escapeHtml(agentName)}</div>
                     <div class="message-content">${escapeHtml(message)}</div>
                     <div class="message-meta">${formatTime(new Date().toISOString())}</div>
                 </div>
