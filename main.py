@@ -134,6 +134,7 @@ def history():
     return render_template('history.html')
 
 @app.route('/agents-ai')
+@app.route('/ai-agents')
 def agents_ai():
     """AI Agents management page"""
     return render_template('ai_agents.html')
