@@ -812,6 +812,200 @@ def register_api_routes(app):
                 'channel': 'all'
             })
     
+    @app.route('/api/messages/simulate', methods=['POST'])
+    def api_simulate_incoming():
+        """Simulate incoming message and process with AI auto-response"""
+        try:
+            data = request.get_json() or {}
+            channel = data.get('channel', 'telegram')
+            message = data.get('message', 'Здравствуйте! Хочу узнать о турах')
+            customer_name = data.get('customer_name', 'Тестовый Клиент')
+            phone = data.get('phone', '+7999' + str(int(datetime.now().timestamp()))[-7:])
+            auto_respond = data.get('auto_respond', True)
+            agent_id = data.get('agent_id', 'travel_consultant')
+            
+            from messaging_service import messaging_hub
+            from ai_chat_service import ai_chat_service, conversation_manager
+            
+            chat_id = f"test_{channel}_{int(datetime.now().timestamp())}"
+            conversation_id = f"conv_{chat_id}"
+            
+            incoming_msg = {
+                'id': f"msg_{int(datetime.now().timestamp())}",
+                'channel': channel,
+                'chat_id': chat_id,
+                'conversation_id': conversation_id,
+                'direction': 'incoming',
+                'content': message,
+                'sender_name': customer_name,
+                'sender_phone': phone,
+                'timestamp': datetime.now().isoformat(),
+                'is_test': True
+            }
+            
+            messaging_hub.store_message(incoming_msg)
+            
+            result = {
+                'success': True,
+                'incoming_message': incoming_msg,
+                'ai_response': None,
+                'auto_responded': False
+            }
+            
+            if auto_respond:
+                conversation_manager.set_mode(conversation_id, 'auto', agent_id)
+                
+                try:
+                    ai_response = ai_chat_service.generate_response(
+                        conversation_history=[{'direction': 'incoming', 'content': message}],
+                        agent_id=agent_id,
+                        context={'channel': channel, 'customer_name': customer_name}
+                    )
+                    
+                    if ai_response.get('success') and ai_response.get('response'):
+                        outgoing_msg = {
+                            'id': f"msg_{int(datetime.now().timestamp())}_ai",
+                            'channel': channel,
+                            'chat_id': chat_id,
+                            'conversation_id': conversation_id,
+                            'direction': 'outgoing',
+                            'content': ai_response['response'],
+                            'sender_name': 'AI Ассистент',
+                            'agent_id': agent_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'is_ai_generated': True
+                        }
+                        
+                        messaging_hub.store_message(outgoing_msg)
+                        
+                        result['ai_response'] = outgoing_msg
+                        result['auto_responded'] = True
+                    else:
+                        result['ai_error'] = ai_response.get('error', 'AI не смог сгенерировать ответ')
+                        
+                except Exception as ai_err:
+                    result['ai_error'] = str(ai_err)
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"Simulate message error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/messages/test-batch', methods=['POST'])
+    def api_test_batch_messages():
+        """Create batch of test messages from different channels with AI processing"""
+        try:
+            from messaging_service import messaging_hub
+            from ai_chat_service import ai_chat_service, conversation_manager
+            
+            test_scenarios = [
+                {
+                    'channel': 'telegram',
+                    'customer_name': 'Алексей Петров',
+                    'phone': '+79991234567',
+                    'message': 'Добрый день! Ищу тур в Турцию на двоих, июль, бюджет 150000 рублей. Что посоветуете?'
+                },
+                {
+                    'channel': 'whatsapp',
+                    'customer_name': 'Мария Иванова',
+                    'phone': '+79997654321',
+                    'message': 'Здравствуйте! Хотим с семьей (2 взрослых, 2 детей) поехать в Египет в августе. Есть варианты?'
+                },
+                {
+                    'channel': 'telegram',
+                    'customer_name': 'Дмитрий Козлов',
+                    'phone': '+79998887766',
+                    'message': 'Привет! Срочно нужен тур на Мальдивы, вылет через 2 недели, любой бюджет!'
+                }
+            ]
+            
+            data = request.get_json() or {}
+            agent_id = data.get('agent_id', 'travel_consultant')
+            auto_respond = data.get('auto_respond', True)
+            
+            results = []
+            
+            for scenario in test_scenarios:
+                chat_id = f"test_{scenario['channel']}_{int(datetime.now().timestamp())}_{len(results)}"
+                conversation_id = f"conv_{chat_id}"
+                
+                incoming_msg = {
+                    'id': f"msg_in_{int(datetime.now().timestamp())}_{len(results)}",
+                    'channel': scenario['channel'],
+                    'chat_id': chat_id,
+                    'conversation_id': conversation_id,
+                    'direction': 'incoming',
+                    'content': scenario['message'],
+                    'sender_name': scenario['customer_name'],
+                    'sender_phone': scenario['phone'],
+                    'timestamp': datetime.now().isoformat(),
+                    'is_test': True
+                }
+                
+                messaging_hub.store_message(incoming_msg)
+                
+                scenario_result = {
+                    'channel': scenario['channel'],
+                    'customer': scenario['customer_name'],
+                    'incoming': incoming_msg,
+                    'ai_response': None,
+                    'success': True
+                }
+                
+                if auto_respond:
+                    conversation_manager.set_mode(conversation_id, 'auto', agent_id)
+                    
+                    try:
+                        ai_response = ai_chat_service.generate_response(
+                            conversation_history=[{'direction': 'incoming', 'content': scenario['message']}],
+                            agent_id=agent_id,
+                            context={
+                                'channel': scenario['channel'],
+                                'customer_name': scenario['customer_name']
+                            }
+                        )
+                        
+                        if ai_response.get('success') and ai_response.get('response'):
+                            outgoing_msg = {
+                                'id': f"msg_out_{int(datetime.now().timestamp())}_{len(results)}",
+                                'channel': scenario['channel'],
+                                'chat_id': chat_id,
+                                'conversation_id': conversation_id,
+                                'direction': 'outgoing',
+                                'content': ai_response['response'],
+                                'sender_name': 'AI Ассистент',
+                                'agent_id': agent_id,
+                                'timestamp': datetime.now().isoformat(),
+                                'is_ai_generated': True
+                            }
+                            
+                            messaging_hub.store_message(outgoing_msg)
+                            scenario_result['ai_response'] = outgoing_msg
+                        else:
+                            scenario_result['error'] = ai_response.get('error')
+                            
+                    except Exception as ai_err:
+                        scenario_result['error'] = str(ai_err)
+                
+                results.append(scenario_result)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Создано {len(results)} тестовых диалогов',
+                'results': results
+            })
+            
+        except Exception as e:
+            logger.error(f"Test batch error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
     # === WHATSAPP FREE (NO SUBSCRIPTION) ===
     
     @app.route('/api/whatsapp-free/status', methods=['GET'])

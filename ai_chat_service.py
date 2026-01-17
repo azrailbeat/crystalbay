@@ -357,3 +357,8 @@ def get_ai_status() -> Dict:
         "default_agent": "travel_consultant",
         "model": get_ai_model()
     }
+
+
+# Module-level instances for easy import
+ai_chat_service = AIChatService
+conversation_manager = AIConversationManager()

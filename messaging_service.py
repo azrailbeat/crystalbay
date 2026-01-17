@@ -548,6 +548,40 @@ class MessagingHub:
             'agent_name': user_name
         })
     
+    def store_message(self, message_data: Dict) -> Dict:
+        """Store a message directly (for testing and simulations)"""
+        channel = message_data.get('channel', 'telegram')
+        chat_id = message_data.get('chat_id')
+        conversation_id = message_data.get('conversation_id')
+        
+        conversation = self.store.find_conversation(channel, chat_id)
+        if not conversation:
+            conversation = self.store.create_conversation({
+                'id': conversation_id,
+                'channel': channel,
+                'external_chat_id': chat_id,
+                'participant_name': message_data.get('sender_name', 'Unknown'),
+                'participant_phone': message_data.get('sender_phone')
+            })
+        
+        saved = self.store.create_message({
+            'id': message_data.get('id'),
+            'conversation_id': conversation['id'],
+            'channel': channel,
+            'external_message_id': message_data.get('id'),
+            'direction': 'in' if message_data.get('direction') == 'incoming' else 'out',
+            'sender_type': 'customer' if message_data.get('direction') == 'incoming' else 'agent',
+            'sender_id': message_data.get('agent_id'),
+            'sender_name': message_data.get('sender_name', 'AI'),
+            'content': message_data.get('content'),
+            'metadata': {
+                'is_test': message_data.get('is_test', False),
+                'is_ai_generated': message_data.get('is_ai_generated', False)
+            }
+        })
+        
+        return saved
+    
     def handle_incoming_message(self, channel: str, raw_message: Dict) -> Dict:
         """Handle incoming message from any channel"""
         normalized = self._normalize_message(channel, raw_message)
