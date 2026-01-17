@@ -495,6 +495,9 @@ class MessagingHub:
         """Send message through specified channel"""
         options = options or {}
         
+        agent_id = options.get('agent_id')
+        agent_name = options.get('agent_name', 'System')
+        
         if channel == 'telegram':
             result = self.telegram.send_message(chat_id, message, options)
         elif channel in ['wazzup', 'whatsapp']:
@@ -511,17 +514,29 @@ class MessagingHub:
                     'participant_name': options.get('participant_name', 'Unknown')
                 })
             
-            self.store.create_message({
+            saved_msg = self.store.create_message({
                 'conversation_id': conversation['id'],
                 'channel': channel,
                 'external_message_id': result.get('external_message_id'),
                 'direction': 'out',
                 'sender_type': 'agent',
-                'sender_name': options.get('agent_name', 'System'),
-                'content': message
+                'sender_id': agent_id,
+                'sender_name': agent_name,
+                'content': message,
+                'metadata': {'sent_by_agent': agent_id, 'agent_name': agent_name}
             })
+            
+            result['saved_message'] = saved_msg
+            result['agent_name'] = agent_name
         
         return result
+    
+    def send_message_as_user(self, channel: str, chat_id: str, message: str, user_id: str, user_name: str) -> Dict:
+        """Send message as a specific system user/agent"""
+        return self.send_message(channel, chat_id, message, {
+            'agent_id': user_id,
+            'agent_name': user_name
+        })
     
     def handle_incoming_message(self, channel: str, raw_message: Dict) -> Dict:
         """Handle incoming message from any channel"""

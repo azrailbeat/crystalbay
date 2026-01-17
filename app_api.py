@@ -729,11 +729,44 @@ def register_api_routes(app):
                     'error': 'channel, chat_id, and message are required'
                 }), 400
             
+            options = data.get('options', {})
+            if data.get('agent_id'):
+                options['agent_id'] = data.get('agent_id')
+            if data.get('agent_name'):
+                options['agent_name'] = data.get('agent_name')
+            
             from messaging_service import messaging_hub
-            result = messaging_hub.send_message(channel, chat_id, message, data.get('options', {}))
+            result = messaging_hub.send_message(channel, chat_id, message, options)
             return jsonify(result)
         except Exception as e:
             logger.error(f"Send message error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/messages/send-as-user', methods=['POST'])
+    def api_send_message_as_user():
+        """Send message as a specific system user/agent"""
+        try:
+            data = request.get_json() or {}
+            channel = data.get('channel')
+            chat_id = data.get('chat_id')
+            message = data.get('message')
+            user_id = data.get('user_id')
+            user_name = data.get('user_name')
+            
+            if not all([channel, chat_id, message, user_name]):
+                return jsonify({
+                    'success': False,
+                    'error': 'channel, chat_id, message, and user_name are required'
+                }), 400
+            
+            from messaging_service import messaging_hub
+            result = messaging_hub.send_message_as_user(channel, chat_id, message, user_id, user_name)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Send message as user error: {e}")
             return jsonify({
                 'success': False,
                 'error': str(e)
