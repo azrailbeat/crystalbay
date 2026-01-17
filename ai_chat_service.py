@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_openai_api_key():
     """Safely retrieve OpenAI API key from environment"""
-    return os.environ.get("OPENAI_API_KEY")
+    return os.environ.get("OPENAI_API_NEW_KEY") or os.environ.get("OPENAI_API_KEY")
 
 def get_openai_client():
     """Get OpenAI client instance"""
