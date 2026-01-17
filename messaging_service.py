@@ -470,8 +470,18 @@ class MessagingHub:
         self.store = MessageStore()
         self.telegram = TelegramConnector()
         self.wazzup = WazzupConnector()
+        self.whatsapp_free = None
         self.automation_rules = []
         self.is_initialized = False
+        self._init_whatsapp_free()
+    
+    def _init_whatsapp_free(self):
+        """Initialize free WhatsApp connector"""
+        try:
+            from whatsapp_web_connector import whatsapp_connector
+            self.whatsapp_free = whatsapp_connector
+        except ImportError:
+            logger.warning("Free WhatsApp connector not available")
     
     def initialize(self) -> Dict:
         """Initialize all connectors"""
@@ -609,7 +619,7 @@ class MessagingHub:
         return self.store.get_unread_count(channel)
     
     def get_status(self) -> Dict:
-        return {
+        status = {
             'initialized': self.is_initialized,
             'connectors': {
                 'telegram': self.telegram.get_status(),
@@ -617,6 +627,11 @@ class MessagingHub:
             },
             'automation_rules': len(self.automation_rules)
         }
+        
+        if self.whatsapp_free:
+            status['connectors']['whatsapp_free'] = self.whatsapp_free.get_status()
+        
+        return status
     
     def get_channel_stats(self) -> Dict:
         channels = ['telegram', 'whatsapp', 'wazzup']

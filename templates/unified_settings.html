@@ -404,16 +404,101 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Wazzup24 WhatsApp -->
-                                <div class="integration-card" id="wazzup-card">
+                                <!-- WhatsApp FREE (без подписки) -->
+                                <div class="integration-card" id="whatsapp-free-card">
+                                    <div class="integration-header">
+                                        <div class="integration-title">
+                                            <div class="integration-logo" style="background: #25D366; color: white;">
+                                                <i class="bi bi-whatsapp"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">WhatsApp <span class="badge bg-success">Бесплатно</span></h5>
+                                                <small class="text-muted">Self-hosted интеграция без подписки</small>
+                                            </div>
+                                        </div>
+                                        <div class="integration-status" id="whatsapp-free-status-badge">
+                                            <span class="status-dot bg-secondary"></span>
+                                            <span id="whatsapp-free-status-text">Демо режим</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-fields">
+                                        <div class="mb-3">
+                                            <label class="form-label">Провайдер:</label>
+                                            <select class="form-control" id="whatsapp-provider">
+                                                <option value="demo">Демо (для тестирования UI)</option>
+                                                <option value="evolution">Evolution API (рекомендуется)</option>
+                                                <option value="whatsapp-web-js">whatsapp-web.js</option>
+                                                <option value="green-api">GREEN-API</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="whatsapp-free-config" style="display: none;">
+                                            <div class="mb-3">
+                                                <label class="form-label">API URL:</label>
+                                                <input type="url" class="form-control" id="whatsapp-api-url" 
+                                                       placeholder="http://your-server:8080">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">API ключ:</label>
+                                                <input type="password" class="form-control" id="whatsapp-api-key" 
+                                                       placeholder="Ваш API ключ">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Instance ID:</label>
+                                                <input type="text" class="form-control" id="whatsapp-instance-id" 
+                                                       placeholder="default" value="default">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-info" id="whatsapp-free-setup-info">
+                                            <strong><i class="bi bi-info-circle me-1"></i>Инструкция по настройке:</strong>
+                                            <ol class="mb-0 mt-2 small">
+                                                <li>Выберите провайдер выше</li>
+                                                <li>Для Evolution API: <code>docker run -d -p 8080:8080 atendai/evolution-api</code></li>
+                                                <li>Для whatsapp-web.js: <code>docker run -d -p 3000:3000 chrishubert/whatsapp-api</code></li>
+                                                <li>Отсканируйте QR код в WhatsApp для подключения</li>
+                                            </ol>
+                                            <div class="mt-2">
+                                                <a href="https://github.com/EvolutionAPI/evolution-api" target="_blank" class="btn btn-sm btn-outline-primary me-1">
+                                                    <i class="bi bi-github"></i> Evolution API
+                                                </a>
+                                                <a href="https://github.com/chrishubert/whatsapp-api" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-github"></i> whatsapp-web.js
+                                                </a>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3" id="whatsapp-qr-container" style="display: none;">
+                                            <label class="form-label">QR код для подключения:</label>
+                                            <div id="whatsapp-qr-code" class="text-center p-3 border rounded">
+                                                <button class="btn btn-primary" onclick="getWhatsAppQR()">
+                                                    <i class="bi bi-qr-code"></i> Получить QR код
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="integration-actions">
+                                        <button class="btn btn-test" onclick="testWhatsAppFreeConnection()">
+                                            <i class="bi bi-wifi"></i> Проверить
+                                        </button>
+                                        <button class="btn btn-save" onclick="saveWhatsAppFreeSettings()">
+                                            <i class="bi bi-save"></i> Сохранить
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Wazzup24 WhatsApp (платная альтернатива) -->
+                                <div class="integration-card disabled" id="wazzup-card">
                                     <div class="integration-header">
                                         <div class="integration-title">
                                             <div class="integration-logo wazzup">
                                                 <i class="bi bi-whatsapp"></i>
                                             </div>
                                             <div>
-                                                <h5 class="mb-1">WhatsApp (Wazzup24)</h5>
-                                                <small class="text-muted">Интеграция через Wazzup24.ru</small>
+                                                <h5 class="mb-1">WhatsApp (Wazzup24) <span class="badge bg-secondary">Платно</span></h5>
+                                                <small class="text-muted">Платная интеграция через Wazzup24.ru</small>
                                             </div>
                                         </div>
                                         <div class="integration-status" id="wazzup-status-badge">
@@ -427,7 +512,7 @@
                                             <label class="form-label">API ключ Wazzup24:</label>
                                             <input type="password" class="form-control" id="wazzup-api-key" 
                                                    placeholder="Введите API ключ из личного кабинета Wazzup24">
-                                            <small class="text-muted">Получите API ключ в <a href="https://wazzup24.ru" target="_blank">личном кабинете Wazzup24</a></small>
+                                            <small class="text-muted">Получите API ключ в <a href="https://wazzup24.ru" target="_blank">личном кабинете Wazzup24</a> (требуется подписка)</small>
                                         </div>
                                         <div class="mb-3" id="wazzup-channels-info" style="display: none;">
                                             <label class="form-label">Подключенные каналы:</label>
@@ -849,6 +934,140 @@
             return;
         }
         showNotification('Для сохранения API ключа Wazzup24 используйте переменные окружения (WAZZUP_API_KEY)', 'info');
+    }
+    
+    // === WhatsApp Free (без подписки) ===
+    
+    // Show/hide config fields based on provider selection
+    document.addEventListener('DOMContentLoaded', function() {
+        const providerSelect = document.getElementById('whatsapp-provider');
+        if (providerSelect) {
+            providerSelect.addEventListener('change', function() {
+                const configDiv = document.getElementById('whatsapp-free-config');
+                const qrContainer = document.getElementById('whatsapp-qr-container');
+                const setupInfo = document.getElementById('whatsapp-free-setup-info');
+                
+                if (this.value === 'demo') {
+                    configDiv.style.display = 'none';
+                    qrContainer.style.display = 'none';
+                    setupInfo.style.display = 'block';
+                } else {
+                    configDiv.style.display = 'block';
+                    qrContainer.style.display = 'block';
+                    setupInfo.style.display = 'none';
+                }
+            });
+        }
+        
+        loadWhatsAppFreeStatus();
+    });
+    
+    // Load WhatsApp Free status
+    async function loadWhatsAppFreeStatus() {
+        try {
+            const response = await fetch('/api/whatsapp-free/status');
+            const data = await response.json();
+            
+            if (data.success) {
+                const statusBadge = document.getElementById('whatsapp-free-status-badge');
+                const statusText = document.getElementById('whatsapp-free-status-text');
+                
+                if (data.connected) {
+                    statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                    statusText.textContent = 'Подключен';
+                    document.getElementById('whatsapp-free-card').classList.add('enabled');
+                } else if (data.api_configured) {
+                    statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+                    statusText.textContent = 'Настроен';
+                } else {
+                    statusBadge.querySelector('.status-dot').className = 'status-dot bg-secondary';
+                    statusText.textContent = data.provider === 'demo' ? 'Демо режим' : 'Не настроен';
+                }
+                
+                // Set provider dropdown
+                const providerSelect = document.getElementById('whatsapp-provider');
+                if (providerSelect && data.provider) {
+                    providerSelect.value = data.provider;
+                    providerSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        } catch (error) {
+            console.error('Error loading WhatsApp Free status:', error);
+        }
+    }
+    
+    // Test WhatsApp Free connection
+    async function testWhatsAppFreeConnection() {
+        const statusBadge = document.getElementById('whatsapp-free-status-badge');
+        statusBadge.querySelector('.status-dot').className = 'status-dot bg-warning';
+        document.getElementById('whatsapp-free-status-text').textContent = 'Проверка...';
+        
+        try {
+            const response = await fetch('/api/whatsapp-free/connect', { method: 'POST' });
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.mode === 'demo') {
+                    statusBadge.querySelector('.status-dot').className = 'status-dot bg-info';
+                    document.getElementById('whatsapp-free-status-text').textContent = 'Демо режим';
+                    showNotification('Демо режим активен. Настройте провайдер для реального подключения.', 'info');
+                } else {
+                    statusBadge.querySelector('.status-dot').className = 'status-dot bg-success';
+                    document.getElementById('whatsapp-free-status-text').textContent = 'Подключен';
+                    document.getElementById('whatsapp-free-card').classList.add('enabled');
+                    showNotification('WhatsApp подключен успешно!', 'success');
+                }
+            } else {
+                statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+                document.getElementById('whatsapp-free-status-text').textContent = 'Ошибка';
+                showNotification(data.error || 'Ошибка подключения', 'error');
+            }
+        } catch (error) {
+            statusBadge.querySelector('.status-dot').className = 'status-dot bg-danger';
+            document.getElementById('whatsapp-free-status-text').textContent = 'Ошибка';
+            showNotification('Ошибка: ' + error.message, 'error');
+        }
+    }
+    
+    // Get WhatsApp QR code
+    async function getWhatsAppQR() {
+        const qrContainer = document.getElementById('whatsapp-qr-code');
+        qrContainer.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Загрузка...</span></div>';
+        
+        try {
+            const response = await fetch('/api/whatsapp-free/qr');
+            const data = await response.json();
+            
+            if (data.success && data.qr_code) {
+                qrContainer.innerHTML = '<img src="' + data.qr_code + '" alt="WhatsApp QR Code" class="img-fluid" style="max-width: 300px;">';
+            } else if (data.setup_instructions) {
+                qrContainer.innerHTML = '<div class="alert alert-info">' + data.message + '</div>';
+            } else {
+                qrContainer.innerHTML = '<div class="alert alert-warning">QR код недоступен. ' + (data.error || data.message || 'Настройте провайдер.') + '</div>';
+            }
+        } catch (error) {
+            qrContainer.innerHTML = '<div class="alert alert-danger">Ошибка: ' + error.message + '</div>';
+        }
+    }
+    
+    // Save WhatsApp Free settings
+    function saveWhatsAppFreeSettings() {
+        const provider = document.getElementById('whatsapp-provider').value;
+        const apiUrl = document.getElementById('whatsapp-api-url').value.trim();
+        const apiKey = document.getElementById('whatsapp-api-key').value.trim();
+        const instanceId = document.getElementById('whatsapp-instance-id').value.trim();
+        
+        if (provider !== 'demo' && (!apiUrl || !apiKey)) {
+            showNotification('Введите API URL и API ключ для выбранного провайдера', 'warning');
+            return;
+        }
+        
+        let envVars = 'WHATSAPP_PROVIDER=' + provider;
+        if (apiUrl) envVars += '\nWHATSAPP_API_URL=' + apiUrl;
+        if (apiKey) envVars += '\nWHATSAPP_API_KEY=' + apiKey;
+        if (instanceId) envVars += '\nWHATSAPP_INSTANCE_ID=' + instanceId;
+        
+        showNotification('Добавьте следующие переменные окружения:\n' + envVars, 'info');
     }
     
     // Настройка обработчиков событий

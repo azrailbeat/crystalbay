@@ -33,6 +33,7 @@ Crystal Bay Travel is a comprehensive multi-channel travel booking and customer 
 - **Diagnostics Fixed (Aug 19)**: Fixed "Unexpected token" errors, all diagnostic endpoints working, production-ready system
 - **Final System Check (Aug 20)**: IP changed to 35.227.47.172, still blocked by SAMO API, all other systems functional
 - **Project Cleanup (Aug 23)**: Removed all unnecessary files, created comprehensive tests, system ready for production
+- **Free WhatsApp Integration (Jan 2026)**: Added subscription-free WhatsApp module supporting Evolution API, whatsapp-web.js, and GREEN-API as self-hosted alternatives to Wazzup24
 
 ## User Preferences
 

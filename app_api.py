@@ -812,6 +812,132 @@ def register_api_routes(app):
                 'channel': 'all'
             })
     
+    # === WHATSAPP FREE (NO SUBSCRIPTION) ===
+    
+    @app.route('/api/whatsapp-free/status', methods=['GET'])
+    def api_whatsapp_free_status():
+        """Get free WhatsApp connector status"""
+        try:
+            from messaging_service import messaging_hub
+            if messaging_hub.whatsapp_free:
+                status = messaging_hub.whatsapp_free.get_status()
+                return jsonify({'success': True, **status})
+            return jsonify({
+                'success': True,
+                'connected': False,
+                'provider': 'demo',
+                'message': 'WhatsApp Free connector available'
+            })
+        except Exception as e:
+            logger.error(f"WhatsApp Free status error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/whatsapp-free/connect', methods=['POST'])
+    def api_whatsapp_free_connect():
+        """Connect to WhatsApp via free provider"""
+        try:
+            from messaging_service import messaging_hub
+            if not messaging_hub.whatsapp_free:
+                return jsonify({
+                    'success': False,
+                    'error': 'WhatsApp Free connector not initialized'
+                }), 503
+            
+            result = messaging_hub.whatsapp_free.connect()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"WhatsApp Free connect error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/whatsapp-free/qr', methods=['GET'])
+    def api_whatsapp_free_qr():
+        """Get QR code for WhatsApp Web authentication"""
+        try:
+            from messaging_service import messaging_hub
+            if not messaging_hub.whatsapp_free:
+                return jsonify({
+                    'success': False,
+                    'error': 'WhatsApp Free connector not initialized'
+                }), 503
+            
+            result = messaging_hub.whatsapp_free.get_qr_code()
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"WhatsApp Free QR error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/whatsapp-free/send', methods=['POST'])
+    def api_whatsapp_free_send():
+        """Send message via free WhatsApp connector"""
+        try:
+            data = request.get_json() or {}
+            chat_id = data.get('chat_id')
+            message = data.get('message')
+            
+            if not chat_id or not message:
+                return jsonify({
+                    'success': False,
+                    'error': 'chat_id and message are required'
+                }), 400
+            
+            from messaging_service import messaging_hub
+            if not messaging_hub.whatsapp_free:
+                return jsonify({
+                    'success': False,
+                    'error': 'WhatsApp Free connector not initialized'
+                }), 503
+            
+            result = messaging_hub.whatsapp_free.send_message(chat_id, message, data.get('options', {}))
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"WhatsApp Free send error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/whatsapp-free/setup-info', methods=['GET'])
+    def api_whatsapp_free_setup():
+        """Get setup instructions for free WhatsApp integration"""
+        return jsonify({
+            'success': True,
+            'title': 'Бесплатная интеграция WhatsApp',
+            'description': 'Выберите один из бесплатных провайдеров для подключения WhatsApp без подписки',
+            'providers': [
+                {
+                    'id': 'evolution',
+                    'name': 'Evolution API',
+                    'url': 'https://github.com/EvolutionAPI/evolution-api',
+                    'cost': 'Бесплатно (self-hosted)',
+                    'difficulty': 'Средняя',
+                    'description': 'Open-source WhatsApp Web API с полным функционалом',
+                    'docker_command': 'docker run -d -p 8080:8080 atendai/evolution-api',
+                    'env_vars': ['WHATSAPP_API_URL', 'WHATSAPP_API_KEY', 'WHATSAPP_PROVIDER=evolution']
+                },
+                {
+                    'id': 'whatsapp-web-js',
+                    'name': 'whatsapp-web.js',
+                    'url': 'https://github.com/chrishubert/whatsapp-api',
+                    'cost': 'Бесплатно (Docker)',
+                    'difficulty': 'Простая',
+                    'description': 'REST API обёртка для WhatsApp Web',
+                    'docker_command': 'docker run -d -p 3000:3000 -e API_KEY=your-key chrishubert/whatsapp-api',
+                    'env_vars': ['WHATSAPP_API_URL', 'WHATSAPP_API_KEY', 'WHATSAPP_PROVIDER=whatsapp-web-js']
+                },
+                {
+                    'id': 'green-api',
+                    'name': 'GREEN-API',
+                    'url': 'https://green-api.com',
+                    'cost': 'Низкая стоимость',
+                    'difficulty': 'Простая',
+                    'description': 'Доступный WhatsApp API сервис',
+                    'env_vars': ['WHATSAPP_API_URL', 'WHATSAPP_API_KEY', 'WHATSAPP_INSTANCE_ID', 'WHATSAPP_PROVIDER=green-api']
+                }
+            ],
+            'current_env': {
+                'WHATSAPP_PROVIDER': os.environ.get('WHATSAPP_PROVIDER', 'demo'),
+                'WHATSAPP_API_URL_SET': bool(os.environ.get('WHATSAPP_API_URL')),
+                'WHATSAPP_API_KEY_SET': bool(os.environ.get('WHATSAPP_API_KEY'))
+            }
+        })
+    
     # === WEBHOOKS ===
     
     @app.route('/webhooks/telegram', methods=['POST'])
