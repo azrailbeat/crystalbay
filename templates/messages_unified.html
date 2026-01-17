@@ -401,6 +401,42 @@
     
     <!-- Info Panel -->
     <div class="info-panel">
+        <!-- AI Agent Control -->
+        <div class="info-section" id="ai-panel">
+            <h6><i class="bi bi-robot me-1"></i> AI Ассистент</h6>
+            <div class="ai-mode-toggle mb-3">
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="ai-mode" id="mode-manual" value="manual" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="mode-manual">
+                        <i class="bi bi-person"></i> Ручной
+                    </label>
+                    <input type="radio" class="btn-check" name="ai-mode" id="mode-assisted" value="assisted">
+                    <label class="btn btn-outline-primary btn-sm" for="mode-assisted">
+                        <i class="bi bi-magic"></i> Помощь
+                    </label>
+                    <input type="radio" class="btn-check" name="ai-mode" id="mode-auto" value="auto">
+                    <label class="btn btn-outline-success btn-sm" for="mode-auto">
+                        <i class="bi bi-robot"></i> Авто
+                    </label>
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small text-muted mb-1">AI Агент:</label>
+                <select class="form-select form-select-sm" id="ai-agent-select">
+                    <option value="travel_consultant">Консультант по турам</option>
+                    <option value="lead_qualifier">Квалификатор лидов</option>
+                    <option value="quick_responder">Быстрые ответы</option>
+                </select>
+            </div>
+            <div id="ai-status-indicator" class="small text-muted mb-2">
+                <span class="status-indicator offline"></span> Режим: Ручной
+            </div>
+            <div id="ai-suggestions-panel" style="display: none;">
+                <label class="form-label small text-muted mb-1">Предложения AI:</label>
+                <div id="ai-suggestions" class="d-grid gap-1"></div>
+            </div>
+        </div>
+        
         <div class="info-section">
             <h6>Статус интеграций</h6>
             <div id="integrations-status">
@@ -438,6 +474,9 @@
                 <button class="btn btn-outline-success btn-sm" onclick="refreshMessages()">
                     <i class="bi bi-arrow-clockwise"></i> Обновить
                 </button>
+                <a href="/ai-agents" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-gear"></i> Настройка AI агентов
+                </a>
             </div>
         </div>
     </div>
@@ -749,5 +788,210 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// === AI Agent Functions ===
+
+let currentAIMode = 'manual';
+let currentAIAgent = 'travel_consultant';
+let aiAgents = [];
+
+// Initialize AI controls
+document.addEventListener('DOMContentLoaded', function() {
+    loadAIAgents();
+    setupAIModeHandlers();
+});
+
+async function loadAIAgents() {
+    try {
+        const response = await fetch('/api/ai/agents');
+        const data = await response.json();
+        
+        if (data.success && data.agents) {
+            aiAgents = data.agents;
+            updateAgentSelect(data.agents);
+        }
+    } catch (error) {
+        console.error('Error loading AI agents:', error);
+    }
+}
+
+function updateAgentSelect(agents) {
+    const select = document.getElementById('ai-agent-select');
+    if (!select) return;
+    
+    select.innerHTML = agents.map(agent => 
+        `<option value="${agent.id}">${agent.name}</option>`
+    ).join('');
+}
+
+function setupAIModeHandlers() {
+    document.querySelectorAll('input[name="ai-mode"]').forEach(radio => {
+        radio.addEventListener('change', async function() {
+            currentAIMode = this.value;
+            updateAIStatusIndicator();
+            
+            if (currentConversation) {
+                await setConversationMode(currentConversation.id, currentAIMode);
+            }
+            
+            if (currentAIMode === 'assisted' && currentConversation) {
+                await loadAISuggestions();
+            } else {
+                document.getElementById('ai-suggestions-panel').style.display = 'none';
+            }
+        });
+    });
+    
+    document.getElementById('ai-agent-select')?.addEventListener('change', function() {
+        currentAIAgent = this.value;
+        if (currentAIMode === 'assisted' && currentConversation) {
+            loadAISuggestions();
+        }
+    });
+}
+
+function updateAIStatusIndicator() {
+    const indicator = document.getElementById('ai-status-indicator');
+    if (!indicator) return;
+    
+    const modeLabels = {
+        'manual': { text: 'Ручной', class: 'offline' },
+        'assisted': { text: 'Помощь AI', class: 'online' },
+        'auto': { text: 'Авто-ответы', class: 'online' }
+    };
+    
+    const mode = modeLabels[currentAIMode] || modeLabels.manual;
+    indicator.innerHTML = `<span class="status-indicator ${mode.class}"></span> Режим: ${mode.text}`;
+}
+
+async function setConversationMode(conversationId, mode) {
+    try {
+        await fetch('/api/ai/conversation-mode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversation_id: conversationId,
+                mode: mode,
+                agent_id: currentAIAgent
+            })
+        });
+    } catch (error) {
+        console.error('Error setting conversation mode:', error);
+    }
+}
+
+async function loadAISuggestions() {
+    const suggestionsPanel = document.getElementById('ai-suggestions-panel');
+    const suggestionsContainer = document.getElementById('ai-suggestions');
+    
+    if (!suggestionsPanel || !suggestionsContainer) return;
+    
+    const messagesContainer = document.getElementById('chat-messages');
+    const lastIncoming = messagesContainer?.querySelector('.message.incoming:last-child .message-content');
+    
+    if (!lastIncoming) {
+        suggestionsPanel.style.display = 'none';
+        return;
+    }
+    
+    suggestionsPanel.style.display = 'block';
+    suggestionsContainer.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Генерация...</div>';
+    
+    try {
+        const response = await fetch('/api/ai/suggest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: lastIncoming.textContent,
+                agent_id: currentAIAgent
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.suggestions) {
+            suggestionsContainer.innerHTML = data.suggestions.map((suggestion, i) => 
+                `<button class="btn btn-outline-secondary btn-sm text-start" onclick="useSuggestion(${i})">
+                    <small>${escapeHtml(suggestion.substring(0, 80))}...</small>
+                </button>`
+            ).join('');
+            window.aiSuggestions = data.suggestions;
+        } else {
+            suggestionsContainer.innerHTML = '<div class="text-muted small">Не удалось получить предложения</div>';
+        }
+    } catch (error) {
+        suggestionsContainer.innerHTML = '<div class="text-danger small">Ошибка: ' + error.message + '</div>';
+    }
+}
+
+function useSuggestion(index) {
+    if (window.aiSuggestions && window.aiSuggestions[index]) {
+        document.getElementById('message-input').value = window.aiSuggestions[index];
+    }
+}
+
+async function generateAIResponse() {
+    if (!currentConversation) return;
+    
+    try {
+        const messagesContainer = document.getElementById('chat-messages');
+        const messages = Array.from(messagesContainer.querySelectorAll('.message')).map(msg => ({
+            direction: msg.classList.contains('incoming') ? 'incoming' : 'outgoing',
+            content: msg.querySelector('.message-content')?.textContent || ''
+        }));
+        
+        const response = await fetch('/api/ai/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: messages,
+                agent_id: currentAIAgent,
+                context: {
+                    channel: currentConversation.channel
+                }
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.response) {
+            document.getElementById('message-input').value = data.response;
+        }
+    } catch (error) {
+        console.error('Error generating AI response:', error);
+    }
+}
+
+// Override selectConversation to load AI mode
+const originalSelectConversation = window.selectConversation || selectConversation;
+window.selectConversation = async function(id, channel, chatId, element) {
+    await originalSelectConversation(id, channel, chatId, element);
+    
+    // Load AI mode for this conversation
+    try {
+        const response = await fetch(`/api/ai/conversation-mode/${id}`);
+        const data = await response.json();
+        
+        if (data.success && data.mode) {
+            const modeRadio = document.getElementById(`mode-${data.mode.mode}`);
+            if (modeRadio) {
+                modeRadio.checked = true;
+                currentAIMode = data.mode.mode;
+                updateAIStatusIndicator();
+            }
+            
+            if (data.mode.agent_id) {
+                document.getElementById('ai-agent-select').value = data.mode.agent_id;
+                currentAIAgent = data.mode.agent_id;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading conversation AI mode:', error);
+    }
+    
+    if (currentAIMode === 'assisted') {
+        setTimeout(loadAISuggestions, 500);
+    }
+};
 </script>
 {% endblock %}

@@ -1006,4 +1006,169 @@ def register_api_routes(app):
             }
         })
     
+    # === AI CHAT API ===
+    
+    @app.route('/api/ai/status', methods=['GET'])
+    def api_ai_status():
+        """Get AI system status"""
+        try:
+            from ai_chat_service import get_ai_status, AIChatService
+            status = get_ai_status()
+            agents = AIChatService.get_all_agents()
+            return jsonify({
+                'success': True,
+                'status': status,
+                'agents': agents
+            })
+        except Exception as e:
+            logger.error(f"AI status error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/agents', methods=['GET'])
+    def api_ai_agents():
+        """Get all AI agents"""
+        try:
+            from ai_chat_service import AIChatService
+            agents = AIChatService.get_all_agents()
+            return jsonify({'success': True, 'agents': agents})
+        except Exception as e:
+            logger.error(f"Get AI agents error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/agents/<agent_id>', methods=['GET'])
+    def api_get_ai_agent(agent_id):
+        """Get a specific AI agent"""
+        try:
+            from ai_chat_service import AIChatService
+            agent = AIChatService.get_agent(agent_id)
+            if agent:
+                return jsonify({'success': True, 'agent': agent})
+            return jsonify({'success': False, 'error': 'Agent not found'}), 404
+        except Exception as e:
+            logger.error(f"Get AI agent error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/agents', methods=['POST'])
+    def api_create_ai_agent():
+        """Create or update an AI agent"""
+        try:
+            data = request.get_json() or {}
+            from models import AIAgentService
+            
+            agent_data = {
+                'id': data.get('id', f"agent_{int(datetime.now().timestamp())}"),
+                'name': data.get('name', 'New Agent'),
+                'type': data.get('type', 'chat'),
+                'description': data.get('description', ''),
+                'prompt': data.get('prompt', ''),
+                'active': data.get('active', True),
+                'settings': data.get('settings', {})
+            }
+            
+            result = AIAgentService.create_ai_agent(agent_data)
+            return jsonify({'success': True, 'agent': result})
+        except Exception as e:
+            logger.error(f"Create AI agent error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/agents/<agent_id>', methods=['PUT'])
+    def api_update_ai_agent(agent_id):
+        """Update an AI agent"""
+        try:
+            data = request.get_json() or {}
+            from models import AIAgentService
+            
+            result = AIAgentService.update_ai_agent(agent_id, data)
+            if result:
+                return jsonify({'success': True, 'agent': result})
+            return jsonify({'success': False, 'error': 'Agent not found'}), 404
+        except Exception as e:
+            logger.error(f"Update AI agent error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/generate', methods=['POST'])
+    def api_ai_generate():
+        """Generate AI response for a conversation"""
+        try:
+            data = request.get_json() or {}
+            conversation_history = data.get('messages', [])
+            agent_id = data.get('agent_id', 'travel_consultant')
+            context = data.get('context', {})
+            
+            from ai_chat_service import AIChatService
+            result = AIChatService.generate_response(
+                conversation_history=conversation_history,
+                agent_id=agent_id,
+                context=context
+            )
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"AI generate error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/suggest', methods=['POST'])
+    def api_ai_suggest():
+        """Get AI response suggestions for manual mode"""
+        try:
+            data = request.get_json() or {}
+            last_message = data.get('message', '')
+            agent_id = data.get('agent_id', 'travel_consultant')
+            
+            if not last_message:
+                return jsonify({'success': False, 'error': 'Message required'}), 400
+            
+            from ai_chat_service import AIChatService
+            result = AIChatService.suggest_response(last_message, agent_id)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"AI suggest error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/analyze', methods=['POST'])
+    def api_ai_analyze():
+        """Analyze a conversation for lead qualification"""
+        try:
+            data = request.get_json() or {}
+            messages = data.get('messages', [])
+            
+            if not messages:
+                return jsonify({'success': False, 'error': 'Messages required'}), 400
+            
+            from ai_chat_service import AIChatService
+            result = AIChatService.analyze_conversation(messages)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"AI analyze error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/conversation-mode', methods=['POST'])
+    def api_set_conversation_mode():
+        """Set AI mode for a conversation"""
+        try:
+            data = request.get_json() or {}
+            conversation_id = data.get('conversation_id')
+            mode = data.get('mode', 'manual')
+            agent_id = data.get('agent_id')
+            
+            if not conversation_id:
+                return jsonify({'success': False, 'error': 'conversation_id required'}), 400
+            
+            from ai_chat_service import AIConversationManager
+            result = AIConversationManager.set_mode(conversation_id, mode, agent_id)
+            return jsonify({'success': True, 'mode': result})
+        except Exception as e:
+            logger.error(f"Set conversation mode error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route('/api/ai/conversation-mode/<conversation_id>', methods=['GET'])
+    def api_get_conversation_mode(conversation_id):
+        """Get AI mode for a conversation"""
+        try:
+            from ai_chat_service import AIConversationManager
+            mode = AIConversationManager.get_mode(conversation_id)
+            return jsonify({'success': True, 'mode': mode})
+        except Exception as e:
+            logger.error(f"Get conversation mode error: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
     logger.info("API routes registered successfully")
