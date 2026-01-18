@@ -1136,13 +1136,38 @@ def register_api_routes(app):
     
     @app.route('/webhooks/telegram', methods=['POST'])
     def webhook_telegram():
-        """Handle Telegram webhook"""
+        """Handle Telegram webhook with auto AI response"""
         try:
             payload = request.get_json() or {}
             logger.info(f"Telegram webhook received: {str(payload)[:200]}")
             
             from messaging_service import messaging_hub
             result = messaging_hub.handle_incoming_message('telegram', payload)
+            
+            # Auto AI response for all incoming messages
+            if result.get('success') and result.get('message'):
+                try:
+                    from ai_chat_service import ai_chat_service
+                    msg = result['message']
+                    conv = result.get('conversation', {})
+                    
+                    # Skip /start and other commands
+                    content = msg.get('content', '')
+                    if content and not content.startswith('/'):
+                        ai_result = ai_chat_service.generate_response(
+                            conversation_history=[{'direction': 'incoming', 'content': content}],
+                            agent_id='travel_consultant',
+                            context={'channel': 'telegram', 'customer_name': msg.get('sender_name', '')}
+                        )
+                        
+                        if ai_result.get('success') and ai_result.get('response'):
+                            chat_id = conv.get('external_chat_id')
+                            if chat_id:
+                                messaging_hub.send_message('telegram', chat_id, ai_result['response'])
+                                logger.info(f"AI auto-response sent to {chat_id}")
+                except Exception as ai_err:
+                    logger.error(f"AI auto-response error: {ai_err}")
+            
             return jsonify({'ok': True, 'result': result})
         except Exception as e:
             logger.error(f"Telegram webhook error: {e}")
@@ -1150,18 +1175,41 @@ def register_api_routes(app):
     
     @app.route('/webhooks/wazzup', methods=['POST'])
     def webhook_wazzup():
-        """Handle Wazzup webhook"""
+        """Handle Wazzup webhook with auto AI response"""
         try:
             payload = request.get_json() or {}
             logger.info(f"Wazzup webhook received: {str(payload)[:200]}")
             
             from messaging_service import messaging_hub
+            from ai_chat_service import ai_chat_service
             
             messages = payload.get('messages', [])
             results = []
             for msg in messages:
                 result = messaging_hub.handle_incoming_message('wazzup', msg)
                 results.append(result)
+                
+                # Auto AI response
+                if result.get('success') and result.get('message'):
+                    try:
+                        stored_msg = result['message']
+                        conv = result.get('conversation', {})
+                        content = stored_msg.get('content', '')
+                        
+                        if content:
+                            ai_result = ai_chat_service.generate_response(
+                                conversation_history=[{'direction': 'incoming', 'content': content}],
+                                agent_id='travel_consultant',
+                                context={'channel': 'whatsapp', 'customer_name': stored_msg.get('sender_name', '')}
+                            )
+                            
+                            if ai_result.get('success') and ai_result.get('response'):
+                                chat_id = conv.get('external_chat_id')
+                                if chat_id:
+                                    messaging_hub.send_message('whatsapp', chat_id, ai_result['response'])
+                                    logger.info(f"AI auto-response sent to WhatsApp {chat_id}")
+                    except Exception as ai_err:
+                        logger.error(f"AI auto-response error (WhatsApp): {ai_err}")
             
             return jsonify({'success': True, 'processed': len(results)})
         except Exception as e:
