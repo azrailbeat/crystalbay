@@ -4,36 +4,13 @@
 
 Crystal Bay Travel is a comprehensive multi-channel travel booking and customer management system. Its primary purpose is to streamline travel operations through automated lead processing, AI-powered customer interactions, and integrated booking management. The system features a clean web-based admin dashboard with Apple-inspired design and complete SAMO API integration for tour management.
 
-## Recent Changes (August 2025)
+## Recent Changes (January 2026)
 
-- **System Refactoring**: Eliminated duplicate menu items and functions, consolidated SAMO Testing and SAMO API into single interface
-- **Enhanced SAMO Testing**: Complete rebuild with curl functionality, advanced diagnostics, and real-time testing capabilities
-- **Improved Navigation**: Streamlined sidebar menu with consolidated "SAMO API & Тестирование" and "Мессенджеры" sections
-- **Advanced Diagnostics**: Network diagnostics, SSL checks, DNS resolution, and IP whitelist testing
-- **Curl Integration**: Built-in curl command generation, execution, and result display with preset configurations
-- **Real-time Monitoring**: Live connection status, service indicators, and automated log refresh
-- **Project Cleanup**: Removed unused templates and eliminated redundant code paths
-- **GitHub Ready**: Complete cleanup for GitHub release with streamlined Docker installation
-- **Easy Installation**: Automated start.sh script and comprehensive install.md guide
-- **Code Quality (Aug 10)**: Fixed all LSP errors, import issues, and type safety problems - production ready
-- **Bug Fixes (Aug 10)**: Resolved wazzup_message_processor imports, SSL certificate parsing, Docker configuration
-- **Production Ready (Aug 10)**: All Python files compile successfully, health endpoints working, Docker deployment fixed
-- **VPS Deployment Success (Aug 10)**: System successfully deployed on VPS (46.250.234.89) with Docker
-- **SAMO API URL Fix (Aug 10)**: Updated API URL from booking-kz.crystalbay.com to booking.crystalbay.com (working endpoint)
-- **Documentation Package (Aug 10)**: Created comprehensive README.md, DEPLOYMENT_GUIDE.md, QUICK_START.md with multiple installation methods
-- **Tours Search Interface (Aug 15)**: Complete SAMO API integration with tour search form, all endpoints working correctly
-- **Production Deployment (Aug 15)**: Demo data removed, system ready for production server deployment
-- **Customer Journey Testing (Aug 19)**: Comprehensive testing suite implemented covering all system processes
-- **UI/UX Fixes (Aug 19)**: Fixed navigation links, kanban board display, API compatibility, and form validation
-- **Production Ready Testing (Aug 19)**: All tests passing (8/9) - system fully validated for production deployment
-- **Project Cleanup (Aug 19)**: Removed all duplicate files, unused imports, attached assets, and obsolete Python modules
-- **Production Server Issues (Aug 19)**: Identified SAMO API 403 errors on server 46.250.234.89, created comprehensive diagnostics system
-- **Diagnostics System (Aug 19)**: Built production diagnostics with environment checks, SAMO API testing, and curl command generation
-- **IP Blacklist Issue (Aug 19)**: Identified SAMO API blocking IP 35.196.142.41 - system ready, awaiting IP whitelist update
-- **Diagnostics Fixed (Aug 19)**: Fixed "Unexpected token" errors, all diagnostic endpoints working, production-ready system
-- **Final System Check (Aug 20)**: IP changed to 35.227.47.172, still blocked by SAMO API, all other systems functional
-- **Project Cleanup (Aug 23)**: Removed all unnecessary files, created comprehensive tests, system ready for production
-- **Free WhatsApp Integration (Jan 2026)**: Added subscription-free WhatsApp module supporting Evolution API, whatsapp-web.js, and GREEN-API as self-hosted alternatives to Wazzup24
+- **AI Chat System (Jan 2026)**: Complete AI-powered chat with 3 modes: Manual, Assisted, Auto
+- **Telegram Integration (Jan 2026)**: Real-time webhook integration with @crystal_agent_bot
+- **Auto-Responses (Jan 2026)**: Automatic AI responses for all incoming Telegram/WhatsApp messages
+- **Project Cleanup (Jan 2026)**: Removed all unnecessary files, Node.js artifacts, test files - clean GitHub-ready state
+- **Free WhatsApp Integration (Jan 2026)**: Support for Evolution API, whatsapp-web.js, and GREEN-API as subscription-free alternatives
 
 ## User Preferences
 
@@ -66,13 +43,15 @@ The application follows a modular, service-oriented architecture, designed for c
 
 ```
 crystal-bay-travel/
-├── main.py                 # Main Flask application
-├── app_api.py             # API routes and endpoints  
-├── models.py              # Database models and services
-├── crystal_bay_samo_api.py # SAMO API integration
-├── samo_api_routes.py     # SAMO API route definitions
-├── proxy_client.py        # Proxy client for API requests
-├── templates/             # HTML templates
+├── main.py                    # Main Flask application with routes
+├── app_api.py                 # REST API endpoints
+├── models.py                  # Database models (SQLAlchemy)
+├── ai_chat_service.py         # AI chat service with OpenAI integration
+├── messaging_service.py       # Unified messaging hub (Telegram/WhatsApp)
+├── crystal_bay_samo_api.py    # SAMO API integration
+├── proxy_client.py            # Proxy client for API requests
+├── whatsapp_web_connector.py  # WhatsApp Web connector
+├── templates/                 # HTML templates (Jinja2)
 │   ├── layout.html        # Base layout with sidebar
 │   ├── dashboard.html     # Main dashboard
 │   ├── leads.html         # Lead management

@@ -32,6 +32,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.pythonlibs/
 
 # Environment Variables
 .env.local
@@ -68,13 +69,18 @@ Thumbs.db
 *.backup
 *~
 
-# Docker
-.dockerignore
+# Node.js (not used in production)
+node_modules/
+package-lock.json
 
 # Replit specific
 .replit
 replit.nix
+replit.md
 uv.lock
+.upm/
+.cache/
+.config/
 
 # Deployment
 deploy.sh
@@ -86,6 +92,11 @@ attached_assets/
 uploads/
 temp/
 
+# Test and result files
+*_results.json
+*.tar.gz
+
 # Documentation drafts
 *_DRAFT.md
 CLEANUP_*.md
+PRODUCTION_*.md

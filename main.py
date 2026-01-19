@@ -104,13 +104,9 @@ def wazzup_integration():
     return render_template('wazzup_integration.html')
 
 @app.route('/tours')
+@app.route('/tours-search')
 def tours():
     """Tours search page"""
-    return render_template('tours.html')
-
-@app.route('/tours-search')
-def tours_search():
-    """SAMO API tours search page"""
     return render_template('tours_search.html')
 
 @app.route('/bookings')
