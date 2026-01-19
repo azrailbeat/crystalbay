@@ -43,19 +43,30 @@ The application follows a modular, service-oriented architecture, designed for c
 
 ```
 crystal-bay-travel/
-├── main.py                    # Main Flask application with routes
+├── main.py                    # Main Flask application
 ├── app_api.py                 # REST API endpoints
-├── models.py                  # Database models (SQLAlchemy)
-├── ai_chat_service.py         # AI chat service with OpenAI integration
-├── messaging_service.py       # Unified messaging hub (Telegram/WhatsApp)
-├── crystal_bay_samo_api.py    # SAMO API integration
-├── proxy_client.py            # Proxy client for API requests
-├── whatsapp_web_connector.py  # WhatsApp Web connector
-├── templates/                 # HTML templates (Jinja2)
-│   ├── layout.html        # Base layout with sidebar
-│   ├── dashboard.html     # Main dashboard
-│   ├── leads.html         # Lead management
-│   ├── tours.html         # Tour search and booking
+├── models.py                  # Database models
+├── ai_chat_service.py         # AI chat (OpenAI GPT-4o)
+├── messaging_service.py       # Telegram/WhatsApp hub
+├── crystal_bay_samo_api.py    # SAMO API
+├── proxy_client.py            # Proxy client
+├── whatsapp_web_connector.py  # Free WhatsApp connector
+├── Dockerfile                 # Docker config
+│
+├── config/                    # Configuration
+│   ├── docker-compose.yml
+│   └── docker-compose.production.yml
+│
+├── docs/                      # Documentation
+│   ├── DEPLOYMENT_GUIDE.md
+│   ├── QUICK_START.md
+│   └── install.md
+│
+├── templates/                 # HTML templates
+│   ├── layout.html
+│   ├── dashboard.html
+│   ├── leads.html
+│   ├── tours_search.html
 │   ├── bookings.html      # Booking management
 │   ├── agents.html        # Agent management
 │   ├── analytics.html     # Analytics dashboard

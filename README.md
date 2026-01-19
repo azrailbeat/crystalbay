@@ -73,11 +73,13 @@ python main.py
 
 #### Development Mode
 ```bash
+cd config
 docker-compose up -d
 ```
 
 #### Production Mode
 ```bash
+cd config
 docker-compose -f docker-compose.production.yml up -d
 ```
 
@@ -145,36 +147,44 @@ DEBUG=False
 
 ```
 crystal-bay-travel/
-├── main.py                 # Main Flask application
-├── app_api.py             # API routes and endpoints
-├── models.py              # Database models and services
-├── crystal_bay_samo_api.py # SAMO API integration
-├── samo_api_routes.py     # SAMO API route definitions
-├── proxy_client.py        # Proxy client for API requests
-├── templates/             # HTML templates
-│   ├── layout.html        # Base layout with sidebar
-│   ├── dashboard.html     # Main dashboard
-│   ├── leads.html         # Lead management
-│   ├── tours.html         # Tour search and booking
-│   ├── bookings.html      # Booking management
-│   ├── agents.html        # Agent management
-│   ├── analytics.html     # Analytics dashboard
-│   ├── history.html       # Activity history
-│   ├── ai_agents.html     # AI agent management
-│   ├── messages.html      # Message center
-│   ├── samo_testing.html  # SAMO API testing interface
-│   └── unified_settings.html # Settings panel
-├── static/               # Static assets (CSS, JS, images)
-├── docker-compose.yml    # Development Docker setup
-├── docker-compose.production.yml # Production setup
-├── Dockerfile.production # Production Docker configuration
-├── requirements.txt      # Python dependencies
-├── start.sh             # Quick start script
-├── install.md           # Detailed installation guide
-├── .env.example         # Environment template
-├── .gitignore           # Git ignore rules
-├── LICENSE              # MIT License
-└── README.md            # This file
+├── main.py                    # Main Flask application
+├── app_api.py                 # REST API endpoints
+├── models.py                  # Database models (SQLAlchemy)
+├── ai_chat_service.py         # AI chat with OpenAI GPT-4o
+├── messaging_service.py       # Telegram/WhatsApp hub
+├── crystal_bay_samo_api.py    # SAMO API integration
+├── proxy_client.py            # Proxy client for API
+├── whatsapp_web_connector.py  # Free WhatsApp connector
+├── Dockerfile                 # Docker configuration
+│
+├── config/                    # Configuration files
+│   ├── docker-compose.yml         # Development Docker setup
+│   └── docker-compose.production.yml # Production with nginx/redis
+│
+├── docs/                      # Documentation
+│   ├── DEPLOYMENT_GUIDE.md    # Full deployment guide
+│   ├── QUICK_START.md         # Quick start guide
+│   └── install.md             # Installation details
+│
+├── templates/                 # HTML templates (Jinja2)
+│   ├── layout.html            # Base layout with sidebar
+│   ├── dashboard.html         # Main dashboard
+│   ├── leads.html             # Lead management (Kanban)
+│   ├── tours_search.html      # SAMO tour search
+│   ├── ai_agents.html         # AI agent config
+│   ├── messages_unified.html  # Message center
+│   └── ...                    # Other templates
+│
+├── static/                    # Static assets
+│   ├── css/                   # Stylesheets
+│   ├── js/                    # JavaScript
+│   └── images/                # Images
+│
+├── start.sh                   # Quick start script
+├── .env.example               # Environment template
+├── requirements.txt           # Python dependencies
+├── LICENSE                    # MIT License
+└── README.md                  # This file
 ```
 
 ## 🌐 Web Interface
